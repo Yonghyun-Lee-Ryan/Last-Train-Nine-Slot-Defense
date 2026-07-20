@@ -18,23 +18,37 @@ namespace LastTrain.Enemy
             }
 
             _enemies.Add(enemy);
-            enemy.Died += HandleEnemyDied;
+            enemy.Died += HandleEnemyRemoved;
+            enemy.ReachedTrain += HandleEnemyRemoved;
+        }
+
+        public void Unregister(EnemyRuntime enemy)
+        {
+            if (enemy == null)
+            {
+                return;
+            }
+
+            enemy.Died -= HandleEnemyRemoved;
+            enemy.ReachedTrain -= HandleEnemyRemoved;
+            _enemies.Remove(enemy);
         }
 
         public void Clear()
         {
             for (int i = 0; i < _enemies.Count; i++)
             {
-                _enemies[i].Died -= HandleEnemyDied;
+                EnemyRuntime enemy = _enemies[i];
+                enemy.Died -= HandleEnemyRemoved;
+                enemy.ReachedTrain -= HandleEnemyRemoved;
             }
 
             _enemies.Clear();
         }
 
-        private void HandleEnemyDied(EnemyRuntime enemy)
+        private void HandleEnemyRemoved(EnemyRuntime enemy)
         {
-            enemy.Died -= HandleEnemyDied;
-            _enemies.Remove(enemy);
+            Unregister(enemy);
         }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LastTrain.Data;
 using LastTrain.Enemy;
 using LastTrain.Grid;
 using LastTrain.Passenger;
@@ -9,21 +10,33 @@ using UnityEngine;
 namespace LastTrain.Battle
 {
     /// <summary>
-    /// 전투 틱·승객 컨트롤러·적 목록·발사체 풀을 조율한다.
+    /// 전투 틱·승객 공격·적 이동·객차 피해를 조율한다.
     /// </summary>
     public sealed class BattleManager : MonoBehaviour
     {
+        [Header("References")]
         [SerializeField] private GridManager gridManager;
         [SerializeField] private ProjectilePool projectilePool;
+        [SerializeField] private EnemyPool enemyPool;
+        [SerializeField] private RectTransform spawnPoint;
+        [SerializeField] private RectTransform trainTarget;
+
+        [Header("Combat")]
         [SerializeField] private float rangeScale = BattleConstants.RangeToWorldScale;
+        [SerializeField] private float moveSpeedScale = BattleConstants.MoveSpeedToWorldScale;
+        [SerializeField] private float trainReachRadius = 32f;
+        [SerializeField] private float stationDifficulty = 1f;
 
         private readonly EnemyRegistry _enemyRegistry = new();
         private readonly Dictionary<string, PassengerController> _passengerControllers = new();
+        private readonly Dictionary<string, EnemyController> _activeEnemies = new();
 
         private RunState _runState;
         private bool _initialized;
 
         public EnemyRegistry EnemyRegistry => _enemyRegistry;
+        public RectTransform SpawnPoint => spawnPoint;
+        public RectTransform TrainTarget => trainTarget;
 
         public void Initialize(RunState runState, GridManager grid)
         {
@@ -49,6 +62,11 @@ namespace LastTrain.Battle
                 projectilePool.Initialize();
             }
 
+            if (enemyPool != null)
+            {
+                enemyPool.Initialize();
+            }
+
             gridManager.PassengerDropped -= HandlePassengerDropped;
             gridManager.PassengerDropped += HandlePassengerDropped;
 
@@ -56,13 +74,61 @@ namespace LastTrain.Battle
             _initialized = true;
         }
 
+        public EnemyController SpawnEnemy(EnemyData data, Vector2? spawnPositionOverride = null)
+        {
+            if (!_initialized || data == null || enemyPool == null)
+            {
+                return null;
+            }
+
+            Vector2 spawnPosition = spawnPositionOverride
+                                    ?? (spawnPoint != null ? (Vector2)spawnPoint.position : Vector2.zero);
+
+            EnemyRuntime runtime = EnemyFactory.CreateRuntime(data, spawnPosition, stationDifficulty);
+            runtime.Died += HandleEnemyKilled;
+            runtime.ReachedTrain += HandleEnemyReachedTrain;
+
+            EnemyController controller = enemyPool.Spawn(runtime);
+            if (controller == null)
+            {
+                runtime.Died -= HandleEnemyKilled;
+                runtime.ReachedTrain -= HandleEnemyReachedTrain;
+                return null;
+            }
+
+            _activeEnemies[runtime.InstanceId] = controller;
+            _enemyRegistry.Register(runtime);
+            return controller;
+        }
+
+        /// <summary>개발 단위 5 호환: 런타임만 등록(이동 View 없음).</summary>
         public void RegisterEnemy(EnemyRuntime enemy)
         {
+            if (enemy == null)
+            {
+                return;
+            }
+
+            enemy.Died += HandleEnemyKilled;
+            enemy.ReachedTrain += HandleEnemyReachedTrain;
             _enemyRegistry.Register(enemy);
         }
 
         public void ClearEnemies()
         {
+            var controllers = new List<EnemyController>(_activeEnemies.Values);
+            for (int i = 0; i < controllers.Count; i++)
+            {
+                EnemyController controller = controllers[i];
+                if (controller?.Runtime != null)
+                {
+                    UnsubscribeEnemyEvents(controller.Runtime);
+                }
+
+                controller?.Release();
+            }
+
+            _activeEnemies.Clear();
             _enemyRegistry.Clear();
         }
 
@@ -73,17 +139,70 @@ namespace LastTrain.Battle
 
         private void Update()
         {
-            if (!_initialized || _runState == null || projectilePool == null)
+            if (!_initialized || _runState == null)
             {
                 return;
             }
 
             float deltaTime = Time.deltaTime;
-            IReadOnlyList<EnemyRuntime> enemies = _enemyRegistry.Enemies;
+            TickEnemyMovement(deltaTime);
+            TickPassengerAttacks(deltaTime);
+        }
 
-            foreach (KeyValuePair<string, PassengerController> pair in _passengerControllers)
+        private void TickEnemyMovement(float deltaTime)
+        {
+            if (trainTarget == null || _activeEnemies.Count == 0)
             {
-                PassengerController controller = pair.Value;
+                return;
+            }
+
+            Vector2 targetPosition = trainTarget.position;
+            var controllers = new List<EnemyController>(_activeEnemies.Values);
+            var reachedEnemies = new List<EnemyRuntime>();
+
+            for (int i = 0; i < controllers.Count; i++)
+            {
+                EnemyController controller = controllers[i];
+                EnemyRuntime runtime = controller?.Runtime;
+                if (controller == null || runtime == null || !runtime.IsAlive)
+                {
+                    continue;
+                }
+
+                bool reached = EnemyMovementService.TickMove(
+                    runtime,
+                    targetPosition,
+                    deltaTime,
+                    moveSpeedScale,
+                    trainReachRadius);
+
+                controller.SyncTransform();
+
+                if (reached)
+                {
+                    reachedEnemies.Add(runtime);
+                }
+            }
+
+            for (int i = 0; i < reachedEnemies.Count; i++)
+            {
+                TrainDamageService.TryApplyTrainDamage(_runState, reachedEnemies[i]);
+            }
+        }
+
+        private void TickPassengerAttacks(float deltaTime)
+        {
+            if (projectilePool == null)
+            {
+                return;
+            }
+
+            IReadOnlyList<EnemyRuntime> enemies = _enemyRegistry.Enemies;
+            var passengers = new List<PassengerController>(_passengerControllers.Values);
+
+            for (int i = 0; i < passengers.Count; i++)
+            {
+                PassengerController controller = passengers[i];
                 PassengerRuntime runtime = controller.Runtime;
 
                 if (runtime.GridSlotIndex < 0)
@@ -93,12 +212,41 @@ namespace LastTrain.Battle
 
                 Vector2 position = GetSlotWorldPosition(runtime.GridSlotIndex);
                 float worldRange = ToWorldRange(runtime.GetEffectiveRange());
-
-                if (controller.Tick(deltaTime, position, worldRange, enemies, projectilePool))
-                {
-                    // Attack fired - optional hook for future VFX
-                }
+                controller.Tick(deltaTime, position, worldRange, enemies, projectilePool);
             }
+        }
+
+        private void HandleEnemyKilled(EnemyRuntime enemy)
+        {
+            EnemyRewardService.TryGrantKillReward(_runState, enemy);
+            ReleaseEnemyController(enemy);
+        }
+
+        private void HandleEnemyReachedTrain(EnemyRuntime enemy)
+        {
+            ReleaseEnemyController(enemy);
+        }
+
+        private void ReleaseEnemyController(EnemyRuntime enemy)
+        {
+            if (enemy == null)
+            {
+                return;
+            }
+
+            UnsubscribeEnemyEvents(enemy);
+
+            if (_activeEnemies.TryGetValue(enemy.InstanceId, out EnemyController controller))
+            {
+                _activeEnemies.Remove(enemy.InstanceId);
+                controller.Release();
+            }
+        }
+
+        private void UnsubscribeEnemyEvents(EnemyRuntime enemy)
+        {
+            enemy.Died -= HandleEnemyKilled;
+            enemy.ReachedTrain -= HandleEnemyReachedTrain;
         }
 
         private void OnDestroy()
@@ -107,6 +255,8 @@ namespace LastTrain.Battle
             {
                 gridManager.PassengerDropped -= HandlePassengerDropped;
             }
+
+            ClearEnemies();
         }
 
         private void HandlePassengerDropped(int originSlot, int targetSlot, GridDropResult result)

@@ -1,8 +1,6 @@
-using System;
 using LastTrain.Battle;
 using LastTrain.Core;
 using LastTrain.Data;
-using LastTrain.Enemy;
 using LastTrain.Run;
 using UnityEngine;
 
@@ -10,22 +8,20 @@ namespace LastTrain.UI
 {
     /// <summary>
     /// Game Scene에서 BattleManager를 초기화하고,
-    /// 개발 단위 5 테스트용 적을 스폰한다. (적 이동은 개발 단위 6)
+    /// 개발 단위 6 테스트용 적을 주기적으로 스폰한다.
     /// </summary>
     [DefaultExecutionOrder(100)]
     public class GameBattleBootstrap : MonoBehaviour
     {
-        [Serializable]
-        private struct DebugEnemySpawn
-        {
-            public EnemyData enemyData;
-            public Vector2 canvasWorldPosition;
-        }
-
         [SerializeField] private BattleManager battleManager;
         [SerializeField] private Grid.GridManager gridManager;
-        [SerializeField] private DebugEnemySpawn[] debugEnemies;
-        [SerializeField] private float stationDifficulty = 1f;
+        [SerializeField] private EnemyData[] debugSpawnEnemies;
+        [SerializeField] private float spawnInterval = 2.5f;
+        [SerializeField] private int maxConcurrentEnemies = 6;
+        [SerializeField] private bool autoSpawn = true;
+
+        private float _spawnTimer;
+        private int _spawnIndex;
 
         private void Start()
         {
@@ -49,30 +45,31 @@ namespace LastTrain.UI
 
             RunState runState = appRoot.GameSession.RunState;
             battleManager.Initialize(runState, gridManager);
-            SpawnDebugEnemies();
+            _spawnTimer = spawnInterval;
         }
 
-        private void SpawnDebugEnemies()
+        private void Update()
         {
-            if (debugEnemies == null || debugEnemies.Length == 0)
+            if (!autoSpawn || battleManager == null || debugSpawnEnemies == null || debugSpawnEnemies.Length == 0)
             {
                 return;
             }
 
-            battleManager.ClearEnemies();
-
-            for (int i = 0; i < debugEnemies.Length; i++)
+            if (battleManager.EnemyRegistry.Enemies.Count >= maxConcurrentEnemies)
             {
-                DebugEnemySpawn spawn = debugEnemies[i];
-                if (spawn.enemyData == null)
-                {
-                    continue;
-                }
-
-                float maxHealth = spawn.enemyData.GetScaledHealth(stationDifficulty);
-                var runtime = new EnemyRuntime(spawn.enemyData, maxHealth, spawn.canvasWorldPosition);
-                battleManager.RegisterEnemy(runtime);
+                return;
             }
+
+            _spawnTimer -= Time.deltaTime;
+            if (_spawnTimer > 0f)
+            {
+                return;
+            }
+
+            _spawnTimer = spawnInterval;
+            EnemyData data = debugSpawnEnemies[_spawnIndex % debugSpawnEnemies.Length];
+            _spawnIndex++;
+            battleManager.SpawnEnemy(data);
         }
     }
 }
