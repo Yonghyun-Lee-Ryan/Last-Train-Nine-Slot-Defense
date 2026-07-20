@@ -57,7 +57,7 @@ namespace LastTrain.Tests.EditMode
 
             Assert.IsFalse(trainApplied);
             Assert.IsTrue(rewardGranted);
-            Assert.AreEqual(4, _runState.Currency.CurrentCoins);
+            Assert.AreEqual(54, _runState.Currency.CurrentCoins);
             Assert.AreEqual(100, _runState.Train.CurrentHp);
             Assert.AreEqual(1, _runState.History.EnemiesKilled);
         }
@@ -72,7 +72,7 @@ namespace LastTrain.Tests.EditMode
             bool rewardGranted = EnemyRewardService.TryGrantKillReward(_runState, enemy);
 
             Assert.IsFalse(rewardGranted);
-            Assert.AreEqual(0, _runState.Currency.CurrentCoins);
+            Assert.AreEqual(50, _runState.Currency.CurrentCoins);
             Assert.AreEqual(92, _runState.Train.CurrentHp);
             Assert.AreEqual(0, _runState.History.EnemiesKilled);
         }

@@ -105,7 +105,14 @@ namespace LastTrain.EditorTools
 
             CreateTitleLabel(safeArea, "GAME (임시)", 56, new Vector2(0, 500));
 
-            Button exitButton = CreateButton(safeArea, "ExitToResultButton", "임시 종료 → 결과", new Vector2(0, -100));
+            Button exitButton = CreateButton(safeArea, "ExitToResultButton", "임시 종료 → 결과", new Vector2(0, 750));
+            // 상단 우측으로 배치해 Grid와 겹치지 않게 한다.
+            var exitRect = exitButton.GetComponent<RectTransform>();
+            exitRect.anchorMin = new Vector2(1f, 1f);
+            exitRect.anchorMax = new Vector2(1f, 1f);
+            exitRect.pivot = new Vector2(1f, 1f);
+            exitRect.anchoredPosition = new Vector2(-24f, -24f);
+            exitRect.sizeDelta = new Vector2(320f, 100f);
             var controller = canvas.gameObject.AddComponent<GamePlaceholderController>();
             AssignPrivateField(controller, "exitToResultButton", exitButton);
 

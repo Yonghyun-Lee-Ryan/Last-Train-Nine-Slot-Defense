@@ -26,7 +26,7 @@ namespace LastTrain.Tests.EditMode
             Assert.IsFalse(string.IsNullOrEmpty(_runState.RunId));
             Assert.AreEqual(100, _runState.Train.MaxHp);
             Assert.AreEqual(100, _runState.Train.CurrentHp);
-            Assert.AreEqual(0, _runState.Currency.CurrentCoins);
+            Assert.AreEqual(50, _runState.Currency.CurrentCoins);
             Assert.AreEqual(1, _runState.Station.CurrentStationIndex);
             Assert.AreEqual(RunPhase.None, _runState.Battle.CurrentPhase);
         }
@@ -63,7 +63,7 @@ namespace LastTrain.Tests.EditMode
             _runState.RecordEnemyKill(5);
 
             Assert.AreEqual(1, _runState.History.EnemiesKilled);
-            Assert.AreEqual(5, _runState.Currency.CurrentCoins);
+            Assert.AreEqual(55, _runState.Currency.CurrentCoins);
         }
 
         [Test]
@@ -82,7 +82,7 @@ namespace LastTrain.Tests.EditMode
             Assert.AreEqual(1, result.MergeCount);
             Assert.AreEqual(2, result.HighestPassengerStar);
             Assert.AreEqual(70, result.RemainingTrainHp);
-            Assert.AreEqual(10, result.FinalCoins);
+            Assert.AreEqual(60, result.FinalCoins);
         }
 
         private static PassengerRuntime CreateTestPassenger()

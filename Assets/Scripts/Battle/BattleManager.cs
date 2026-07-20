@@ -334,7 +334,11 @@ namespace LastTrain.Battle
 
         private Vector2 GetSlotWorldPosition(int slotIndex)
         {
-            GridSlot slot = gridManager.GetSlot(slotIndex);
+            if (gridManager == null || !gridManager.TryGetSlot(slotIndex, out GridSlot slot))
+            {
+                return Vector2.zero;
+            }
+
             return slot.ContentAnchor.position;
         }
     }

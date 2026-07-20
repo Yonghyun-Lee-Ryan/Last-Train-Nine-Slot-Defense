@@ -10,7 +10,7 @@ namespace LastTrain.Grid
     /// RunState를 직접 수정하지 않는다.
     /// </summary>
     [RequireComponent(typeof(CanvasGroup))]
-    public class PassengerView : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
+    public class PassengerView : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler
     {
         [SerializeField] private Image portraitImage;
         [SerializeField] private Text nameLabel;
@@ -139,6 +139,16 @@ namespace LastTrain.Grid
             _canvasGroup.alpha = 1f;
 
             _gridManager.HandleDragEnded(this, eventData.position, eventData.pressEventCamera);
+        }
+
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            if (_isDragging || _gridManager == null || _passenger == null)
+            {
+                return;
+            }
+
+            _gridManager.HandlePassengerClicked(this);
         }
 
         public void RevertToOriginalTransform()

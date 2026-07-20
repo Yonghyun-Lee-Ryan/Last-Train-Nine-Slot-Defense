@@ -34,7 +34,7 @@ namespace LastTrain.Tests.EditMode
             RunResult result = _session.EndRun(RunEndReason.Victory, isVictory: true);
 
             Assert.IsTrue(result.IsVictory);
-            Assert.AreEqual(8, result.FinalCoins);
+            Assert.AreEqual(58, result.FinalCoins);
             Assert.AreSame(result, _session.LastResult);
             Assert.IsFalse(_session.HasActiveRun);
         }

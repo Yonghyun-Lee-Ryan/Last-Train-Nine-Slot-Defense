@@ -18,6 +18,7 @@ namespace LastTrain.Grid
         public event Action<int, int, GridDropResult> PassengerDropped;
         public event Action<MergeResult> MergeStarted;
         public event Action<MergeResult> MergeCompleted;
+        public event Action<int> PassengerSelected;
 
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private GridSlot[] slots = new GridSlot[RunState.GridSlotCount];
@@ -33,12 +34,15 @@ namespace LastTrain.Grid
         private RunState _runState;
         private PassengerView _draggingView;
         private int _dragOriginSlotIndex = -1;
+        private int _selectedSlotIndex = -1;
 
         public bool CanDrag => allowDrag && _runState != null;
 
         public Canvas RootCanvas => rootCanvas;
 
         public IReadOnlyList<GridSlot> Slots => slots;
+
+        public int SelectedSlotIndex => _selectedSlotIndex;
 
         /// <summary>RunState를 연결하고 View를 동기화한다.</summary>
         public void Initialize(RunState runState)
@@ -88,7 +92,13 @@ namespace LastTrain.Grid
                     continue;
                 }
 
-                view.SnapToSlot(GetSlot(i));
+                if (!TryGetSlot(i, out GridSlot slot))
+                {
+                    Debug.LogError($"[GridManager] slots[{i}]가 비어 있어 View를 배치할 수 없습니다.", this);
+                    continue;
+                }
+
+                view.SnapToSlot(slot);
             }
 
             RemoveInactiveViews(activeIds);
@@ -99,6 +109,23 @@ namespace LastTrain.Grid
             _draggingView = view;
             _dragOriginSlotIndex = view.SlotIndex;
             SetAllHighlights(true);
+        }
+
+        internal void HandlePassengerClicked(PassengerView view)
+        {
+            if (view == null)
+            {
+                return;
+            }
+
+            _selectedSlotIndex = view.SlotIndex;
+            PassengerSelected?.Invoke(_selectedSlotIndex);
+        }
+
+        public void ClearSelection()
+        {
+            _selectedSlotIndex = -1;
+            PassengerSelected?.Invoke(_selectedSlotIndex);
         }
 
         internal void HandleDragEnded(PassengerView view, Vector2 screenPosition, Camera eventCamera)
@@ -122,6 +149,14 @@ namespace LastTrain.Grid
         {
             if (_runState == null)
             {
+                return GridDropResult.Reverted;
+            }
+
+            // 유효하지 않은 슬롯은 RunState 조회 전에 걸러, 드래그 View가 Canvas에 고아로 남지 않게 한다.
+            if (fromSlot < 0 || fromSlot >= RunState.GridSlotCount
+                || toSlot < 0 || toSlot >= RunState.GridSlotCount)
+            {
+                RefreshViews();
                 return GridDropResult.Reverted;
             }
 
@@ -166,14 +201,26 @@ namespace LastTrain.Grid
             return result;
         }
 
+        public bool TryGetSlot(int index, out GridSlot slot)
+        {
+            slot = null;
+            if (slots == null || index < 0 || index >= slots.Length)
+            {
+                return false;
+            }
+
+            slot = slots[index];
+            return slot != null;
+        }
+
         public GridSlot GetSlot(int index)
         {
-            if (index < 0 || index >= slots.Length || slots[index] == null)
+            if (!TryGetSlot(index, out GridSlot slot))
             {
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
 
-            return slots[index];
+            return slot;
         }
 
         public int FindSlotIndexAtScreenPoint(Vector2 screenPosition, Camera eventCamera)

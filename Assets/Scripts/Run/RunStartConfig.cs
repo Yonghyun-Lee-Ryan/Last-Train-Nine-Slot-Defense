@@ -8,7 +8,7 @@ namespace LastTrain.Run
 
         public int InitialTrainMaxHp { get; set; } = DefaultTrainMaxHp;
         public int InitialTrainCurrentHp { get; set; } = DefaultTrainMaxHp;
-        public int InitialCoins { get; set; }
+        public int InitialCoins { get; set; } = 50;
         public int InitialStationIndex { get; set; } = 1;
         public string LineId { get; set; } = "line1";
 

@@ -20,6 +20,7 @@ namespace LastTrain.Run
         public BattleState Battle { get; private set; }
         public StationProgress Station { get; private set; }
         public RunHistory History { get; private set; }
+        public SummonProgress Summon { get; private set; }
 
         private readonly PassengerRuntime[] _gridSlots = new PassengerRuntime[GridSlotCount];
         private readonly List<PassengerRuntime> _allPassengers = new();
@@ -43,6 +44,8 @@ namespace LastTrain.Run
             Battle = new BattleState();
             Station = new StationProgress();
             History = new RunHistory();
+            Summon = new SummonProgress();
+            Summon.Reset();
 
             Station.Initialize(config.InitialStationIndex);
 
