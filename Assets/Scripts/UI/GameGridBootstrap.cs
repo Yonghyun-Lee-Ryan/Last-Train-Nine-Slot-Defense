@@ -9,6 +9,7 @@ namespace LastTrain.UI
     /// Game Scene에서 GridManager를 RunState와 연결하고,
     /// 개발 단위 4 테스트용 승객을 초기 배치한다.
     /// </summary>
+    [DefaultExecutionOrder(-100)]
     public class GameGridBootstrap : MonoBehaviour
     {
         [SerializeField] private Grid.GridManager gridManager;
