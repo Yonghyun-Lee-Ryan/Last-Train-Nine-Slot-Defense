@@ -55,6 +55,22 @@ namespace LastTrain.Tests.EditMode
         }
 
         [Test]
+        public void TryDrop_SamePassengerSameStar_Merges()
+        {
+            Object.DestroyImmediate(_passengerB);
+            _passengerB = CreatePassenger("passenger_a");
+            _runState.TryRemovePassenger(4, out _);
+            _runState.TryPlacePassenger(4, PassengerRuntime.Create(_passengerB));
+
+            GridDropResult result = GridInteractionService.TryDrop(_runState, 0, 4);
+
+            Assert.AreEqual(GridDropResult.Merged, result);
+            Assert.IsNull(_runState.GetPassengerAtSlot(0));
+            Assert.AreEqual(2, _runState.GetPassengerAtSlot(4).StarLevel);
+            Assert.AreEqual(1, _runState.History.MergeCount);
+        }
+
+        [Test]
         public void TryDrop_InvalidTarget_Reverts()
         {
             GridDropResult result = GridInteractionService.TryDrop(_runState, 0, -1);

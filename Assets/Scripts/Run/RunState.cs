@@ -110,7 +110,7 @@ namespace LastTrain.Run
             return true;
         }
 
-        /// <summary>슬롯에서 승객을 제거한다.</summary>
+        /// <summary>슬롯에서 승객을 제거한다. AllPassengers 목록은 유지한다.</summary>
         public bool TryRemovePassenger(int slotIndex, out PassengerRuntime removed)
         {
             ValidateSlotIndex(slotIndex);
@@ -122,6 +122,21 @@ namespace LastTrain.Run
 
             _gridSlots[slotIndex] = null;
             removed.GridSlotIndex = -1;
+            return true;
+        }
+
+        /// <summary>
+        /// 합성·판매 등으로 회차에서 승객을 완전히 제거한다.
+        /// Grid와 AllPassengers에서 모두 제거한다.
+        /// </summary>
+        public bool TryConsumePassenger(int slotIndex, out PassengerRuntime removed)
+        {
+            if (!TryRemovePassenger(slotIndex, out removed))
+            {
+                return false;
+            }
+
+            _allPassengers.Remove(removed);
             return true;
         }
 

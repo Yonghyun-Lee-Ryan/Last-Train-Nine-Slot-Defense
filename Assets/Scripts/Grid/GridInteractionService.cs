@@ -1,3 +1,4 @@
+using LastTrain.Passenger;
 using LastTrain.Run;
 
 namespace LastTrain.Grid
@@ -12,7 +13,10 @@ namespace LastTrain.Grid
         Moved = 1,
 
         /// <summary>다른 승객과 위치 교환.</summary>
-        Swapped = 2
+        Swapped = 2,
+
+        /// <summary>동일 승객 합성.</summary>
+        Merged = 3
     }
 
     /// <summary>
@@ -50,9 +54,19 @@ namespace LastTrain.Grid
             }
 
             PassengerRuntime targetPassenger = runState.GetPassengerAtSlot(toSlot);
-            runState.TrySwapSlots(fromSlot, toSlot);
+            if (targetPassenger == null)
+            {
+                runState.TrySwapSlots(fromSlot, toSlot);
+                return GridDropResult.Moved;
+            }
 
-            return targetPassenger == null ? GridDropResult.Moved : GridDropResult.Swapped;
+            if (MergeService.TryMerge(runState, fromSlot, toSlot, out _))
+            {
+                return GridDropResult.Merged;
+            }
+
+            runState.TrySwapSlots(fromSlot, toSlot);
+            return GridDropResult.Swapped;
         }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LastTrain.Passenger;
 using LastTrain.Run;
 using UnityEngine;
 #if UNITY_EDITOR
@@ -15,6 +16,8 @@ namespace LastTrain.Grid
     public class GridManager : MonoBehaviour
     {
         public event Action<int, int, GridDropResult> PassengerDropped;
+        public event Action<MergeResult> MergeStarted;
+        public event Action<MergeResult> MergeCompleted;
 
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private GridSlot[] slots = new GridSlot[RunState.GridSlotCount];
@@ -110,19 +113,57 @@ namespace LastTrain.Grid
             }
 
             int targetSlot = FindSlotIndexAtScreenPoint(screenPosition, eventCamera);
-            GridDropResult result = GridInteractionService.TryDrop(_runState, _dragOriginSlotIndex, targetSlot);
-
-            if (result == GridDropResult.Reverted)
-            {
-                RefreshViews();
-            }
-            else
-            {
-                RefreshViews();
-                PassengerDropped?.Invoke(_dragOriginSlotIndex, targetSlot, result);
-            }
-
+            ApplyDrop(_dragOriginSlotIndex, targetSlot);
             ClearDragState();
+        }
+
+        /// <summary>드롭 결과를 적용한다. 테스트·입력 공용.</summary>
+        public GridDropResult ApplyDrop(int fromSlot, int toSlot)
+        {
+            if (_runState == null)
+            {
+                return GridDropResult.Reverted;
+            }
+
+            PassengerRuntime source = _runState.GetPassengerAtSlot(fromSlot);
+            PassengerRuntime target = _runState.GetPassengerAtSlot(toSlot);
+            MergeResult pendingMerge = default;
+            bool willMerge = target != null && MergeService.CanMerge(source, target);
+
+            if (willMerge)
+            {
+                pendingMerge = new MergeResult(
+                    fromSlot,
+                    toSlot,
+                    source.InstanceId,
+                    target.InstanceId,
+                    target.Data.Id,
+                    target.StarLevel + 1);
+                MergeStarted?.Invoke(pendingMerge);
+            }
+
+            GridDropResult result = GridInteractionService.TryDrop(_runState, fromSlot, toSlot);
+            RefreshViews();
+
+            if (result == GridDropResult.Merged)
+            {
+                PassengerRuntime merged = _runState.GetPassengerAtSlot(toSlot);
+                var completed = new MergeResult(
+                    fromSlot,
+                    toSlot,
+                    pendingMerge.ConsumedInstanceId,
+                    merged != null ? merged.InstanceId : pendingMerge.ResultInstanceId,
+                    pendingMerge.PassengerId,
+                    merged != null ? merged.StarLevel : pendingMerge.ResultingStarLevel);
+                MergeCompleted?.Invoke(completed);
+            }
+
+            if (result != GridDropResult.Reverted)
+            {
+                PassengerDropped?.Invoke(fromSlot, toSlot, result);
+            }
+
+            return result;
         }
 
         public GridSlot GetSlot(int index)

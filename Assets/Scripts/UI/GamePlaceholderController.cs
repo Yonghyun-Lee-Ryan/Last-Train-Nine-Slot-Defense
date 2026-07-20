@@ -1,4 +1,5 @@
 using LastTrain.Core;
+using LastTrain.Run;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -35,6 +36,13 @@ namespace LastTrain.UI
         private void OnExitClicked()
         {
             exitToResultButton.interactable = false;
+
+            AppRoot appRoot = AppRoot.Instance;
+            if (appRoot != null && appRoot.GameSession.HasActiveRun)
+            {
+                appRoot.GameSession.EndRun(RunEndReason.Abandoned, isVictory: false);
+            }
+
             SceneFlow.Load(SceneNames.Result);
         }
     }

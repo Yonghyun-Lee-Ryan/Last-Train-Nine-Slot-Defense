@@ -1,4 +1,5 @@
 using LastTrain.Core;
+using LastTrain.Run;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -35,6 +36,14 @@ namespace LastTrain.UI
         private void OnStartClicked()
         {
             startButton.interactable = false;
+
+            // 새 회차로 시작한다. 이전 씬의 RunState가 남아 있어도 덮어쓴다.
+            AppRoot appRoot = AppRoot.Instance;
+            if (appRoot != null)
+            {
+                appRoot.GameSession.StartNewRun();
+            }
+
             SceneFlow.Load(SceneNames.Game);
         }
     }
