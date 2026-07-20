@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4df7fdcdd4033244ca6a33f779685264, type: 3}
+  m_Name: Ability_OfficeAttack
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Data.AbilityData
+  id: ability_office_attack
+  displayName: "\uC57C\uADFC\uC758 \uD798"
+  description: "\uC9C1\uC7A5\uC778 \uACF5\uACA9\uB825 +20%"
+  rarity: 0
+  effectType: 1
+  effectValue: 20
+  targetPassengerId: passenger_office_worker
+  allowDuplicate: 1
+  maxStack: 99

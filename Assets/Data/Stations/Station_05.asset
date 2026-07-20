@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 96c8f60974a119d4fb01a9817396a6d7, type: 3}
+  m_Name: Station_05
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Data.StationData
+  id: line1_station_05
+  displayName: "5\uBC88\uC9F8 \uC5ED (\uC911\uAC04 \uBCF4\uC2A4)"
+  stationType: 3
+  stationIndex: 5
+  difficultyMultiplier: 1.7
+  waves:
+  - {fileID: 11400000, guid: b9f59e385fb06ec4db30a6f4e0912da2, type: 2}
+  - {fileID: 11400000, guid: 8131befe10830da419cdf769bc6bd360, type: 2}
+  - {fileID: 11400000, guid: b12d67a49311d604bb5088a46b87bf3f, type: 2}
+  rewardCoins: 30
+  grantsAbilityChoice: 1

@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4df7fdcdd4033244ca6a33f779685264, type: 3}
+  m_Name: Ability_Diverse
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Data.AbilityData
+  id: ability_diverse
+  displayName: "\uB2E4\uC591\uD55C \uC2B9\uAC1D"
+  description: "\uC11C\uB85C \uB2E4\uB978 \uC2B9\uAC1D 6\uC885 \uBC30\uCE58 \uC2DC
+    \uBAA8\uB4E0 \uD53C\uD574 +20%"
+  rarity: 2
+  effectType: 10
+  effectValue: 20
+  targetPassengerId: 
+  allowDuplicate: 1
+  maxStack: 99
