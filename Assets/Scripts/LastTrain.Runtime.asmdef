@@ -1,0 +1,17 @@
+{
+    "name": "LastTrain.Runtime",
+    "rootNamespace": "LastTrain",
+    "references": [
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false,
+    "useGUIDs": false
+}
