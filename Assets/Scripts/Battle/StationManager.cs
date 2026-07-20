@@ -156,10 +156,8 @@ namespace LastTrain.Battle
 
             _runState.Battle.SetPhase(RunPhase.RewardSelecting);
 
-            if (TryAdvanceToNextStation())
-            {
-                TryStartNextWave();
-            }
+            // 다음 역 준비 단계로 이동. 전투 시작은 UI의 준비 완료 버튼에서 처리한다.
+            TryAdvanceToNextStation();
         }
     }
 }

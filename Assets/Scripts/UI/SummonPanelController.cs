@@ -93,7 +93,7 @@ namespace LastTrain.UI
             }
 
             RefreshHud();
-            SetStatus("소환·판매 준비 완료");
+            SetStatus("소환 준비 완료");
         }
 
         private void EnsureReferences()

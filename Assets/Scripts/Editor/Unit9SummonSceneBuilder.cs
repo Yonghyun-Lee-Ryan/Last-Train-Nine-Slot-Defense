@@ -89,15 +89,15 @@ namespace LastTrain.EditorTools
             rootRect.anchorMin = new Vector2(0f, 0f);
             rootRect.anchorMax = new Vector2(1f, 0f);
             rootRect.pivot = new Vector2(0.5f, 0f);
-            rootRect.anchoredPosition = new Vector2(0f, 40f);
-            rootRect.sizeDelta = new Vector2(0f, 280f);
+            rootRect.anchoredPosition = new Vector2(0f, 8f);
+            rootRect.sizeDelta = new Vector2(0f, 200f);
 
-            Text coinLabel = CreateText(root.transform, "CoinLabel", "코인 50", 36, new Vector2(-280f, 200f), new Vector2(280f, 50f));
-            Text costLabel = CreateText(root.transform, "CostLabel", "소환 10", 32, new Vector2(280f, 200f), new Vector2(280f, 50f));
-            Text statusLabel = CreateText(root.transform, "StatusLabel", "상태", 26, new Vector2(0f, 140f), new Vector2(900f, 40f));
+            Text coinLabel = CreateBottomText(root.transform, "CoinLabel", "코인 50", 32, new Vector2(-320f, 140f), new Vector2(280f, 40f));
+            Text costLabel = CreateBottomText(root.transform, "CostLabel", "소환 10", 28, new Vector2(320f, 140f), new Vector2(280f, 40f));
+            Text statusLabel = CreateBottomText(root.transform, "StatusLabel", "상태", 24, new Vector2(0f, 140f), new Vector2(400f, 40f));
 
-            Button summonButton = CreateButton(root.transform, "SummonButton", "소환", new Vector2(-220f, 60f), new Vector2(200f, 80f));
-            Button sellButton = CreateButton(root.transform, "SellButton", "판매", new Vector2(220f, 60f), new Vector2(200f, 80f));
+            Button summonButton = CreateBottomButton(root.transform, "SummonButton", "소환", new Vector2(-220f, 45f), new Vector2(200f, 80f));
+            Button sellButton = CreateBottomButton(root.transform, "SellButton", "판매하기", new Vector2(220f, 45f), new Vector2(200f, 80f));
 
             GameObject offerPanel = CreateOfferPanel(root.transform, out Button[] offerButtons, out Text[] offerLabels,
                 out Button cancelButton, out Button freeReroll, out Button adReroll);
@@ -186,6 +186,18 @@ namespace LastTrain.EditorTools
             return go.GetComponent<Button>();
         }
 
+        private static Button CreateBottomButton(Transform parent, string name, string label, Vector2 anchoredPos, Vector2 size)
+        {
+            Button button = CreateButton(parent, name, label, anchoredPos, size);
+            var rect = button.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 0f);
+            rect.anchorMax = new Vector2(0.5f, 0f);
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.anchoredPosition = anchoredPos;
+            rect.sizeDelta = size;
+            return button;
+        }
+
         private static Text CreateText(Transform parent, string name, string content, int fontSize, Vector2 anchoredPos, Vector2 size)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Text));
@@ -201,6 +213,18 @@ namespace LastTrain.EditorTools
             text.color = Color.white;
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf")
                         ?? Font.CreateDynamicFontFromOSFont("Malgun Gothic", fontSize);
+            return text;
+        }
+
+        private static Text CreateBottomText(Transform parent, string name, string content, int fontSize, Vector2 anchoredPos, Vector2 size)
+        {
+            Text text = CreateText(parent, name, content, fontSize, anchoredPos, size);
+            var rect = text.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 0f);
+            rect.anchorMax = new Vector2(0.5f, 0f);
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.anchoredPosition = anchoredPos;
+            rect.sizeDelta = size;
             return text;
         }
     }

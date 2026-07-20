@@ -15,10 +15,22 @@ namespace LastTrain.UI
         [SerializeField] private BattleManager battleManager;
         [SerializeField] private Grid.GridManager gridManager;
         [SerializeField] private GameDatabase gameDatabase;
-        [SerializeField] private bool autoStartFirstWave = true;
+
+        [Tooltip("true면 첫 웨이브를 자동 시작. HUD 준비 완료 버튼 사용 시 false 권장.")]
+        [SerializeField] private bool autoStartFirstWave;
 
         private StationManager _stationManager;
         private GameSession _gameSession;
+        private bool _paused;
+
+        public StationManager StationManager => _stationManager;
+        public GameDatabase GameDatabase => gameDatabase;
+        public bool IsPaused => _paused;
+
+        public void SetPaused(bool paused)
+        {
+            _paused = paused;
+        }
 
         private void Start()
         {
@@ -74,7 +86,7 @@ namespace LastTrain.UI
 
         private void Update()
         {
-            if (_stationManager == null || _gameSession == null || !_gameSession.HasActiveRun)
+            if (_paused || _stationManager == null || _gameSession == null || !_gameSession.HasActiveRun)
             {
                 return;
             }

@@ -90,7 +90,7 @@ namespace LastTrain.Tests.EditMode
 
             Assert.AreSame(station, completed);
             Assert.AreEqual(70, _runState.Currency.CurrentCoins);
-            Assert.AreEqual(RunPhase.Fighting, _runState.Battle.CurrentPhase);
+            Assert.AreEqual(RunPhase.Preparing, _runState.Battle.CurrentPhase);
             Assert.AreEqual(2, _runState.Station.CurrentStationIndex);
         }
 
