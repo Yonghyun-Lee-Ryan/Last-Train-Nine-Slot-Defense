@@ -7,21 +7,18 @@ using UnityEngine;
 namespace LastTrain.UI
 {
     /// <summary>
-    /// Game Scene에서 BattleManager를 초기화하고,
-    /// 개발 단위 6 테스트용 적을 주기적으로 스폰한다.
+    /// Game Scene에서 BattleManager·StationManager를 초기화하고 웨이브를 진행한다.
     /// </summary>
     [DefaultExecutionOrder(100)]
     public class GameBattleBootstrap : MonoBehaviour
     {
         [SerializeField] private BattleManager battleManager;
         [SerializeField] private Grid.GridManager gridManager;
-        [SerializeField] private EnemyData[] debugSpawnEnemies;
-        [SerializeField] private float spawnInterval = 2.5f;
-        [SerializeField] private int maxConcurrentEnemies = 6;
-        [SerializeField] private bool autoSpawn = true;
+        [SerializeField] private GameDatabase gameDatabase;
+        [SerializeField] private bool autoStartFirstWave = true;
 
-        private float _spawnTimer;
-        private int _spawnIndex;
+        private StationManager _stationManager;
+        private GameSession _gameSession;
 
         private void Start()
         {
@@ -43,33 +40,85 @@ namespace LastTrain.UI
                 return;
             }
 
-            RunState runState = appRoot.GameSession.RunState;
+            _gameSession = appRoot.GameSession;
+            RunState runState = _gameSession.RunState;
+
+            if (gameDatabase == null)
+            {
+                Debug.LogError("[GameBattleBootstrap] gameDatabase가 연결되지 않았습니다.", this);
+                return;
+            }
+
+            if (!gameDatabase.TryGetStationByIndex(runState.Station.CurrentStationIndex, out StationData startingStation))
+            {
+                Debug.LogError(
+                    $"[GameBattleBootstrap] stationIndex={runState.Station.CurrentStationIndex} 역 데이터를 찾지 못했습니다.",
+                    this);
+                return;
+            }
+
             battleManager.Initialize(runState, gridManager);
-            _spawnTimer = spawnInterval;
+            battleManager.SetStationDifficulty(startingStation.DifficultyMultiplier);
+
+            _stationManager = new StationManager(ResolveStationByIndex);
+            _stationManager.StationStarted += HandleStationStarted;
+            _stationManager.Initialize(runState, startingStation);
+
+            _gameSession.RunEnded += HandleRunEnded;
+
+            if (autoStartFirstWave)
+            {
+                _stationManager.TryStartNextWave();
+            }
         }
 
         private void Update()
         {
-            if (!autoSpawn || battleManager == null || debugSpawnEnemies == null || debugSpawnEnemies.Length == 0)
+            if (_stationManager == null || _gameSession == null || !_gameSession.HasActiveRun)
             {
                 return;
             }
 
-            if (battleManager.EnemyRegistry.Enemies.Count >= maxConcurrentEnemies)
+            _stationManager.Tick(Time.deltaTime, battleManager);
+        }
+
+        private void OnDestroy()
+        {
+            if (_gameSession != null)
             {
-                return;
+                _gameSession.RunEnded -= HandleRunEnded;
             }
 
-            _spawnTimer -= Time.deltaTime;
-            if (_spawnTimer > 0f)
+            if (_stationManager != null)
             {
-                return;
+                _stationManager.StationStarted -= HandleStationStarted;
+                _stationManager.Cancel();
+            }
+        }
+
+        private void HandleStationStarted(StationData station)
+        {
+            if (station != null && battleManager != null)
+            {
+                battleManager.SetStationDifficulty(station.DifficultyMultiplier);
+            }
+        }
+
+        private void HandleRunEnded(RunResult _)
+        {
+            _stationManager?.Cancel();
+            battleManager?.ClearEnemies();
+        }
+
+        private StationData ResolveStationByIndex(int stationIndex)
+        {
+            if (gameDatabase == null)
+            {
+                return null;
             }
 
-            _spawnTimer = spawnInterval;
-            EnemyData data = debugSpawnEnemies[_spawnIndex % debugSpawnEnemies.Length];
-            _spawnIndex++;
-            battleManager.SpawnEnemy(data);
+            gameDatabase.TryGetStationByIndex(stationIndex, out StationData station);
+            return station;
         }
     }
 }

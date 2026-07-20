@@ -240,13 +240,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.UI.GameBattleBootstrap
   battleManager: {fileID: 229589661}
   gridManager: {fileID: 733082529}
-  debugSpawnEnemies:
-  - {fileID: 11400000, guid: fe09612e1335a584897638f65f8d01d7, type: 2}
-  - {fileID: 11400000, guid: af3f3d6bb41077b4985e57a67eb6bc16, type: 2}
-  - {fileID: 11400000, guid: 5ce55a8bde5bd70488871b6eabe1866d, type: 2}
-  spawnInterval: 2.5
-  maxConcurrentEnemies: 6
-  autoSpawn: 1
+  gameDatabase: {fileID: 11400000, guid: ff67a309c74e73546aa9176ecfbde94a, type: 2}
+  autoStartFirstWave: 1
 --- !u!1 &127664760
 GameObject:
   m_ObjectHideFlags: 0

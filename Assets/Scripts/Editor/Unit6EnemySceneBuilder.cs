@@ -192,22 +192,12 @@ namespace LastTrain.EditorTools
             }
 
             var db = AssetDatabase.LoadAssetAtPath<GameDatabase>(GameDatabasePath);
-            IReadOnlyList<EnemyData> enemies = db != null ? db.Enemies : null;
 
             var so = new SerializedObject(bootstrap);
             so.FindProperty("battleManager").objectReferenceValue = battleManager;
             so.FindProperty("gridManager").objectReferenceValue = gridManager;
-
-            SerializedProperty spawnEnemies = so.FindProperty("debugSpawnEnemies");
-            spawnEnemies.arraySize = enemies != null && enemies.Count > 0 ? Mathf.Min(3, enemies.Count) : 0;
-            for (int i = 0; i < spawnEnemies.arraySize; i++)
-            {
-                spawnEnemies.GetArrayElementAtIndex(i).objectReferenceValue = enemies[i];
-            }
-
-            so.FindProperty("spawnInterval").floatValue = 2.5f;
-            so.FindProperty("maxConcurrentEnemies").intValue = 6;
-            so.FindProperty("autoSpawn").boolValue = true;
+            so.FindProperty("gameDatabase").objectReferenceValue = db;
+            so.FindProperty("autoStartFirstWave").boolValue = true;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

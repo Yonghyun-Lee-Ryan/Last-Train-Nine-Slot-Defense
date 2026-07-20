@@ -147,23 +147,12 @@ namespace LastTrain.EditorTools
             var bootstrap = bootstrapGo.AddComponent<GameBattleBootstrap>();
 
             var db = AssetDatabase.LoadAssetAtPath<GameDatabase>(GameDatabasePath);
-            IReadOnlyList<EnemyData> enemies = db != null ? db.Enemies : null;
 
             var bootstrapSo = new SerializedObject(bootstrap);
             bootstrapSo.FindProperty("battleManager").objectReferenceValue = battleManager;
             bootstrapSo.FindProperty("gridManager").objectReferenceValue = gridManager;
-
-            var debugArray = bootstrapSo.FindProperty("debugEnemies");
-            debugArray.arraySize = enemies != null && enemies.Count > 0 ? Mathf.Min(3, enemies.Count) : 0;
-
-            for (int i = 0; i < debugArray.arraySize; i++)
-            {
-                SerializedProperty element = debugArray.GetArrayElementAtIndex(i);
-                element.FindPropertyRelative("enemyData").objectReferenceValue = enemies[i];
-                element.FindPropertyRelative("canvasWorldPosition").vector2Value =
-                    new Vector2(540f + (i - 1) * 180f, 1400f);
-            }
-
+            bootstrapSo.FindProperty("gameDatabase").objectReferenceValue = db;
+            bootstrapSo.FindProperty("autoStartFirstWave").boolValue = true;
             bootstrapSo.ApplyModifiedPropertiesWithoutUndo();
         }
     }

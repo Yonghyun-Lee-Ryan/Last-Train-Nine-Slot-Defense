@@ -12,7 +12,7 @@ namespace LastTrain.Battle
     /// <summary>
     /// 전투 틱·승객 공격·적 이동·객차 피해를 조율한다.
     /// </summary>
-    public sealed class BattleManager : MonoBehaviour
+    public sealed class BattleManager : MonoBehaviour, IBattleFlowContext
     {
         [Header("References")]
         [SerializeField] private GridManager gridManager;
@@ -76,7 +76,7 @@ namespace LastTrain.Battle
 
         public EnemyController SpawnEnemy(EnemyData data, Vector2? spawnPositionOverride = null)
         {
-            if (!_initialized || data == null || enemyPool == null)
+            if (!_initialized || data == null || enemyPool == null || !IsWaveSpawnActive())
             {
                 return null;
             }
@@ -137,9 +137,38 @@ namespace LastTrain.Battle
             return dataRange * rangeScale;
         }
 
+        public void SetStationDifficulty(float difficulty)
+        {
+            stationDifficulty = UnityEngine.Mathf.Max(0.01f, difficulty);
+        }
+
+        public bool TrySpawnEnemy(EnemyData enemyData)
+        {
+            return SpawnEnemy(enemyData) != null;
+        }
+
+        public int GetAliveEnemyCount()
+        {
+            return _enemyRegistry.Enemies.Count;
+        }
+
+        private bool IsCombatActive()
+        {
+            return _runState != null
+                   && _runState.Battle.IsRunActive
+                   && BattlePhaseUtility.IsCombatActive(_runState.Battle.CurrentPhase);
+        }
+
+        private bool IsWaveSpawnActive()
+        {
+            return _runState != null
+                   && _runState.Battle.IsRunActive
+                   && BattlePhaseUtility.IsWaveSpawnActive(_runState.Battle.CurrentPhase);
+        }
+
         private void Update()
         {
-            if (!_initialized || _runState == null)
+            if (!_initialized || _runState == null || !IsCombatActive())
             {
                 return;
             }

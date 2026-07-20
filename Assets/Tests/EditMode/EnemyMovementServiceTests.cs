@@ -31,7 +31,8 @@ namespace LastTrain.Tests.EditMode
             var enemy = new EnemyRuntime(_enemyData, 50f, new Vector2(0f, 10f));
             Vector2 target = new Vector2(0f, 0f);
 
-            bool reached = EnemyMovementService.TickMove(enemy, target, 0.5f, 10f, 1f);
+            // moveSpeed=2, scale=10 → 20u/s, 0.4s = 8u (아직 도달하지 않음)
+            bool reached = EnemyMovementService.TickMove(enemy, target, 0.4f, 10f, 1f);
 
             Assert.IsFalse(reached);
             Assert.Less(enemy.Position.y, 10f);
