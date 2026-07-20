@@ -19,9 +19,13 @@ namespace LastTrain.Core
         [SerializeField] private bool autoLoadMainMenu = true;
 
         private SceneLoader _sceneLoader;
+        private GameSession _gameSession;
 
         /// <summary>비동기 Scene 전환 담당. AppRoot 생성 시 함께 초기화된다.</summary>
         public SceneLoader SceneLoader => _sceneLoader;
+
+        /// <summary>현재 게임 세션. Scene 전환 후에도 유지된다.</summary>
+        public GameSession GameSession => _gameSession ??= new GameSession();
 
         private void Awake()
         {
@@ -78,6 +82,7 @@ namespace LastTrain.Core
         {
             if (Instance == this)
             {
+                _gameSession?.ClearRun();
                 Instance = null;
             }
         }
