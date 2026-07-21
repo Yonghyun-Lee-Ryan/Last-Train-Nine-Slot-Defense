@@ -146,7 +146,7 @@ namespace LastTrain.Tests.EditMode
             public int LaunchCount { get; private set; }
             public float LastDamage { get; private set; }
 
-            public void Launch(Vector2 origin, EnemyRuntime target, float damage)
+            public void Launch(Vector2 origin, EnemyRuntime target, float damage, string passengerId = null)
             {
                 LaunchCount++;
                 LastDamage = damage;

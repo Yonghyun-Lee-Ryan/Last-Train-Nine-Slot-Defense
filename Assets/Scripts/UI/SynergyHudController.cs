@@ -114,8 +114,7 @@ namespace LastTrain.UI
             synergyLabel.fontSize = 22;
             synergyLabel.alignment = TextAnchor.MiddleCenter;
             synergyLabel.color = Color.white;
-            synergyLabel.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf")
-                                ?? Font.CreateDynamicFontFromOSFont("Malgun Gothic", 22);
+            synergyLabel.font = GameFontProvider.Get();
             synergyLabel.raycastTarget = false;
         }
     }

@@ -84,8 +84,7 @@ namespace LastTrain.EditorTools
             text.alignment = TextAnchor.MiddleCenter;
             text.color = new Color(1f, 0.92f, 0.55f, 1f);
             text.raycastTarget = false;
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf")
-                        ?? Font.CreateDynamicFontFromOSFont("Malgun Gothic", 24);
+            text.font = GameFontProvider.Get();
             return text;
         }
     }

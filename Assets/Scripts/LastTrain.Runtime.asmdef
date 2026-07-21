@@ -2,7 +2,8 @@
     "name": "LastTrain.Runtime",
     "rootNamespace": "LastTrain",
     "references": [
-        "UnityEngine.UI"
+        "UnityEngine.UI",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

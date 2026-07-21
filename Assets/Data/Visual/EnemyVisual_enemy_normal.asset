@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b70dd3bd3d11f48428b6c8c2acafd8a7, type: 3}
+  m_Name: EnemyVisual_enemy_normal
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Data.EnemyVisualSet
+  id: enemy_normal
+  move:
+    frames:
+    - {fileID: -1113680903, guid: 80a447826d9c9a74c85749d345fbc83c, type: 3}
+    - {fileID: -157092716, guid: 80a447826d9c9a74c85749d345fbc83c, type: 3}
+    - {fileID: -1983760739, guid: 80a447826d9c9a74c85749d345fbc83c, type: 3}
+    - {fileID: 717802879, guid: 80a447826d9c9a74c85749d345fbc83c, type: 3}
+    framesPerSecond: 8
+    loop: 1
+  hit:
+    frames:
+    - {fileID: -1178044975, guid: 564068d8d3f98d948a4c88a606a89835, type: 3}
+    - {fileID: 535719458, guid: 564068d8d3f98d948a4c88a606a89835, type: 3}
+    framesPerSecond: 8
+    loop: 0
+  death:
+    frames:
+    - {fileID: 2111980358, guid: 533b423d526b0ef4ea5c100935733f5b, type: 3}
+    - {fileID: -184233586, guid: 533b423d526b0ef4ea5c100935733f5b, type: 3}
+    - {fileID: 1782087397, guid: 533b423d526b0ef4ea5c100935733f5b, type: 3}
+    - {fileID: 926382519, guid: 533b423d526b0ef4ea5c100935733f5b, type: 3}
+    framesPerSecond: 8
+    loop: 0
+  cast:
+    frames: []
+    framesPerSecond: 0
+    loop: 0
+  enraged:
+    frames: []
+    framesPerSecond: 0
+    loop: 0
+  accentColor: {r: 0.5176471, g: 0.8, b: 0.08627451, a: 1}
+  displaySize: {x: 128, y: 128}

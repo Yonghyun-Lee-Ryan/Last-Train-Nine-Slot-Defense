@@ -87,7 +87,7 @@ namespace LastTrain.UI
             labelRect.sizeDelta = new Vector2(900f, 180f);
 
             messageLabel = labelGo.GetComponent<Text>();
-            messageLabel.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            messageLabel.font = GameFontProvider.Get();
             messageLabel.fontSize = 48;
             messageLabel.alignment = TextAnchor.MiddleCenter;
             messageLabel.color = Color.white;

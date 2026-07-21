@@ -1,3 +1,4 @@
+using LastTrain.Battle;
 using LastTrain.Data;
 using LastTrain.Grid;
 using LastTrain.Run;
@@ -106,14 +107,14 @@ namespace LastTrain.EditorTools
             panelRect.anchorMin = new Vector2(0.5f, 0f);
             panelRect.anchorMax = new Vector2(0.5f, 0f);
             panelRect.pivot = new Vector2(0.5f, 0f);
-            panelRect.anchoredPosition = new Vector2(0f, 320f);
-            panelRect.sizeDelta = new Vector2(960, 960);
+            panelRect.anchoredPosition = BattleConstants.GridAnchoredPosition;
+            panelRect.sizeDelta = BattleConstants.GridSize;
 
             var layout = panelGo.GetComponent<GridLayoutGroup>();
             layout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
             layout.constraintCount = 3;
-            layout.cellSize = new Vector2(300, 300);
-            layout.spacing = new Vector2(12, 12);
+            layout.cellSize = BattleConstants.GridCellSize;
+            layout.spacing = BattleConstants.GridSpacing;
             layout.childAlignment = TextAnchor.MiddleCenter;
 
             var slots = new GridSlot[RunState.GridSlotCount];
@@ -201,13 +202,7 @@ namespace LastTrain.EditorTools
 
         private static Font GetBuiltinFont()
         {
-            Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            if (font == null)
-            {
-                font = Font.CreateDynamicFontFromOSFont("Malgun Gothic", 16);
-            }
-
-            return font;
+            return GameFontProvider.Get();
         }
 
         private static void AssignViewFields(PassengerView view, Image portrait, Text nameLabel, Text starLabel)

@@ -15,7 +15,7 @@ namespace LastTrain.Battle
         [SerializeField] private ProjectileController prefab;
         [SerializeField] private RectTransform poolRoot;
         [SerializeField] private int prewarmCount = 12;
-        [SerializeField] private float moveSpeed = 1200f;
+        [SerializeField] private float moveSpeed = BattleConstants.ProjectileSpeed;
         [SerializeField] private float hitRadius = 24f;
 
         private readonly Queue<ProjectileController> _available = new();
@@ -28,7 +28,7 @@ namespace LastTrain.Battle
             Prewarm();
         }
 
-        public void Launch(Vector2 origin, EnemyRuntime target, float damage)
+        public void Launch(Vector2 origin, EnemyRuntime target, float damage, string passengerId = null)
         {
             if (target == null || !target.IsAlive)
             {
@@ -36,7 +36,7 @@ namespace LastTrain.Battle
             }
 
             ProjectileController projectile = Get();
-            projectile.Launch(origin, target, damage);
+            projectile.Launch(origin, target, damage, passengerId);
         }
 
         internal void Release(ProjectileController projectile)

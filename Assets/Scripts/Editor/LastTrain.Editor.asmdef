@@ -3,7 +3,9 @@
     "rootNamespace": "LastTrain.EditorTools",
     "references": [
         "LastTrain.Runtime",
-        "UnityEngine.UI"
+        "UnityEngine.UI",
+        "Unity.2D.Sprite.Editor",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [
         "Editor"

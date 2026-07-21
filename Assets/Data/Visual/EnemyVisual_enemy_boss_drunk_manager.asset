@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b70dd3bd3d11f48428b6c8c2acafd8a7, type: 3}
+  m_Name: EnemyVisual_enemy_boss_drunk_manager
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Data.EnemyVisualSet
+  id: enemy_boss_drunk_manager
+  move:
+    frames:
+    - {fileID: 1372075478, guid: 128c3ef80b0793547ba3cbc52160876c, type: 3}
+    - {fileID: -1616262031, guid: 128c3ef80b0793547ba3cbc52160876c, type: 3}
+    - {fileID: 2005662805, guid: 128c3ef80b0793547ba3cbc52160876c, type: 3}
+    - {fileID: 586329152, guid: 128c3ef80b0793547ba3cbc52160876c, type: 3}
+    framesPerSecond: 8
+    loop: 1
+  hit:
+    frames:
+    - {fileID: 1161710781, guid: 86570c2056c189e459ee5e097744e894, type: 3}
+    - {fileID: -1791231345, guid: 86570c2056c189e459ee5e097744e894, type: 3}
+    framesPerSecond: 8
+    loop: 0
+  death:
+    frames:
+    - {fileID: -95855545, guid: f49e5bbf81d22b44ca24d045e7435d51, type: 3}
+    - {fileID: -1942865748, guid: f49e5bbf81d22b44ca24d045e7435d51, type: 3}
+    - {fileID: -842123754, guid: f49e5bbf81d22b44ca24d045e7435d51, type: 3}
+    - {fileID: 220540789, guid: f49e5bbf81d22b44ca24d045e7435d51, type: 3}
+    framesPerSecond: 8
+    loop: 0
+  cast:
+    frames:
+    - {fileID: -1215351555, guid: 157b05d14f0bd40409598a8f739b1d47, type: 3}
+    - {fileID: -2061231864, guid: 157b05d14f0bd40409598a8f739b1d47, type: 3}
+    - {fileID: 1760765195, guid: 157b05d14f0bd40409598a8f739b1d47, type: 3}
+    - {fileID: 1441538783, guid: 157b05d14f0bd40409598a8f739b1d47, type: 3}
+    framesPerSecond: 8
+    loop: 0
+  enraged:
+    frames:
+    - {fileID: -1950233275, guid: b25027db5e8df184d931002a5bb521f3, type: 3}
+    - {fileID: 223927207, guid: b25027db5e8df184d931002a5bb521f3, type: 3}
+    - {fileID: -457428333, guid: b25027db5e8df184d931002a5bb521f3, type: 3}
+    - {fileID: 17771419, guid: b25027db5e8df184d931002a5bb521f3, type: 3}
+    framesPerSecond: 8
+    loop: 1
+  accentColor: {r: 0.7254902, g: 0.10980392, b: 0.10980392, a: 1}
+  displaySize: {x: 320, y: 320}

@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9436283fa7aa214981107a31c90a5d5, type: 3}
+  m_Name: VfxVisual_vfx_boss_enrage
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Data.VfxVisualSet
+  id: vfx_boss_enrage
+  clip:
+    frames:
+    - {fileID: -807378885, guid: 7bf825832c856d24a9365a8797c59739, type: 3}
+    - {fileID: 841292821, guid: 7bf825832c856d24a9365a8797c59739, type: 3}
+    - {fileID: 793382789, guid: 7bf825832c856d24a9365a8797c59739, type: 3}
+    - {fileID: -1880397052, guid: 7bf825832c856d24a9365a8797c59739, type: 3}
+    framesPerSecond: 8
+    loop: 0
+  tint: {r: 1, g: 1, b: 1, a: 1}
+  size: 72

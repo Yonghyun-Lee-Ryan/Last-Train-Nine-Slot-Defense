@@ -21,6 +21,7 @@ namespace LastTrain.Battle
         [SerializeField] private ProjectilePool projectilePool;
         [SerializeField] private EnemyPool enemyPool;
         [SerializeField] private RectTransform spawnPoint;
+        [SerializeField] private RectTransform[] enemyWaypoints = Array.Empty<RectTransform>();
         [SerializeField] private RectTransform trainTarget;
         [SerializeField] private GameDatabase gameDatabase;
         [SerializeField] private EnemyData bossMinionData;
@@ -29,6 +30,8 @@ namespace LastTrain.Battle
         [SerializeField] private float rangeScale = BattleConstants.RangeToWorldScale;
         [SerializeField] private float moveSpeedScale = BattleConstants.MoveSpeedToWorldScale;
         [SerializeField] private float trainReachRadius = 32f;
+        [SerializeField] private float spawnTargetProtectionDistance =
+            BattleConstants.SpawnTargetProtectionDistance;
         [SerializeField] private float stationDifficulty = 1f;
 
         private readonly EnemyRegistry _enemyRegistry = new();
@@ -104,6 +107,8 @@ namespace LastTrain.Battle
                                     ?? (spawnPoint != null ? (Vector2)spawnPoint.position : Vector2.zero);
 
             EnemyRuntime runtime = EnemyFactory.CreateRuntime(data, spawnPosition, stationDifficulty);
+            runtime.SetRouteWaypointIndex(GetInitialRouteWaypointIndex(spawnPosition));
+            runtime.SetTargetable(false);
             runtime.Died += HandleEnemyKilled;
             runtime.ReachedTrain += HandleEnemyReachedTrain;
 
@@ -229,7 +234,6 @@ namespace LastTrain.Battle
                 return;
             }
 
-            Vector2 targetPosition = trainTarget.position;
             var controllers = new List<EnemyController>(_activeEnemies.Values);
             var reachedEnemies = new List<EnemyRuntime>();
 
@@ -242,16 +246,36 @@ namespace LastTrain.Battle
                     continue;
                 }
 
-                bool reached = EnemyMovementService.TickMove(
+                bool movingToWaypoint = TryGetWaypointPosition(runtime.RouteWaypointIndex, out Vector2 targetPosition);
+                if (!movingToWaypoint)
+                {
+                    targetPosition = trainTarget.position;
+                }
+
+                runtime.SetRouteSegment(
+                    GetRouteSegmentStart(runtime.RouteWaypointIndex, runtime.SpawnPosition),
+                    targetPosition);
+                bool reachedCurrentTarget = EnemyMovementService.TickMove(
                     runtime,
                     targetPosition,
                     deltaTime,
                     moveSpeedScale,
-                    trainReachRadius);
+                    movingToWaypoint ? 8f : trainReachRadius);
+
+                if (!runtime.IsTargetable
+                    && Vector2.Distance(runtime.SpawnPosition, runtime.Position)
+                    >= spawnTargetProtectionDistance)
+                {
+                    runtime.SetTargetable(true);
+                }
 
                 controller.SyncTransform();
 
-                if (reached)
+                if (reachedCurrentTarget && movingToWaypoint)
+                {
+                    runtime.AdvanceRouteWaypoint();
+                }
+                else if (reachedCurrentTarget)
                 {
                     reachedEnemies.Add(runtime);
                 }
@@ -261,6 +285,72 @@ namespace LastTrain.Battle
             {
                 TrainDamageService.TryApplyTrainDamage(_runState, reachedEnemies[i]);
             }
+        }
+
+        private bool TryGetWaypointPosition(int waypointIndex, out Vector2 position)
+        {
+            if (enemyWaypoints != null
+                && waypointIndex >= 0
+                && waypointIndex < enemyWaypoints.Length
+                && enemyWaypoints[waypointIndex] != null)
+            {
+                position = enemyWaypoints[waypointIndex].position;
+                return true;
+            }
+
+            position = default;
+            return false;
+        }
+
+        private Vector2 GetRouteSegmentStart(int waypointIndex, Vector2 fallback)
+        {
+            if (waypointIndex <= 0)
+            {
+                return spawnPoint != null ? (Vector2)spawnPoint.position : fallback;
+            }
+
+            int previousIndex = Mathf.Min(waypointIndex - 1, enemyWaypoints.Length - 1);
+            RectTransform previous = enemyWaypoints[previousIndex];
+            return previous != null ? (Vector2)previous.position : fallback;
+        }
+
+        private int GetInitialRouteWaypointIndex(Vector2 position)
+        {
+            if (enemyWaypoints == null || enemyWaypoints.Length == 0 || trainTarget == null)
+            {
+                return 0;
+            }
+
+            var routePoints = new List<Vector2>(enemyWaypoints.Length + 2);
+            routePoints.Add(spawnPoint != null ? (Vector2)spawnPoint.position : position);
+            for (int i = 0; i < enemyWaypoints.Length; i++)
+            {
+                if (enemyWaypoints[i] != null)
+                {
+                    routePoints.Add(enemyWaypoints[i].position);
+                }
+            }
+
+            routePoints.Add(trainTarget.position);
+            float bestDistanceSq = float.MaxValue;
+            int bestSegmentIndex = 0;
+            for (int i = 0; i < routePoints.Count - 1; i++)
+            {
+                Vector2 segmentStart = routePoints[i];
+                Vector2 segment = routePoints[i + 1] - segmentStart;
+                float segmentLengthSq = segment.sqrMagnitude;
+                float t = segmentLengthSq > 0.0001f
+                    ? Mathf.Clamp01(Vector2.Dot(position - segmentStart, segment) / segmentLengthSq)
+                    : 0f;
+                float distanceSq = (position - (segmentStart + segment * t)).sqrMagnitude;
+                if (distanceSq < bestDistanceSq)
+                {
+                    bestDistanceSq = distanceSq;
+                    bestSegmentIndex = i;
+                }
+            }
+
+            return Mathf.Min(bestSegmentIndex, enemyWaypoints.Length);
         }
 
         private void TickTemporaryTurrets(float deltaTime)
@@ -323,6 +413,7 @@ namespace LastTrain.Battle
 
         private void HandleEnemyKilled(EnemyRuntime enemy)
         {
+            CombatVisualEvents.RaiseEnemyKilled(enemy);
             EnemyRewardService.TryGrantKillReward(_runState, enemy);
             ReleaseEnemyController(enemy);
         }

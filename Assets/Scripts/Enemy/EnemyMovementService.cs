@@ -44,10 +44,12 @@ namespace LastTrain.Enemy
                 return;
             }
 
-            Vector2 awayFromTrain = spawnPoint - trainTarget;
+            Vector2 segmentStart = enemy.HasRouteSegment ? enemy.RouteSegmentStart : spawnPoint;
+            Vector2 segmentEnd = enemy.HasRouteSegment ? enemy.RouteSegmentEnd : trainTarget;
+            Vector2 awayFromTrain = segmentStart - segmentEnd;
             if (awayFromTrain.sqrMagnitude < 0.0001f)
             {
-                awayFromTrain = spawnPoint - enemy.Position;
+                awayFromTrain = segmentStart - enemy.Position;
             }
 
             if (awayFromTrain.sqrMagnitude < 0.0001f)
@@ -58,14 +60,14 @@ namespace LastTrain.Enemy
             Vector2 direction = awayFromTrain.normalized;
             Vector2 next = enemy.Position + direction * distance;
 
-            // 스폰을 지나치지 않도록 spawn-train 선분 위에 투영·클램프
-            Vector2 toSpawn = spawnPoint - trainTarget;
+            // 현재 경로 구간의 시작점을 지나치지 않도록 선분 위에 투영·클램프
+            Vector2 toSpawn = segmentStart - segmentEnd;
             float pathLengthSq = toSpawn.sqrMagnitude;
             if (pathLengthSq > 0.0001f)
             {
-                float t = Vector2.Dot(next - trainTarget, toSpawn) / pathLengthSq;
+                float t = Vector2.Dot(next - segmentEnd, toSpawn) / pathLengthSq;
                 t = Mathf.Clamp01(t);
-                next = trainTarget + toSpawn * t;
+                next = segmentEnd + toSpawn * t;
             }
 
             enemy.Position = next;

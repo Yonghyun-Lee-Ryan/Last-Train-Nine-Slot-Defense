@@ -49,5 +49,22 @@ namespace LastTrain.Tests.EditMode
 
             Assert.AreEqual(spawn.y, enemy.Position.y, 0.001f);
         }
+
+        [Test]
+        public void ApplyKnockback_UsesCurrentBentRouteSegment()
+        {
+            var enemy = new EnemyRuntime(_enemyData, 50f, new Vector2(50f, 50f));
+            enemy.SetRouteSegment(new Vector2(0f, 100f), new Vector2(100f, 0f));
+
+            EnemyMovementService.ApplyKnockback(
+                enemy,
+                new Vector2(100f, 200f),
+                Vector2.zero,
+                distance: 20f);
+
+            Assert.Less(enemy.Position.x, 50f);
+            Assert.Greater(enemy.Position.y, 50f);
+            Assert.AreEqual(100f, enemy.Position.x + enemy.Position.y, 0.001f);
+        }
     }
 }

@@ -1,4 +1,5 @@
 using LastTrain.Battle;
+using LastTrain.Data;
 using LastTrain.Enemy;
 using UnityEngine;
 using UnityEngine.UI;
@@ -13,7 +14,7 @@ namespace LastTrain.Battle
     public sealed class ProjectileController : MonoBehaviour
     {
         [SerializeField] private Image image;
-        [SerializeField] private float moveSpeed = 1200f;
+        [SerializeField] private float moveSpeed = BattleConstants.ProjectileSpeed;
         [SerializeField] private float hitRadius = 24f;
 
         private EnemyRuntime _target;
@@ -21,6 +22,8 @@ namespace LastTrain.Battle
         private ProjectilePool _pool;
         private RectTransform _rectTransform;
         private bool _active;
+        private ProjectileVisualSet _visualSet;
+        private bool _rotateTowardTarget = true;
 
         public bool IsActive => _active;
 
@@ -38,13 +41,14 @@ namespace LastTrain.Battle
             }
         }
 
-        public void Launch(Vector2 origin, EnemyRuntime target, float damage)
+        public void Launch(Vector2 origin, EnemyRuntime target, float damage, string passengerId = null)
         {
             _rectTransform = _rectTransform != null ? _rectTransform : GetComponent<RectTransform>();
             _target = target;
             _damage = damage;
             _active = true;
             _rectTransform.position = origin;
+            ApplyVisual(passengerId);
             gameObject.SetActive(true);
         }
 
@@ -57,7 +61,6 @@ namespace LastTrain.Battle
 
             if (_target == null || !_target.IsAlive)
             {
-                // 타깃 사망 시 피해 없이 반환
                 Release();
                 return;
             }
@@ -66,6 +69,16 @@ namespace LastTrain.Battle
             Vector2 targetPos = _target.Position;
             Vector2 next = Vector2.MoveTowards(current, targetPos, moveSpeed * Time.deltaTime);
             _rectTransform.position = next;
+
+            if (_rotateTowardTarget)
+            {
+                Vector2 delta = targetPos - current;
+                if (delta.sqrMagnitude > 0.001f)
+                {
+                    float angle = Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg;
+                    _rectTransform.rotation = Quaternion.Euler(0f, 0f, angle);
+                }
+            }
 
             if (Vector2.Distance(next, targetPos) <= hitRadius)
             {
@@ -79,12 +92,46 @@ namespace LastTrain.Battle
             _active = false;
             _target = null;
             _damage = 0f;
+            _visualSet = null;
             gameObject.SetActive(false);
 
             if (_pool != null)
             {
                 _pool.Release(this);
             }
+        }
+
+        private void ApplyVisual(string passengerId)
+        {
+            if (image == null)
+            {
+                image = GetComponent<Image>();
+            }
+
+            VisualDatabase database = VisualDatabaseLocator.Load();
+            string projectileId = string.IsNullOrWhiteSpace(passengerId)
+                ? "projectile_default"
+                : $"projectile_{passengerId.Replace("passenger_", string.Empty)}";
+
+            _visualSet = null;
+            if (database != null && database.TryGetProjectileVisual(projectileId, out ProjectileVisualSet visual))
+            {
+                _visualSet = visual;
+            }
+
+            if (_visualSet != null && _visualSet.Sprite != null)
+            {
+                image.sprite = _visualSet.Sprite;
+                image.color = _visualSet.Tint;
+                _rectTransform.sizeDelta = new Vector2(_visualSet.Size, _visualSet.Size);
+                _rotateTowardTarget = _visualSet.RotateTowardTarget;
+                return;
+            }
+
+            image.sprite = null;
+            image.color = new Color(1f, 0.85f, 0.2f, 1f);
+            _rectTransform.sizeDelta = new Vector2(20f, 20f);
+            _rotateTowardTarget = true;
         }
 
         private void Reset()

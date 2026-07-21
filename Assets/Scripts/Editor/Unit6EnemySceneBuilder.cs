@@ -56,15 +56,28 @@ namespace LastTrain.EditorTools
 
             GridManager gridManager = SceneBuilderCleanup.FindFirstInScene<GridManager>(scene);
             SceneBuilderCleanup.DestroyAllNamed(scene, "SpawnPoint");
+            SceneBuilderCleanup.DestroyAllNamed(scene, "EnemyWaypoint0");
+            SceneBuilderCleanup.DestroyAllNamed(scene, "EnemyWaypoint1");
             SceneBuilderCleanup.DestroyAllNamed(scene, "TrainTarget");
             SceneBuilderCleanup.DestroyAllNamed(scene, "EnemyPoolRoot");
 
-            // 적 경로를 화면 오른쪽 가장자리 안쪽으로 이동해 전체 스프라이트가 보이게 한다.
-            RectTransform spawnPoint = CreateMarker(parent, "SpawnPoint", new Vector2(400f, 1500f), new Color(0.2f, 0.9f, 0.4f, 0.5f));
-            RectTransform trainTarget = CreateMarker(parent, "TrainTarget", new Vector2(400f, 340f), new Color(0.95f, 0.35f, 0.25f, 0.55f));
+            // 적 경로 전체가 화면 안에 보이도록 오른쪽 통로 상단에서 하단 객차까지 배치한다.
+            RectTransform spawnPoint = CreateMarker(parent, "SpawnPoint", BattleConstants.SpawnAnchoredPosition, Color.clear);
+            var waypoints = new RectTransform[BattleConstants.EnemyWaypointAnchoredPositions.Length];
+            for (int i = 0; i < waypoints.Length; i++)
+            {
+                waypoints[i] = CreateMarker(
+                    parent,
+                    $"EnemyWaypoint{i}",
+                    BattleConstants.EnemyWaypointAnchoredPositions[i],
+                    Color.clear);
+            }
+
+            RectTransform trainTarget = CreateMarker(parent, "TrainTarget", BattleConstants.TrainTargetAnchoredPosition, new Color(0.95f, 0.35f, 0.25f, 0.55f));
+            trainTarget.sizeDelta = new Vector2(160f, 140f);
 
             EnemyPool enemyPool = SetupEnemyPool(battleManager.gameObject, enemyPrefab);
-            WireBattleManager(battleManager, gridManager, enemyPool, spawnPoint, trainTarget);
+            WireBattleManager(battleManager, gridManager, enemyPool, spawnPoint, waypoints, trainTarget);
             UpdateBattleBootstrap(battleManager, gridManager);
 
             EditorSceneManager.MarkSceneDirty(scene);
@@ -162,12 +175,20 @@ namespace LastTrain.EditorTools
             GridManager gridManager,
             EnemyPool enemyPool,
             RectTransform spawnPoint,
+            RectTransform[] enemyWaypoints,
             RectTransform trainTarget)
         {
             var so = new SerializedObject(battleManager);
             so.FindProperty("gridManager").objectReferenceValue = gridManager;
             so.FindProperty("enemyPool").objectReferenceValue = enemyPool;
             so.FindProperty("spawnPoint").objectReferenceValue = spawnPoint;
+            SerializedProperty waypoints = so.FindProperty("enemyWaypoints");
+            waypoints.arraySize = enemyWaypoints.Length;
+            for (int i = 0; i < enemyWaypoints.Length; i++)
+            {
+                waypoints.GetArrayElementAtIndex(i).objectReferenceValue = enemyWaypoints[i];
+            }
+
             so.FindProperty("trainTarget").objectReferenceValue = trainTarget;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
@@ -210,8 +231,7 @@ namespace LastTrain.EditorTools
             label.alignment = TextAnchor.MiddleCenter;
             label.color = Color.white;
             label.raycastTarget = false;
-            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf")
-                         ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+            label.font = GameFontProvider.Get();
             return label;
         }
     }

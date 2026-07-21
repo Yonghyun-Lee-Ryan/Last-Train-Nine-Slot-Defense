@@ -94,6 +94,21 @@ namespace LastTrain.Tests.EditMode
             Assert.IsNull(target);
         }
 
+        [Test]
+        public void SelectTarget_SpawnProtectedEnemy_ReturnsNull()
+        {
+            var protectedEnemy = new EnemyRuntime(_normalData, 50f, new Vector2(2f, 0f));
+            protectedEnemy.SetTargetable(false);
+
+            EnemyRuntime target = TargetingService.SelectTarget(
+                new[] { protectedEnemy },
+                Vector2.zero,
+                10f,
+                TargetPriority.Nearest);
+
+            Assert.IsNull(target);
+        }
+
         private static EnemyData CreateEnemy(string id, EnemyType type, float moveSpeed)
         {
             var data = ScriptableObject.CreateInstance<EnemyData>();

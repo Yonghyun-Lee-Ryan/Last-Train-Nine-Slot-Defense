@@ -16,13 +16,14 @@ namespace LastTrain.UI
 
         private void Awake()
         {
-            if (exitToResultButton == null)
+            // 실제 게임 종료 흐름이 구현되었으므로 개발용 강제 결과 버튼은 더 이상 사용하지 않는다.
+            if (exitToResultButton != null)
             {
-                Debug.LogError("[GamePlaceholderController] exitToResultButton이 연결되지 않았습니다.", this);
-                return;
+                Destroy(exitToResultButton.gameObject);
+                exitToResultButton = null;
             }
 
-            exitToResultButton.onClick.AddListener(OnExitClicked);
+            enabled = false;
         }
 
         private void OnDestroy()

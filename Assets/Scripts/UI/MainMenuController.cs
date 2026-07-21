@@ -47,6 +47,7 @@ namespace LastTrain.UI
         {
             if (continueButton != null)
             {
+                ApplyContinueButtonTheme();
                 continueButton.onClick.RemoveListener(OnContinueClicked);
                 continueButton.onClick.AddListener(OnContinueClicked);
                 RefreshContinueButton();
@@ -60,6 +61,7 @@ namespace LastTrain.UI
                 continueButton = found.GetComponent<Button>();
                 if (continueButton != null)
                 {
+                    ApplyContinueButtonTheme();
                     continueButton.onClick.AddListener(OnContinueClicked);
                     RefreshContinueButton();
                     return;
@@ -102,14 +104,45 @@ namespace LastTrain.UI
             text.fontSize = 44;
             text.color = Color.white;
 
-            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            Font font = GameFontProvider.Get();
             if (font != null)
             {
                 text.font = font;
             }
 
+            ApplyContinueButtonTheme();
             continueButton.onClick.AddListener(OnContinueClicked);
             RefreshContinueButton();
+        }
+
+        private void ApplyContinueButtonTheme()
+        {
+            if (continueButton == null)
+            {
+                return;
+            }
+
+            VisualTheme theme = VisualThemeLocator.Load();
+            Image image = continueButton.GetComponent<Image>();
+            if (theme == null || image == null || theme.ButtonNormal == null)
+            {
+                return;
+            }
+
+            image.sprite = theme.ButtonNormal;
+            image.type = Image.Type.Sliced;
+            image.color = Color.white;
+            continueButton.transition = Selectable.Transition.SpriteSwap;
+
+            SpriteState state = continueButton.spriteState;
+            state.highlightedSprite = theme.ButtonNormal;
+            state.pressedSprite = theme.ButtonPressed != null
+                ? theme.ButtonPressed
+                : theme.ButtonNormal;
+            state.disabledSprite = theme.ButtonDisabled != null
+                ? theme.ButtonDisabled
+                : theme.ButtonNormal;
+            continueButton.spriteState = state;
         }
 
         private void OnStartClicked()

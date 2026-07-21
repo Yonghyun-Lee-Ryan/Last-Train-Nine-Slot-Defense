@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 417e5eca54abcde4dbe6137e8c626b46, type: 3}
+  m_Name: VisualTheme
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Data.VisualTheme
+  subwayBackground: {fileID: 21300000, guid: b5cba825f41f2c64e9e9dcfb6d3e5d45, type: 3}
+  spawnLane: {fileID: 21300000, guid: a7c42e8d89344ce7a5c2f180b6d1e321, type: 3}
+  trainTarget: {fileID: 21300000, guid: b8d53f9e90454df8b6d3a291c7e2f432, type: 3}
+  seatFrame: {fileID: 21300000, guid: f83f06c704ec69e42b2b3f4d1c8fc39d, type: 3}
+  seatHighlight: {fileID: 21300000, guid: 18c2f0189f1eab24ca1c4bfd95f3a189, type: 3}
+  panel: {fileID: 21300000, guid: f6430b007c468ad44bb0d373cd1da8f9, type: 3}
+  buttonNormal: {fileID: 21300000, guid: ce437c7c1f2abda4fa6a3dd3b4c4367d, type: 3}
+  buttonPressed: {fileID: 21300000, guid: 4784b9ad2dc32a04f90a635054d40104, type: 3}
+  buttonDisabled: {fileID: 21300000, guid: b5024fa77a286a94eaeec3363719f1de, type: 3}
+  cardFrame: {fileID: 21300000, guid: b902725978d15bc4d84ef306747e87b2, type: 3}
+  popupDim: {fileID: 21300000, guid: 48f325fc0f95e8b4798f8fc934b20b7d, type: 3}
+  hpBarFill: {fileID: 21300000, guid: 123ac9860cca8194a80b30c435780e8d, type: 3}
+  hpBarBackground: {fileID: 21300000, guid: 16f2312a4e1d43540912728148bf6e82, type: 3}
+  bossHpBarFill: {fileID: 21300000, guid: 3112cafe353ecee41adb67502c7a3fef, type: 3}
+  mainMenuTitle: {fileID: 21300000, guid: acf9d9b85d139fc42b2258ce670f8ad9, type: 3}
+  resultVictoryBanner: {fileID: 21300000, guid: 54fad511e73f2944ab818d0134d8a455, type: 3}
+  resultDefeatBanner: {fileID: 21300000, guid: 122032085d11b3a4685db08c749ec559, type: 3}
+  iconCoin: {fileID: 21300000, guid: 2521c89fb1d41fd47929d4f0371e7469, type: 3}
+  iconStation: {fileID: 21300000, guid: 86d816d26d68a9244b52ad068e7d495e, type: 3}
+  iconWave: {fileID: 21300000, guid: 36637d976c309c34680a546b6531a6ea, type: 3}
+  iconReady: {fileID: 21300000, guid: 1554bde95f7d05849ab1a1a1d9bf1461, type: 3}
+  iconSpeed: {fileID: 21300000, guid: 8ed70b604c710e24fb06c953a2966430, type: 3}
+  iconPause: {fileID: 21300000, guid: e7210aae22e066142a9aeee6364bd871, type: 3}
+  iconSummon: {fileID: 21300000, guid: 901d4836c5410bb4988bb44fea7348fc, type: 3}
+  iconSell: {fileID: 21300000, guid: e16e96143e9921a41babb95e7edb60a6, type: 3}
+  iconReroll: {fileID: 21300000, guid: e9fccd0bbe555844283b2f85fa9b8c05, type: 3}
+  iconAd: {fileID: 21300000, guid: 9a640842c7fd3454793306fde7940006, type: 3}
+  iconAbility: {fileID: 21300000, guid: 80ce969d752c4804f8ada4f1adf86ae3, type: 3}
+  iconSynergy: {fileID: 21300000, guid: b2a2bbe5c6e08ab499ced9f756e8c550, type: 3}
+  starFrame1: {fileID: 21300000, guid: a40aa3c4e34544b48a4443694b573dfe, type: 3}
+  starFrame2: {fileID: 21300000, guid: eaf76ff12cbdcce468ac81e4bc8a9a0f, type: 3}
+  starFrame3: {fileID: 21300000, guid: 553bc7e093093ab4ab10af769648093f, type: 3}

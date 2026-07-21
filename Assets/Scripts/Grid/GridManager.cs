@@ -47,6 +47,26 @@ namespace LastTrain.Grid
 
         public int SelectedSlotIndex => _selectedSlotIndex;
 
+        public GridSlot GetSlot(int slotIndex)
+        {
+            if (slots == null || slotIndex < 0 || slotIndex >= slots.Length)
+            {
+                return null;
+            }
+
+            return slots[slotIndex];
+        }
+
+        public PassengerView FindViewByInstanceId(string instanceId)
+        {
+            if (string.IsNullOrWhiteSpace(instanceId))
+            {
+                return null;
+            }
+
+            return _viewsByInstanceId.TryGetValue(instanceId, out PassengerView view) ? view : null;
+        }
+
         /// <summary>RunState를 연결하고 View를 동기화한다.</summary>
         public void Initialize(RunState runState)
         {
@@ -214,16 +234,6 @@ namespace LastTrain.Grid
 
             slot = slots[index];
             return slot != null;
-        }
-
-        public GridSlot GetSlot(int index)
-        {
-            if (!TryGetSlot(index, out GridSlot slot))
-            {
-                throw new ArgumentOutOfRangeException(nameof(index));
-            }
-
-            return slot;
         }
 
         public int FindSlotIndexAtScreenPoint(Vector2 screenPosition, Camera eventCamera)

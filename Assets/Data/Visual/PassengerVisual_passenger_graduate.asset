@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d591e83b0883f246b2337189dc714d2, type: 3}
+  m_Name: PassengerVisual_passenger_graduate
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Data.PassengerVisualSet
+  id: passenger_graduate
+  portrait: {fileID: 21300000, guid: 77172a5ebb227a94b9ef3ff99f456b24, type: 3}
+  idle:
+    frames:
+    - {fileID: 989787288, guid: f52df0c009426334583799629c32cb44, type: 3}
+    - {fileID: -707824203, guid: f52df0c009426334583799629c32cb44, type: 3}
+    - {fileID: -1527361479, guid: f52df0c009426334583799629c32cb44, type: 3}
+    - {fileID: -825043688, guid: f52df0c009426334583799629c32cb44, type: 3}
+    framesPerSecond: 8
+    loop: 1
+  attack:
+    frames:
+    - {fileID: -2071961728, guid: c4935783a396ef543894f3bdf4bf0d07, type: 3}
+    - {fileID: 2003665615, guid: c4935783a396ef543894f3bdf4bf0d07, type: 3}
+    - {fileID: 1430540394, guid: c4935783a396ef543894f3bdf4bf0d07, type: 3}
+    - {fileID: -1603944688, guid: c4935783a396ef543894f3bdf4bf0d07, type: 3}
+    framesPerSecond: 8
+    loop: 0
+  skill:
+    frames:
+    - {fileID: -1750143046, guid: 4960def8b284e764dbe7ba406ec96e61, type: 3}
+    - {fileID: 1686789700, guid: 4960def8b284e764dbe7ba406ec96e61, type: 3}
+    - {fileID: -724380307, guid: 4960def8b284e764dbe7ba406ec96e61, type: 3}
+    - {fileID: 1900749985, guid: 4960def8b284e764dbe7ba406ec96e61, type: 3}
+    framesPerSecond: 8
+    loop: 0
+  accentColor: {r: 0.54509807, g: 0.36078432, b: 0.9647059, a: 1}

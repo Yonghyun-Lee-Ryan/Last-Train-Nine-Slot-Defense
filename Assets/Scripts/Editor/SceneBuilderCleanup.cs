@@ -138,6 +138,8 @@ namespace LastTrain.EditorTools
                 "BattleSystems",
                 "GameBattleBootstrap",
                 "SpawnPoint",
+                "EnemyWaypoint0",
+                "EnemyWaypoint1",
                 "TrainTarget",
                 "SummonPanel",
                 "BattleHud",

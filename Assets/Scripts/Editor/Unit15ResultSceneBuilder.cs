@@ -122,15 +122,7 @@ namespace LastTrain.EditorTools
 
         private static Font GetBuiltinFont()
         {
-            try
-            {
-                return Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            }
-            catch
-            {
-                // 폰트가 없으면 Unity 기본 폰트로 넘어감
-                return null;
-            }
+            return LastTrain.UI.GameFontProvider.Get();
         }
     }
 }

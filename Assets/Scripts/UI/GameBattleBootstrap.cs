@@ -83,6 +83,9 @@ namespace LastTrain.UI
             battleManager.Initialize(runState, gridManager, gameDatabase);
             battleManager.SetStationDifficulty(startingStation.DifficultyMultiplier);
 
+            Canvas canvas = gridManager != null ? gridManager.RootCanvas : FindAnyObjectByType<Canvas>();
+            UiVfxInstaller.InstallIfMissing(canvas);
+
             _synergyManager = new SynergyManager(runState, gameDatabase.Synergies);
             _synergyManager.Recalculate();
 

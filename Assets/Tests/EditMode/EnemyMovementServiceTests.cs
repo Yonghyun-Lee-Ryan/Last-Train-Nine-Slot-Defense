@@ -1,4 +1,5 @@
 using LastTrain.Data;
+using LastTrain.Battle;
 using LastTrain.Enemy;
 using NUnit.Framework;
 using UnityEngine;
@@ -61,6 +62,39 @@ namespace LastTrain.Tests.EditMode
 
             Assert.IsFalse(reached);
             Assert.AreEqual(before, enemy.Position);
+        }
+
+        [Test]
+        public void MvpTuning_FastEnemyHasAtLeastFourSecondsOfVisibleTravel()
+        {
+            const float fastEnemyDataSpeed = 3.5f;
+            float pathLength = BattleConstants.GetEnemyPathLength();
+            float travelDistance = pathLength - 32f;
+            float travelSeconds = travelDistance
+                                  / (fastEnemyDataSpeed * BattleConstants.MoveSpeedToWorldScale);
+
+            Assert.GreaterOrEqual(travelSeconds, 4f);
+        }
+
+        [Test]
+        public void MvpTuning_MaxPassengerRangeDoesNotCoverFullEnemyCorridor()
+        {
+            const float maxPassengerDataRange = 6f;
+            float maxRange = maxPassengerDataRange * BattleConstants.RangeToWorldScale;
+            float directDistance = Vector2.Distance(
+                BattleConstants.SpawnAnchoredPosition,
+                BattleConstants.TrainTargetAnchoredPosition);
+
+            Assert.Less(maxRange, directDistance);
+        }
+
+        [Test]
+        public void MvpLayout_WaypointPathIsAboutTwiceLegacyStraightCorridor()
+        {
+            const float legacyStraightCorridor = 520f;
+            float pathLength = BattleConstants.GetEnemyPathLength();
+
+            Assert.That(pathLength, Is.InRange(legacyStraightCorridor * 1.9f, legacyStraightCorridor * 2.5f));
         }
     }
 }

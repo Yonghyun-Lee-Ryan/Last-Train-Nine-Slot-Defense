@@ -30,7 +30,7 @@ namespace LastTrain.Passenger
             for (int i = 0; i < enemies.Count; i++)
             {
                 EnemyRuntime enemy = enemies[i];
-                if (enemy == null || !enemy.IsAlive)
+                if (enemy == null || !enemy.IsAlive || !enemy.IsTargetable)
                 {
                     continue;
                 }

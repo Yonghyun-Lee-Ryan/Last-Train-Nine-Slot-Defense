@@ -1,4 +1,6 @@
+using LastTrain.Data;
 using LastTrain.Run;
+using LastTrain.UI;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -13,8 +15,10 @@ namespace LastTrain.Grid
     public class PassengerView : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler
     {
         [SerializeField] private Image portraitImage;
+        [SerializeField] private Image starFrameImage;
         [SerializeField] private Text nameLabel;
         [SerializeField] private Text starLabel;
+        [SerializeField] private UiSpriteAnimator portraitAnimator;
 
         private CanvasGroup _canvasGroup;
         private RectTransform _rectTransform;
@@ -25,6 +29,8 @@ namespace LastTrain.Grid
         private int _originalSiblingIndex;
         private Canvas _rootCanvas;
         private bool _isDragging;
+        private VisualDatabase _visualDatabase;
+        private PassengerVisualSet _visualSet;
 
         public PassengerRuntime Passenger => _passenger;
         public int SlotIndex => _passenger?.GridSlotIndex ?? -1;
@@ -63,9 +69,28 @@ namespace LastTrain.Grid
                 starLabel.text = $"{_passenger.StarLevel}★";
             }
 
+            ApplyVisuals();
+        }
+
+        public void PlayAttackAnimation()
+        {
+            if (_visualSet != null && _visualSet.Attack.HasFrames && portraitAnimator != null)
+            {
+                portraitAnimator.PlayOneShot(_visualSet.Attack, ResumeIdle);
+                return;
+            }
+
             if (portraitImage != null)
             {
-                portraitImage.color = GetPlaceholderColor(_passenger.Data.Id);
+                portraitImage.transform.localScale = new Vector3(1.08f, 1.08f, 1f);
+            }
+        }
+
+        public void PlaySkillAnimation()
+        {
+            if (_visualSet != null && _visualSet.Skill.HasFrames && portraitAnimator != null)
+            {
+                portraitAnimator.PlayOneShot(_visualSet.Skill, ResumeIdle);
             }
         }
 
@@ -165,6 +190,102 @@ namespace LastTrain.Grid
         {
             _canvasGroup = GetComponent<CanvasGroup>();
             _rectTransform = transform as RectTransform;
+            EnsureAnimator();
+        }
+
+        private void Update()
+        {
+            if (portraitImage != null && portraitImage.transform.localScale.x > 1.001f)
+            {
+                portraitImage.transform.localScale = Vector3.Lerp(
+                    portraitImage.transform.localScale,
+                    Vector3.one,
+                    Time.deltaTime * 12f);
+            }
+        }
+
+        private void EnsureAnimator()
+        {
+            if (portraitAnimator == null && portraitImage != null)
+            {
+                portraitAnimator = portraitImage.GetComponent<UiSpriteAnimator>();
+                if (portraitAnimator == null)
+                {
+                    portraitAnimator = portraitImage.gameObject.AddComponent<UiSpriteAnimator>();
+                }
+
+                portraitAnimator.SetImage(portraitImage);
+            }
+        }
+
+        private void ApplyVisuals()
+        {
+            if (portraitImage == null)
+            {
+                return;
+            }
+
+            EnsureVisualDatabase();
+            _visualSet = null;
+            if (_visualDatabase != null)
+            {
+                _visualDatabase.TryGetPassengerVisual(_passenger.Data.Id, out _visualSet);
+            }
+
+            Sprite portrait = _visualSet?.GetPortraitOrFallback();
+            if (portrait != null)
+            {
+                portraitImage.sprite = portrait;
+                portraitImage.color = Color.white;
+                if (_visualSet != null && _visualSet.Idle.HasFrames && portraitAnimator != null)
+                {
+                    portraitAnimator.PlayIdle(_visualSet.Idle);
+                }
+            }
+            else
+            {
+                portraitImage.sprite = null;
+                portraitImage.color = GetPlaceholderColor(_passenger.Data.Id);
+            }
+
+            ApplyStarFrame();
+        }
+
+        private void ApplyStarFrame()
+        {
+            if (starFrameImage == null)
+            {
+                return;
+            }
+
+            VisualTheme theme = _visualDatabase?.Theme ?? VisualThemeLocator.Load();
+            Sprite frame = theme?.GetStarFrame(_passenger.StarLevel);
+            if (frame != null)
+            {
+                starFrameImage.sprite = frame;
+                starFrameImage.color = VisualThemePalette.StarTint(_passenger.StarLevel);
+                starFrameImage.enabled = true;
+            }
+            else
+            {
+                starFrameImage.enabled = false;
+            }
+        }
+
+        private void ResumeIdle()
+        {
+            if (_visualSet != null && _visualSet.Idle.HasFrames && portraitAnimator != null)
+            {
+                portraitAnimator.PlayIdle(_visualSet.Idle);
+            }
+        }
+
+        private void EnsureVisualDatabase()
+        {
+            if (_visualDatabase == null)
+            {
+                _visualDatabase = VisualDatabaseLocator.Load();
+            }
         }
 
         private static Color GetPlaceholderColor(string passengerId)

@@ -55,13 +55,6 @@ namespace LastTrain.EditorTools
 
             GameObject hudRoot = CreateHud(parent, gridManager, bootstrap, floatingPrefab);
 
-            // Exit 버튼을 맨 앞으로
-            Transform exit = parent.Find("ExitToResultButton");
-            if (exit != null)
-            {
-                exit.SetAsLastSibling();
-            }
-
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             Selection.activeObject = hudRoot;
@@ -119,19 +112,18 @@ namespace LastTrain.EditorTools
             rootRect.SetParent(parent, false);
             StretchFull(rootRect);
 
-            // Top status bar
-            Text trainHpLabel = CreateText(root.transform, "TrainHpLabel", "객차 100/100", 30, new Vector2(-280f, 860f), new Vector2(360f, 40f));
-            Slider hpSlider = CreateSlider(root.transform, "TrainHpSlider", new Vector2(-280f, 810f), new Vector2(360f, 28f));
-            Text coinLabel = CreateText(root.transform, "CoinLabel", "코인 50", 30, new Vector2(280f, 860f), new Vector2(280f, 40f));
-            Text stationLabel = CreateText(root.transform, "StationLabel", "역 1/5", 28, new Vector2(-280f, 760f), new Vector2(280f, 40f));
-            Text waveLabel = CreateText(root.transform, "WaveLabel", "웨이브 1/1", 28, new Vector2(0f, 760f), new Vector2(280f, 40f));
-            Text phaseLabel = CreateText(root.transform, "PhaseLabel", "준비", 28, new Vector2(280f, 760f), new Vector2(280f, 40f));
-            Text statusLabel = CreateText(root.transform, "StatusLabel", "상태", 24, new Vector2(0f, 700f), new Vector2(900f, 36f));
+            // Top status bar (top-anchored for 1080×1920 bands)
+            Text trainHpLabel = CreateTopText(root.transform, "TrainHpLabel", "객차 100/100", 30, new Vector2(-300f, -40f), new Vector2(360f, 40f));
+            Slider hpSlider = CreateTopSlider(root.transform, "TrainHpSlider", new Vector2(-300f, -78f), new Vector2(360f, 24f));
+            Text coinLabel = CreateTopText(root.transform, "CoinLabel", "코인 50", 30, new Vector2(300f, -40f), new Vector2(280f, 40f));
+            Text stationLabel = CreateTopText(root.transform, "StationLabel", "역 1/5", 28, new Vector2(-300f, -120f), new Vector2(280f, 36f));
+            Text waveLabel = CreateTopText(root.transform, "WaveLabel", "웨이브 1/1", 28, new Vector2(0f, -120f), new Vector2(280f, 36f));
+            Text phaseLabel = CreateTopText(root.transform, "PhaseLabel", "준비", 28, new Vector2(300f, -120f), new Vector2(280f, 36f));
+            Text statusLabel = CreateTopText(root.transform, "StatusLabel", "상태", 24, new Vector2(0f, -165f), new Vector2(900f, 36f));
 
-            // 하단 앵커: SummonPanel 위 / Grid 아래 (겹침 방지)
-            Button readyButton = CreateBottomButton(root.transform, "ReadyButton", "준비 완료", new Vector2(-180f, 230f), new Vector2(150f, 80f));
-            Button speedButton = CreateBottomButton(root.transform, "SpeedButton", "1x", new Vector2(0f, 230f), new Vector2(150f, 80f));
-            Button pauseButton = CreateBottomButton(root.transform, "PauseButton", "일시정지", new Vector2(180f, 230f), new Vector2(150f, 80f));
+            Button readyButton = CreateBottomButton(root.transform, "ReadyButton", "준비 완료", new Vector2(-190f, 220f), new Vector2(160f, 78f));
+            Button speedButton = CreateBottomButton(root.transform, "SpeedButton", "1x", new Vector2(0f, 220f), new Vector2(160f, 78f));
+            Button pauseButton = CreateBottomButton(root.transform, "PauseButton", "일시정지", new Vector2(190f, 220f), new Vector2(160f, 78f));
 
             // Pause overlay
             var pauseOverlay = new GameObject("PauseOverlay", typeof(RectTransform), typeof(Image));
@@ -213,6 +205,30 @@ namespace LastTrain.EditorTools
             rect.offsetMax = Vector2.zero;
         }
 
+        private static Slider CreateTopSlider(Transform parent, string name, Vector2 pos, Vector2 size)
+        {
+            Slider slider = CreateSlider(parent, name, pos, size);
+            var rect = slider.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 1f);
+            rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.anchoredPosition = pos;
+            rect.sizeDelta = size;
+            return slider;
+        }
+
+        private static Text CreateTopText(Transform parent, string name, string content, int fontSize, Vector2 pos, Vector2 size)
+        {
+            Text text = CreateText(parent, name, content, fontSize, pos, size);
+            var rect = text.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 1f);
+            rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.anchoredPosition = pos;
+            rect.sizeDelta = size;
+            return text;
+        }
+
         private static Slider CreateSlider(Transform parent, string name, Vector2 pos, Vector2 size)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Slider));
@@ -292,8 +308,7 @@ namespace LastTrain.EditorTools
 
         private static Font GetFont()
         {
-            return Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf")
-                   ?? Font.CreateDynamicFontFromOSFont("Malgun Gothic", 16);
+            return GameFontProvider.Get();
         }
     }
 }

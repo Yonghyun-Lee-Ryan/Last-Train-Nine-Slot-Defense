@@ -107,17 +107,6 @@ namespace LastTrain.EditorTools
 
             CreateTitleLabel(safeArea, "GAME (임시)", 56, new Vector2(0, 500));
 
-            Button exitButton = CreateButton(safeArea, "ExitToResultButton", "임시 종료 → 결과", new Vector2(0, 750));
-            // 상단 우측으로 배치해 Grid와 겹치지 않게 한다.
-            var exitRect = exitButton.GetComponent<RectTransform>();
-            exitRect.anchorMin = new Vector2(1f, 1f);
-            exitRect.anchorMax = new Vector2(1f, 1f);
-            exitRect.pivot = new Vector2(1f, 1f);
-            exitRect.anchoredPosition = new Vector2(-24f, -24f);
-            exitRect.sizeDelta = new Vector2(320f, 100f);
-            var controller = canvas.gameObject.AddComponent<GamePlaceholderController>();
-            AssignPrivateField(controller, "exitToResultButton", exitButton);
-
             string path = $"{SceneFolder}/{SceneNames.Game}.unity";
             EditorSceneManager.SaveScene(scene, path);
             return path;
@@ -182,18 +171,8 @@ namespace LastTrain.EditorTools
         private static void CreateEventSystem()
         {
             var esGo = new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem));
-
-            // 프로젝트가 New Input System 전용일 수도, Old Input Manager일 수도 있으므로
-            // 컴파일 의존성을 만들지 않고 사용 가능한 InputModule을 찾아 붙인다.
-            System.Type moduleType =
-                System.Type.GetType("UnityEngine.InputSystem.UI.InputSystemUIInputModule, Unity.InputSystem");
-
-            if (moduleType == null)
-            {
-                moduleType = typeof(UnityEngine.EventSystems.StandaloneInputModule);
-            }
-
-            esGo.AddComponent(moduleType);
+            var module = esGo.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
+            module.AssignDefaultActions();
         }
 
         private static void CreateTitleLabel(RectTransform parent, string text, int fontSize, Vector2 anchoredPos)
@@ -245,50 +224,9 @@ namespace LastTrain.EditorTools
             return button;
         }
 
-        /// <summary>
-        /// Unity 6에서는 Arial.ttf·LegacyRuntime.ttf 내장 리소스 API가 변경되었다.
-        /// 예외 없이 OS 폰트 폴백까지 시도한다.
-        /// </summary>
         private static Font GetBuiltinFont()
         {
-            Font font = TryLoadBuiltinFont("LegacyRuntime.ttf");
-            if (font != null)
-            {
-                return font;
-            }
-
-            string[] osFontCandidates =
-            {
-                "Malgun Gothic",
-                "Segoe UI",
-                "Arial",
-                "Helvetica",
-                "Noto Sans CJK KR"
-            };
-
-            for (int i = 0; i < osFontCandidates.Length; i++)
-            {
-                font = Font.CreateDynamicFontFromOSFont(osFontCandidates[i], 16);
-                if (font != null)
-                {
-                    return font;
-                }
-            }
-
-            Debug.LogWarning("[Unit1SceneBuilder] 사용 가능한 폰트를 찾지 못했습니다. Text는 기본 폰트로 표시됩니다.");
-            return null;
-        }
-
-        private static Font TryLoadBuiltinFont(string resourceName)
-        {
-            try
-            {
-                return Resources.GetBuiltinResource<Font>(resourceName);
-            }
-            catch (System.ArgumentException)
-            {
-                return null;
-            }
+            return LastTrain.UI.GameFontProvider.Get();
         }
 
         private static void AssignPrivateField(Object target, string fieldName, Object value)

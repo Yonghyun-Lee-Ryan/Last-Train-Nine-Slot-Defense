@@ -60,8 +60,9 @@ namespace LastTrain.Passenger
                 damage *= 1f + bossDamagePercent / 100f;
             }
 
-            launcher.Launch(attackerPosition, target, damage);
+            launcher.Launch(attackerPosition, target, damage, runtime.Data.Id);
             runtime.SetAttackCooldownRemaining(runtime.GetEffectiveAttackInterval());
+            CombatVisualEvents.RaisePassengerAttacked(runtime.InstanceId);
             return true;
         }
     }

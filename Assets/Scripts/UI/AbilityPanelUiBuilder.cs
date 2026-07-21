@@ -107,8 +107,7 @@ namespace LastTrain.UI
             text.fontSize = fontSize;
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf")
-                        ?? Font.CreateDynamicFontFromOSFont("Malgun Gothic", fontSize);
+            text.font = GameFontProvider.Get();
             return text;
         }
     }

@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b70dd3bd3d11f48428b6c8c2acafd8a7, type: 3}
+  m_Name: EnemyVisual_enemy_fast
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Data.EnemyVisualSet
+  id: enemy_fast
+  move:
+    frames:
+    - {fileID: -216521160, guid: e32749da6f22ef2418d4b930c3161bed, type: 3}
+    - {fileID: 568893669, guid: e32749da6f22ef2418d4b930c3161bed, type: 3}
+    - {fileID: -1931746447, guid: e32749da6f22ef2418d4b930c3161bed, type: 3}
+    - {fileID: -1629902528, guid: e32749da6f22ef2418d4b930c3161bed, type: 3}
+    framesPerSecond: 8
+    loop: 1
+  hit:
+    frames:
+    - {fileID: 1676845326, guid: c989bd3ba13d1eb4ea884c8aaf617cdc, type: 3}
+    - {fileID: 769968174, guid: c989bd3ba13d1eb4ea884c8aaf617cdc, type: 3}
+    framesPerSecond: 8
+    loop: 0
+  death:
+    frames:
+    - {fileID: 1558720074, guid: f876891994ab3324aa268594ec338c3e, type: 3}
+    - {fileID: 917735479, guid: f876891994ab3324aa268594ec338c3e, type: 3}
+    - {fileID: 528895243, guid: f876891994ab3324aa268594ec338c3e, type: 3}
+    - {fileID: 1928430280, guid: f876891994ab3324aa268594ec338c3e, type: 3}
+    framesPerSecond: 8
+    loop: 0
+  cast:
+    frames: []
+    framesPerSecond: 0
+    loop: 0
+  enraged:
+    frames: []
+    framesPerSecond: 0
+    loop: 0
+  accentColor: {r: 0.023529412, g: 0.7137255, b: 0.83137256, a: 1}
+  displaySize: {x: 128, y: 128}

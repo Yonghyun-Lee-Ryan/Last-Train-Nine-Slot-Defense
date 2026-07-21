@@ -32,6 +32,7 @@ namespace LastTrain.Passenger.Skills
             int heal = Mathf.Max(1, Mathf.RoundToInt(healFloat));
             context.Train.Heal(heal);
             _cooldownRemaining = BaseCooldownSeconds;
+            LastTrain.Battle.CombatVisualEvents.RaiseTrainHealed(context.TrainTarget);
         }
     }
 }

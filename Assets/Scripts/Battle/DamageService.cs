@@ -29,6 +29,7 @@ namespace LastTrain.Battle
 
             float finalDamage = CalculateFinalDamage(rawDamage, enemy.Defense);
             enemy.ApplyDamage(finalDamage);
+            CombatVisualEvents.RaiseEnemyDamaged(enemy, finalDamage);
             return finalDamage;
         }
     }
