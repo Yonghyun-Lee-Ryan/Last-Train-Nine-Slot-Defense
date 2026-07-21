@@ -244,7 +244,19 @@ namespace LastTrain.EditorTools
                     moveSpeed: 1.4f,
                     trainDamage: 8f,
                     defense: 0.2f,
-                    coinReward: 5)
+                    coinReward: 5),
+
+                CreateEnemy(
+                    "Assets/Data/Enemies/Enemy_Boss_DrunkManager.asset",
+                    "enemy_boss_drunk_manager",
+                    "취중 차장",
+                    EnemyType.Boss,
+                    baseHealth: 400f,
+                    moveSpeed: 1.2f,
+                    trainDamage: 20f,
+                    defense: 0.1f,
+                    coinReward: 40,
+                    abilityId: "boss_mvp")
             };
         }
 
@@ -257,7 +269,8 @@ namespace LastTrain.EditorTools
             float moveSpeed,
             float trainDamage,
             float defense,
-            int coinReward)
+            int coinReward,
+            string abilityId = "")
         {
             var data = LoadOrCreate<EnemyData>(path);
             var so = new SerializedObject(data);
@@ -269,6 +282,7 @@ namespace LastTrain.EditorTools
             so.FindProperty("trainDamage").floatValue = trainDamage;
             so.FindProperty("defense").floatValue = defense;
             so.FindProperty("coinReward").intValue = coinReward;
+            so.FindProperty("abilityId").stringValue = abilityId ?? string.Empty;
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(data);
             return data;
@@ -279,6 +293,7 @@ namespace LastTrain.EditorTools
             EnemyData normal = enemies[0];
             EnemyData fast = enemies[1];
             EnemyData tank = enemies[2];
+            EnemyData boss = enemies.Count > 3 ? enemies[3] : tank;
 
             return new List<WaveData>
             {
@@ -290,7 +305,7 @@ namespace LastTrain.EditorTools
                 CreateWave("Assets/Data/Stations/Waves/Wave_04_01.asset", "wave_04_01", fast, 5, 0.7f),
                 CreateWave("Assets/Data/Stations/Waves/Wave_05_01.asset", "wave_05_01", normal, 4, 0.8f),
                 CreateWave("Assets/Data/Stations/Waves/Wave_05_02.asset", "wave_05_02", tank, 2, 1.0f),
-                CreateWave("Assets/Data/Stations/Waves/Wave_05_03.asset", "wave_05_03", fast, 4, 0.6f)
+                CreateWave("Assets/Data/Stations/Waves/Wave_05_Boss.asset", "wave_05_boss", boss, 1, 1.0f)
             };
         }
 

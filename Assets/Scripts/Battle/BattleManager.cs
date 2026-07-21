@@ -14,7 +14,7 @@ namespace LastTrain.Battle
     /// <summary>
     /// 전투 틱·승객 공격·적 이동·객차 피해를 조율한다.
     /// </summary>
-    public sealed class BattleManager : MonoBehaviour, IBattleFlowContext
+    public sealed class BattleManager : MonoBehaviour, IBattleFlowContext, IEnemySpawner
     {
         [Header("References")]
         [SerializeField] private GridManager gridManager;
@@ -22,6 +22,8 @@ namespace LastTrain.Battle
         [SerializeField] private EnemyPool enemyPool;
         [SerializeField] private RectTransform spawnPoint;
         [SerializeField] private RectTransform trainTarget;
+        [SerializeField] private GameDatabase gameDatabase;
+        [SerializeField] private EnemyData bossMinionData;
 
         [Header("Combat")]
         [SerializeField] private float rangeScale = BattleConstants.RangeToWorldScale;
@@ -33,16 +35,23 @@ namespace LastTrain.Battle
         private readonly Dictionary<string, PassengerController> _passengerControllers = new();
         private readonly Dictionary<string, EnemyController> _activeEnemies = new();
         private readonly TemporaryTurretService _turretService = new();
+        private readonly List<BossBrain> _bossBrains = new();
         private RandomService _skillRandom;
 
         private RunState _runState;
         private bool _initialized;
 
+        public event Action<EnemyRuntime> BossSpawned;
+        public event Action<EnemyRuntime> BossDespawned;
+        public event Action<EnemyRuntime, float, float> BossHealthChanged;
+        public event Action<BossPhase, BossPhase> BossPhaseChanged;
+
         public EnemyRegistry EnemyRegistry => _enemyRegistry;
         public RectTransform SpawnPoint => spawnPoint;
         public RectTransform TrainTarget => trainTarget;
+        public EnemyRuntime ActiveBoss => _bossBrains.Count > 0 ? _bossBrains[0].Owner : null;
 
-        public void Initialize(RunState runState, GridManager grid)
+        public void Initialize(RunState runState, GridManager grid, GameDatabase database = null)
         {
             if (runState == null)
             {
@@ -50,6 +59,11 @@ namespace LastTrain.Battle
             }
 
             _runState = runState;
+            if (database != null)
+            {
+                gameDatabase = database;
+            }
+
             if (grid != null)
             {
                 gridManager = grid;
@@ -103,7 +117,13 @@ namespace LastTrain.Battle
 
             _activeEnemies[runtime.InstanceId] = controller;
             _enemyRegistry.Register(runtime);
+            TryAttachBossBrain(runtime);
             return controller;
+        }
+
+        public bool TrySpawn(EnemyData data, Vector2? position = null)
+        {
+            return SpawnEnemy(data, position) != null;
         }
 
         /// <summary>개발 단위 5 호환: 런타임만 등록(이동 View 없음).</summary>
@@ -136,6 +156,7 @@ namespace LastTrain.Battle
             _activeEnemies.Clear();
             _enemyRegistry.Clear();
             _turretService.Clear();
+            DisposeAllBossBrains();
         }
 
         public float ToWorldRange(float dataRange)
@@ -181,8 +202,24 @@ namespace LastTrain.Battle
 
             float deltaTime = Time.deltaTime;
             TickEnemyMovement(deltaTime);
+            TickBossBrains(deltaTime);
             TickTemporaryTurrets(deltaTime);
             TickPassengerAttacks(deltaTime);
+        }
+
+        private void TickBossBrains(float deltaTime)
+        {
+            for (int i = _bossBrains.Count - 1; i >= 0; i--)
+            {
+                BossBrain brain = _bossBrains[i];
+                if (brain == null || brain.Owner == null || !brain.Owner.IsAlive)
+                {
+                    RemoveBossBrainAt(i);
+                    continue;
+                }
+
+                brain.Tick(deltaTime);
+            }
         }
 
         private void TickEnemyMovement(float deltaTime)
@@ -243,6 +280,7 @@ namespace LastTrain.Battle
             AbilityModifiers modifiers = _runState.Abilities?.Modifiers ?? AbilityModifiers.Empty;
             SynergyModifiers synergyModifiers = _runState.Synergies?.Modifiers ?? SynergyModifiers.Empty;
             float fastEnemyBonus = synergyModifiers.FastEnemyDamagePercent;
+            float bossDamageBonus = modifiers.PoliceBossDamagePercent;
             Vector2 spawnPos = spawnPoint != null ? (Vector2)spawnPoint.position : Vector2.zero;
             Vector2 trainPos = trainTarget != null ? (Vector2)trainTarget.position : Vector2.zero;
 
@@ -278,7 +316,8 @@ namespace LastTrain.Battle
                     enemies,
                     projectilePool,
                     skillContext,
-                    fastEnemyBonus);
+                    fastEnemyBonus,
+                    bossDamageBonus);
             }
         }
 
@@ -301,12 +340,101 @@ namespace LastTrain.Battle
             }
 
             UnsubscribeEnemyEvents(enemy);
+            RemoveBossBrain(enemy);
 
             if (_activeEnemies.TryGetValue(enemy.InstanceId, out EnemyController controller))
             {
                 _activeEnemies.Remove(enemy.InstanceId);
                 controller.Release();
             }
+        }
+
+        private void TryAttachBossBrain(EnemyRuntime runtime)
+        {
+            EnemyData minion = ResolveBossMinionData();
+            BossBrain brain = BossBrain.Create(runtime, _runState, this, minion);
+            if (brain == null)
+            {
+                return;
+            }
+
+            brain.HealthChanged += HandleBossHealthChanged;
+            brain.PhaseChanged += HandleBossPhaseChanged;
+            _bossBrains.Add(brain);
+            BossSpawned?.Invoke(runtime);
+            BossHealthChanged?.Invoke(runtime, runtime.CurrentHealth, runtime.MaxHealth);
+        }
+
+        private void RemoveBossBrain(EnemyRuntime enemy)
+        {
+            if (enemy == null)
+            {
+                return;
+            }
+
+            for (int i = _bossBrains.Count - 1; i >= 0; i--)
+            {
+                if (_bossBrains[i]?.Owner == enemy)
+                {
+                    RemoveBossBrainAt(i);
+                }
+            }
+        }
+
+        private void RemoveBossBrainAt(int index)
+        {
+            if (index < 0 || index >= _bossBrains.Count)
+            {
+                return;
+            }
+
+            BossBrain brain = _bossBrains[index];
+            EnemyRuntime owner = brain?.Owner;
+            if (brain != null)
+            {
+                brain.HealthChanged -= HandleBossHealthChanged;
+                brain.PhaseChanged -= HandleBossPhaseChanged;
+                brain.Dispose();
+            }
+
+            _bossBrains.RemoveAt(index);
+            if (owner != null)
+            {
+                BossDespawned?.Invoke(owner);
+            }
+        }
+
+        private void DisposeAllBossBrains()
+        {
+            for (int i = _bossBrains.Count - 1; i >= 0; i--)
+            {
+                RemoveBossBrainAt(i);
+            }
+        }
+
+        private void HandleBossHealthChanged(EnemyRuntime enemy, float current, float max)
+        {
+            BossHealthChanged?.Invoke(enemy, current, max);
+        }
+
+        private void HandleBossPhaseChanged(BossPhase previous, BossPhase next)
+        {
+            BossPhaseChanged?.Invoke(previous, next);
+        }
+
+        private EnemyData ResolveBossMinionData()
+        {
+            if (bossMinionData != null)
+            {
+                return bossMinionData;
+            }
+
+            if (gameDatabase != null && gameDatabase.TryGetEnemy("enemy_normal", out EnemyData normal))
+            {
+                return normal;
+            }
+
+            return null;
         }
 
         private void UnsubscribeEnemyEvents(EnemyRuntime enemy)

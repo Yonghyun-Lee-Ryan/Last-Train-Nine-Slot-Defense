@@ -1,3 +1,5 @@
+using LastTrain.Run;
+using LastTrain.Save;
 using UnityEngine;
 
 namespace LastTrain.Core
@@ -20,6 +22,7 @@ namespace LastTrain.Core
 
         private SceneLoader _sceneLoader;
         private GameSession _gameSession;
+        private bool _subscribedRunEnded;
 
         /// <summary>비동기 Scene 전환 담당. AppRoot 생성 시 함께 초기화된다.</summary>
         public SceneLoader SceneLoader => _sceneLoader;
@@ -40,6 +43,13 @@ namespace LastTrain.Core
             DontDestroyOnLoad(gameObject);
 
             Initialize();
+
+            // 저장 파일은 회차 종료 시점에만 정리한다.
+            if (!_subscribedRunEnded)
+            {
+                GameSession.RunEnded += HandleRunEnded;
+                _subscribedRunEnded = true;
+            }
         }
 
         private void Initialize()
@@ -63,6 +73,26 @@ namespace LastTrain.Core
             }
         }
 
+        private void HandleRunEnded(RunResult _)
+        {
+            RunSaveSystem.DeleteRunSave();
+        }
+
+        private void OnApplicationPause(bool pauseStatus)
+        {
+            if (!pauseStatus)
+            {
+                return;
+            }
+
+            RunSaveSystem.TrySavePreparing(GameSession);
+        }
+
+        private void OnApplicationQuit()
+        {
+            RunSaveSystem.TrySavePreparing(GameSession);
+        }
+
         /// <summary>
         /// 앱 공통 설정을 적용한다. Portrait 고정, 프레임레이트, 슬립 방지 등.
         /// </summary>
@@ -82,6 +112,12 @@ namespace LastTrain.Core
         {
             if (Instance == this)
             {
+                if (_subscribedRunEnded)
+                {
+                    GameSession.RunEnded -= HandleRunEnded;
+                    _subscribedRunEnded = false;
+                }
+
                 _gameSession?.ClearRun();
                 Instance = null;
             }

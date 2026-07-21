@@ -121,6 +121,39 @@ namespace LastTrain.Run
             return true;
         }
 
+        /// <summary>
+        /// 저장으로부터 승객을 배치한다.
+        /// <para>이때 RunHistory 기록(기록된 소환 횟수 등)은 저장 데이터로 복원하므로 여기서는 기록하지 않는다.</para>
+        /// </summary>
+        public bool TryPlacePassengerFromSave(int slotIndex, PassengerRuntime passenger)
+        {
+            ValidateSlotIndex(slotIndex);
+            if (passenger == null)
+            {
+                throw new ArgumentNullException(nameof(passenger));
+            }
+
+            if (_gridSlots[slotIndex] != null)
+            {
+                return false;
+            }
+
+            if (passenger.GridSlotIndex >= 0 && _gridSlots[passenger.GridSlotIndex] == passenger)
+            {
+                _gridSlots[passenger.GridSlotIndex] = null;
+            }
+
+            _gridSlots[slotIndex] = passenger;
+            passenger.GridSlotIndex = slotIndex;
+
+            if (!_allPassengers.Contains(passenger))
+            {
+                _allPassengers.Add(passenger);
+            }
+
+            return true;
+        }
+
         /// <summary>슬롯에서 승객을 제거한다. AllPassengers 목록은 유지한다.</summary>
         public bool TryRemovePassenger(int slotIndex, out PassengerRuntime removed)
         {

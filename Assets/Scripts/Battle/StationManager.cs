@@ -14,6 +14,7 @@ namespace LastTrain.Battle
         public event Action<StationData> StationStarted;
         public event Action<StationData> StationCompleted;
         public event Action<StationData> AbilityRewardRequested;
+        public event Action RunVictoryRequested;
 
         private readonly WaveManager _waveManager = new();
         private readonly Func<int, StationData> _stationLookup;
@@ -138,6 +139,8 @@ namespace LastTrain.Battle
             StationData nextStation = _stationLookup(nextIndex);
             if (nextStation == null)
             {
+                _runState.Station.MarkCurrentStationCompleted();
+                RunVictoryRequested?.Invoke();
                 return false;
             }
 

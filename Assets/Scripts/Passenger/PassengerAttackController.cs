@@ -24,7 +24,8 @@ namespace LastTrain.Passenger
             float rangeInWorldUnits,
             IReadOnlyList<EnemyRuntime> enemies,
             IProjectileLauncher launcher,
-            float fastEnemyDamagePercent = 0f)
+            float fastEnemyDamagePercent = 0f,
+            float bossDamagePercent = 0f)
         {
             if (runtime == null || launcher == null || runtime.GridSlotIndex < 0)
             {
@@ -52,6 +53,11 @@ namespace LastTrain.Passenger
             if (fastEnemyDamagePercent != 0f && target.EnemyType == EnemyType.Fast)
             {
                 damage *= 1f + fastEnemyDamagePercent / 100f;
+            }
+
+            if (bossDamagePercent != 0f && target.EnemyType == EnemyType.Boss)
+            {
+                damage *= 1f + bossDamagePercent / 100f;
             }
 
             launcher.Launch(attackerPosition, target, damage);

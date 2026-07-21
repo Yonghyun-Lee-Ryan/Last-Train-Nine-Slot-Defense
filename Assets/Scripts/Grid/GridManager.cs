@@ -36,7 +36,10 @@ namespace LastTrain.Grid
         private int _dragOriginSlotIndex = -1;
         private int _selectedSlotIndex = -1;
 
-        public bool CanDrag => allowDrag && _runState != null;
+        public bool CanDrag => allowDrag
+                               && _runState != null
+                               && _runState.Battle != null
+                               && _runState.Battle.IsRunActive;
 
         public Canvas RootCanvas => rootCanvas;
 

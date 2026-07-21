@@ -37,7 +37,8 @@ namespace LastTrain.Passenger
             IReadOnlyList<EnemyRuntime> enemies,
             IProjectileLauncher launcher,
             PassengerSkillContext? skillContext = null,
-            float fastEnemyDamagePercent = 0f)
+            float fastEnemyDamagePercent = 0f,
+            float bossDamagePercent = 0f)
         {
             bool attacked = _attackController.Tick(
                 deltaTime,
@@ -46,7 +47,8 @@ namespace LastTrain.Passenger
                 rangeInWorldUnits,
                 enemies,
                 launcher,
-                fastEnemyDamagePercent);
+                fastEnemyDamagePercent,
+                bossDamagePercent);
 
             if (skillContext.HasValue)
             {

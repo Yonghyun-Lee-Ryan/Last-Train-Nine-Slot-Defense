@@ -4,6 +4,7 @@ using LastTrain.Core;
 using LastTrain.Data;
 using LastTrain.Grid;
 using LastTrain.Run;
+using LastTrain.Save;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -31,6 +32,12 @@ namespace LastTrain.UI
         [SerializeField] private Text phaseLabel;
         [SerializeField] private Text statusLabel;
 
+        [Header("Boss")]
+        [SerializeField] private GameObject bossHpRoot;
+        [SerializeField] private Slider bossHpSlider;
+        [SerializeField] private Text bossHpLabel;
+        [SerializeField] private Text bossNameLabel;
+
         [Header("Actions")]
         [SerializeField] private Button readyButton;
         [SerializeField] private Button speedButton;
@@ -40,6 +47,8 @@ namespace LastTrain.UI
 
         private RunState _runState;
         private GameSession _session;
+        private BattleManager _battleManager;
+        private bool _runEndHandled;
         private readonly UiInputGuard _inputGuard = new();
         private float _speedScale = 1f;
         private bool _paused;
@@ -58,6 +67,7 @@ namespace LastTrain.UI
 
             _session = appRoot.GameSession;
             _runState = _session.RunState;
+            _runEndHandled = false;
 
             if (gridManager == null)
             {
@@ -74,6 +84,8 @@ namespace LastTrain.UI
                 _totalStations = battleBootstrap.GameDatabase.Stations?.Count ?? 5;
             }
 
+            _battleManager = FindAnyObjectByType<BattleManager>();
+
             Subscribe();
             WireButtons();
             detailPopup?.Initialize(_runState, OnPassengerSold);
@@ -82,6 +94,7 @@ namespace LastTrain.UI
                 pauseOverlay.SetActive(false);
             }
 
+            SetBossVisible(false);
             _lastCoins = _runState.Currency.CurrentCoins;
             _lastHp = _runState.Train.CurrentHp;
             RefreshAll();
@@ -96,6 +109,11 @@ namespace LastTrain.UI
             {
                 Time.timeScale = 1f;
             }
+
+            if (_session != null)
+            {
+                _session.RunEnded -= HandleRunEnded;
+            }
         }
 
         private void Subscribe()
@@ -103,6 +121,11 @@ namespace LastTrain.UI
             if (_runState == null)
             {
                 return;
+            }
+
+            if (_session != null)
+            {
+                _session.RunEnded += HandleRunEnded;
             }
 
             _runState.Currency.CoinsChanged += HandleCoinsChanged;
@@ -115,10 +138,23 @@ namespace LastTrain.UI
             {
                 gridManager.PassengerSelected += HandlePassengerSelected;
             }
+
+            if (_battleManager != null)
+            {
+                _battleManager.BossSpawned += HandleBossSpawned;
+                _battleManager.BossDespawned += HandleBossDespawned;
+                _battleManager.BossHealthChanged += HandleBossHealthChanged;
+                _battleManager.BossPhaseChanged += HandleBossPhaseChanged;
+            }
         }
 
         private void Unsubscribe()
         {
+            if (_session != null)
+            {
+                _session.RunEnded -= HandleRunEnded;
+            }
+
             if (_runState?.Currency != null)
             {
                 _runState.Currency.CoinsChanged -= HandleCoinsChanged;
@@ -143,6 +179,14 @@ namespace LastTrain.UI
             if (gridManager != null)
             {
                 gridManager.PassengerSelected -= HandlePassengerSelected;
+            }
+
+            if (_battleManager != null)
+            {
+                _battleManager.BossSpawned -= HandleBossSpawned;
+                _battleManager.BossDespawned -= HandleBossDespawned;
+                _battleManager.BossHealthChanged -= HandleBossHealthChanged;
+                _battleManager.BossPhaseChanged -= HandleBossPhaseChanged;
             }
         }
 
@@ -262,6 +306,10 @@ namespace LastTrain.UI
             _paused = true;
             Time.timeScale = 0f;
             battleBootstrap?.SetPaused(true);
+
+            // Unit 16: Preparing 상태에서만 이어하기 저장 생성
+            RunSaveSystem.TrySavePreparing(_session);
+
             if (pauseOverlay != null)
             {
                 pauseOverlay.SetActive(true);
@@ -292,6 +340,33 @@ namespace LastTrain.UI
             }
 
             detailPopup?.Show(slotIndex);
+        }
+
+        private void HandleRunEnded(RunResult _)
+        {
+            if (_runEndHandled)
+            {
+                return;
+            }
+
+            _runEndHandled = true;
+            _paused = true;
+            battleBootstrap?.SetPaused(true);
+            Time.timeScale = 1f;
+
+            if (readyButton != null) readyButton.interactable = false;
+            if (speedButton != null) speedButton.interactable = false;
+            if (pauseButton != null) pauseButton.interactable = false;
+            if (resumeButton != null) resumeButton.interactable = false;
+
+            if (pauseOverlay != null) pauseOverlay.SetActive(false);
+
+            detailPopup?.Close();
+
+            gridManager?.ClearSelection();
+            gridManager?.RefreshViews();
+
+            SetStatus(string.Empty);
         }
 
         private void OnPassengerSold(int coins)
@@ -339,6 +414,75 @@ namespace LastTrain.UI
         private void HandleWaveChanged(int _)
         {
             RefreshStationWave();
+        }
+
+        private void HandleBossSpawned(Enemy.EnemyRuntime boss)
+        {
+            SetBossVisible(true);
+            if (bossNameLabel != null && boss?.Data != null)
+            {
+                bossNameLabel.text = boss.Data.DisplayName;
+            }
+
+            RefreshBossHp(boss);
+            SetStatus($"보스 등장: {boss?.Data?.DisplayName}");
+        }
+
+        private void HandleBossDespawned(Enemy.EnemyRuntime boss)
+        {
+            SetBossVisible(false);
+
+            if (boss != null && boss.Resolution == Enemy.EnemyResolution.Killed)
+            {
+                SetStatus("보스를 처치했습니다!");
+            }
+            else
+            {
+                SetStatus(string.Empty);
+            }
+        }
+
+        private void HandleBossHealthChanged(Enemy.EnemyRuntime boss, float current, float max)
+        {
+            RefreshBossHp(boss, current, max);
+        }
+
+        private void HandleBossPhaseChanged(Enemy.BossPhase previous, Enemy.BossPhase next)
+        {
+            if (next == Enemy.BossPhase.Enraged)
+            {
+                SetStatus("보스가 광폭화했다!");
+            }
+        }
+
+        private void RefreshBossHp(Enemy.EnemyRuntime boss, float? current = null, float? max = null)
+        {
+            if (boss == null)
+            {
+                return;
+            }
+
+            float cur = current ?? boss.CurrentHealth;
+            float mx = max ?? boss.MaxHealth;
+            if (bossHpSlider != null)
+            {
+                bossHpSlider.minValue = 0f;
+                bossHpSlider.maxValue = Mathf.Max(1f, mx);
+                bossHpSlider.value = cur;
+            }
+
+            if (bossHpLabel != null)
+            {
+                bossHpLabel.text = $"보스 {Mathf.CeilToInt(cur)}/{Mathf.CeilToInt(mx)}";
+            }
+        }
+
+        private void SetBossVisible(bool visible)
+        {
+            if (bossHpRoot != null)
+            {
+                bossHpRoot.SetActive(visible);
+            }
         }
 
         private void RefreshAll()

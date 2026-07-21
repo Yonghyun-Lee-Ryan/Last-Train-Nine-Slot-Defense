@@ -62,5 +62,22 @@ namespace LastTrain.Tests.EditMode
 
             Assert.IsTrue(fired);
         }
+
+        [Test]
+        public void EndRun_CalledTwice_IsIdempotent()
+        {
+            _session.StartNewRun();
+            _session.RunState.RecordEnemyKill(3);
+
+            int endedCount = 0;
+            _session.RunEnded += _ => endedCount++;
+
+            Assert.DoesNotThrow(() => _session.EndRun(RunEndReason.Victory, isVictory: true));
+            Assert.AreEqual(1, endedCount);
+
+            Assert.DoesNotThrow(() => _session.EndRun(RunEndReason.Victory, isVictory: true));
+            Assert.AreEqual(1, endedCount);
+            Assert.IsFalse(_session.HasActiveRun);
+        }
     }
 }

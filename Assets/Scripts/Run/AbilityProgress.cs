@@ -22,6 +22,39 @@ namespace LastTrain.Run
         public IReadOnlyList<AbilityData> CurrentOffers => _currentOffers;
         public AbilityModifiers Modifiers { get; private set; } = AbilityModifiers.Empty;
 
+        /// <summary>저장 데이터로부터 선택된 능력 카드를 복원한다.</summary>
+        /// <remarks>
+        /// expandedSelectedAbilityIds는 중복을 스택 수만큼 포함해야 한다.
+        /// </remarks>
+        public void RestoreSelectedExpanded(IReadOnlyList<AbilityData> expandedSelectedAbilityData)
+        {
+            Reset();
+
+            if (expandedSelectedAbilityData == null || expandedSelectedAbilityData.Count == 0)
+            {
+                return;
+            }
+
+            for (int i = 0; i < expandedSelectedAbilityData.Count; i++)
+            {
+                AbilityData ability = expandedSelectedAbilityData[i];
+                if (ability == null)
+                {
+                    continue;
+                }
+
+                // 스택 수만큼 AddSelected을 호출해 동일 상태를 만든다.
+                AddSelected(ability);
+            }
+        }
+
+        /// <summary>저장 데이터로부터 리롤 사용 횟수를 복원한다.</summary>
+        public void RestoreRerollUsage(int freeRerollsUsed, int adRerollsUsed)
+        {
+            FreeRerollsUsed = Math.Max(0, freeRerollsUsed);
+            AdRerollsUsed = Math.Max(0, adRerollsUsed);
+        }
+
         public void Reset()
         {
             FreeRerollsUsed = 0;

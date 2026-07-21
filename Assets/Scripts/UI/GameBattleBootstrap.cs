@@ -26,6 +26,7 @@ namespace LastTrain.UI
         private AbilityPanelController _abilityPanel;
         private SynergyManager _synergyManager;
         private bool _paused;
+        private bool _runEndHandled;
 
         public StationManager StationManager => _stationManager;
         public SynergyManager SynergyManager => _synergyManager;
@@ -79,7 +80,7 @@ namespace LastTrain.UI
                 return;
             }
 
-            battleManager.Initialize(runState, gridManager);
+            battleManager.Initialize(runState, gridManager, gameDatabase);
             battleManager.SetStationDifficulty(startingStation.DifficultyMultiplier);
 
             _synergyManager = new SynergyManager(runState, gameDatabase.Synergies);
@@ -88,6 +89,7 @@ namespace LastTrain.UI
             _stationManager = new StationManager(ResolveStationByIndex);
             _stationManager.StationStarted += HandleStationStarted;
             _stationManager.AbilityRewardRequested += HandleAbilityRewardRequested;
+            _stationManager.RunVictoryRequested += HandleRunVictoryRequested;
             _stationManager.Initialize(runState, startingStation);
 
             if (_abilityPanel == null)
@@ -96,6 +98,8 @@ namespace LastTrain.UI
             }
 
             _gameSession.RunEnded += HandleRunEnded;
+
+            _runEndHandled = false;
 
             if (autoStartFirstWave)
             {
@@ -124,6 +128,7 @@ namespace LastTrain.UI
             {
                 _stationManager.StationStarted -= HandleStationStarted;
                 _stationManager.AbilityRewardRequested -= HandleAbilityRewardRequested;
+                _stationManager.RunVictoryRequested -= HandleRunVictoryRequested;
                 _stationManager.Cancel();
             }
         }
@@ -148,10 +153,36 @@ namespace LastTrain.UI
             _stationManager?.ContinueAfterAbilityReward();
         }
 
-        private void HandleRunEnded(RunResult _)
+        private void HandleRunVictoryRequested()
         {
+            if (_gameSession == null || !_gameSession.HasActiveRun)
+            {
+                return;
+            }
+
+            _gameSession.EndRun(RunEndReason.Victory, isVictory: true);
+        }
+
+        private void HandleRunEnded(RunResult result)
+        {
+            if (_runEndHandled)
+            {
+                return;
+            }
+
+            _runEndHandled = true;
             _stationManager?.Cancel();
             battleManager?.ClearEnemies();
+
+            // Result Scene 전환 (오버레이가 있으면 오버레이가 전환을 담당)
+            GameEndOverlayController overlay = FindAnyObjectByType<GameEndOverlayController>();
+            if (overlay != null)
+            {
+                overlay.Show(result);
+                return;
+            }
+
+            SceneFlow.Load(SceneNames.Result);
         }
 
         private StationData ResolveStationByIndex(int stationIndex)

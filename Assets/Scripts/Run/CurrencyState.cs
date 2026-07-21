@@ -55,5 +55,15 @@ namespace LastTrain.Run
         {
             return amount <= 0 || CurrentCoins >= amount;
         }
+
+        /// <summary>저장 데이터로부터 상태를 복원한다.</summary>
+        public void RestoreFromSave(int currentCoins, int totalEarned, int totalSpent)
+        {
+            CurrentCoins = Math.Max(0, currentCoins);
+            TotalEarned = Math.Max(0, totalEarned);
+            TotalSpent = Math.Max(0, totalSpent);
+
+            CoinsChanged?.Invoke(CurrentCoins);
+        }
     }
 }

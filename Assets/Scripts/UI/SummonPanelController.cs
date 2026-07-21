@@ -40,6 +40,7 @@ namespace LastTrain.UI
 
         private SummonManager _summonManager;
         private RunState _runState;
+        private GameSession _session;
 
         private void Start()
         {
@@ -60,6 +61,7 @@ namespace LastTrain.UI
                 return;
             }
 
+            _session = appRoot.GameSession;
             _runState = appRoot.GameSession.RunState;
             if (gridManager == null)
             {
@@ -77,6 +79,11 @@ namespace LastTrain.UI
             _summonManager.StatusMessage += HandleStatusMessage;
 
             WireButtons();
+
+            if (_session != null)
+            {
+                _session.RunEnded += HandleRunEnded;
+            }
             if (gridManager != null)
             {
                 gridManager.PassengerSelected += HandlePassengerSelected;
@@ -124,6 +131,11 @@ namespace LastTrain.UI
 
         private void OnDestroy()
         {
+            if (_session != null)
+            {
+                _session.RunEnded -= HandleRunEnded;
+            }
+
             if (_summonManager != null)
             {
                 _summonManager.StatusMessage -= HandleStatusMessage;
@@ -146,6 +158,22 @@ namespace LastTrain.UI
             }
 
             UnwireButtons();
+        }
+
+        private void HandleRunEnded(RunResult _)
+        {
+            if (summonButton != null) summonButton.interactable = false;
+
+            if (cancelOfferButton != null) cancelOfferButton.interactable = false;
+            if (freeRerollButton != null) freeRerollButton.interactable = false;
+            if (adRerollButton != null) adRerollButton.interactable = false;
+
+            for (int i = 0; i < offerButtons.Length; i++)
+            {
+                if (offerButtons[i] != null) offerButtons[i].interactable = false;
+            }
+
+            if (offerPanel != null) offerPanel.SetActive(false);
         }
 
         private void WireButtons()

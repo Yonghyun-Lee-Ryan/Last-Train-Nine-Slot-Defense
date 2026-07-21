@@ -53,5 +53,46 @@ namespace LastTrain.Run
             CompletedStationCount++;
             SetCurrentStation(nextStationId, nextStationIndex);
         }
+
+        /// <summary>최종 역을 클리어했을 때 다음 역이 없을 때 호출한다.</summary>
+        public void MarkCurrentStationCompleted()
+        {
+            CompletedStationCount++;
+        }
+
+        /// <summary>
+        /// 저장된 회차 상태로 복원한다. (필드 누락/오류 방지를 위해 기본값을 보정한다.)
+        /// </summary>
+        public void RestoreFromSave(
+            int currentStationIndex,
+            string currentStationId,
+            int currentWaveIndex,
+            int completedStationCount)
+        {
+            if (currentStationIndex < 1)
+            {
+                currentStationIndex = 1;
+            }
+
+            CurrentStationIndex = currentStationIndex;
+            CurrentStationId = currentStationId ?? string.Empty;
+
+            if (currentWaveIndex < 0)
+            {
+                currentWaveIndex = 0;
+            }
+
+            CurrentWaveIndex = currentWaveIndex;
+
+            if (completedStationCount < 0)
+            {
+                completedStationCount = 0;
+            }
+
+            CompletedStationCount = completedStationCount;
+
+            StationIndexChanged?.Invoke(CurrentStationIndex);
+            WaveIndexChanged?.Invoke(CurrentWaveIndex);
+        }
     }
 }

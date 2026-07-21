@@ -16,21 +16,25 @@ namespace LastTrain.Enemy
             CurrentHealth = maxHealth;
             Position = spawnPosition;
             InstanceId = string.IsNullOrWhiteSpace(instanceId) ? Guid.NewGuid().ToString("N") : instanceId;
+            MoveSpeedMultiplier = 1f;
         }
 
         public event Action<EnemyRuntime> Died;
         public event Action<EnemyRuntime> ReachedTrain;
+        public event Action<EnemyRuntime, float, float> HealthChanged;
 
         public EnemyData Data { get; }
         public string InstanceId { get; }
         public float MaxHealth { get; }
         public float CurrentHealth { get; private set; }
         public Vector2 Position { get; set; }
+        public float MoveSpeedMultiplier { get; set; }
         public EnemyResolution Resolution { get; private set; } = EnemyResolution.None;
         public bool IsResolved => Resolution != EnemyResolution.None;
         public bool IsAlive => !IsResolved && CurrentHealth > 0f;
+        public float HealthRatio => MaxHealth > 0f ? CurrentHealth / MaxHealth : 0f;
 
-        public float MoveSpeed => Data.MoveSpeed;
+        public float MoveSpeed => Data.MoveSpeed * Math.Max(0.01f, MoveSpeedMultiplier);
         public float TrainDamage => Data.TrainDamage;
         public int CoinReward => Data.CoinReward;
         public EnemyType EnemyType => Data.EnemyType;
@@ -44,6 +48,7 @@ namespace LastTrain.Enemy
             }
 
             CurrentHealth = Math.Max(0f, CurrentHealth - amount);
+            HealthChanged?.Invoke(this, CurrentHealth, MaxHealth);
             if (CurrentHealth <= 0f)
             {
                 TryResolve(EnemyResolution.Killed);

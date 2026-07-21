@@ -40,12 +40,12 @@ namespace LastTrain.Core
             return RunState;
         }
 
-        /// <summary>회차를 종료하고 RunResult를 생성한다.</summary>
+        /// <summary>회차를 종료하고 RunResult를 생성한다. 이미 종료된 경우 LastResult를 반환한다.</summary>
         public RunResult EndRun(RunEndReason reason, bool isVictory)
         {
-            if (RunState == null)
+            if (!HasActiveRun)
             {
-                throw new InvalidOperationException("활성 RunState가 없어 종료할 수 없습니다.");
+                return LastResult;
             }
 
             UnsubscribeTrainDestroyed();
@@ -55,6 +55,7 @@ namespace LastTrain.Core
             LastResult = result;
             RunEnded?.Invoke(result);
             RunState.Dispose();
+            RunState = null;
             return result;
         }
 

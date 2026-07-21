@@ -88,8 +88,10 @@ namespace LastTrain.EditorTools
             CreateTitleLabel(safeArea, "막차 생존: 9칸 디펜스", 64, new Vector2(0, 500));
 
             Button startButton = CreateButton(safeArea, "StartButton", "게임 시작", new Vector2(0, -100));
+            Button continueButton = CreateButton(safeArea, "ContinueButton", "이어하기", new Vector2(0, -260));
             var controller = canvas.gameObject.AddComponent<MainMenuController>();
             AssignPrivateField(controller, "startButton", startButton);
+            AssignPrivateField(controller, "continueButton", continueButton);
 
             string path = $"{SceneFolder}/{SceneNames.MainMenu}.unity";
             EditorSceneManager.SaveScene(scene, path);

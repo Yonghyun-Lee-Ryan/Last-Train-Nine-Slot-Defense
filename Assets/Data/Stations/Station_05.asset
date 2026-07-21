@@ -20,6 +20,6 @@ MonoBehaviour:
   waves:
   - {fileID: 11400000, guid: b9f59e385fb06ec4db30a6f4e0912da2, type: 2}
   - {fileID: 11400000, guid: 8131befe10830da419cdf769bc6bd360, type: 2}
-  - {fileID: 11400000, guid: b12d67a49311d604bb5088a46b87bf3f, type: 2}
+  - {fileID: 11400000, guid: c1d2e3f405162738495a6b7c8d9e0f12, type: 2}
   rewardCoins: 30
   grantsAbilityChoice: 1

@@ -12,11 +12,18 @@ namespace LastTrain.UI
     /// </summary>
     public class ResultPlaceholderController : MonoBehaviour
     {
+        [Header("Result UI")]
+        [SerializeField] private Text titleLabel;
+        [SerializeField] private Text messageLabel;
+        [SerializeField] private Text statsLabel;
+
         [SerializeField] private Button retryButton;
         [SerializeField] private Button mainMenuButton;
 
         private void Awake()
         {
+            RefreshResultUi();
+
             if (retryButton != null)
             {
                 retryButton.onClick.AddListener(OnRetryClicked);
@@ -85,6 +92,36 @@ namespace LastTrain.UI
             if (mainMenuButton != null)
             {
                 mainMenuButton.interactable = value;
+            }
+        }
+
+        private void RefreshResultUi()
+        {
+            AppRoot appRoot = AppRoot.Instance;
+            if (appRoot == null || appRoot.GameSession == null)
+            {
+                return;
+            }
+
+            RunResult result = appRoot.GameSession.LastResult;
+            if (result == null)
+            {
+                return;
+            }
+
+            if (titleLabel != null)
+            {
+                titleLabel.text = RunResultFormatter.GetTitle(result);
+            }
+
+            if (messageLabel != null)
+            {
+                messageLabel.text = RunResultFormatter.GetOverlayMessage(result);
+            }
+
+            if (statsLabel != null)
+            {
+                statsLabel.text = RunResultFormatter.BuildStatsText(result);
             }
         }
     }

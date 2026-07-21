@@ -23,6 +23,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: fe09612e1335a584897638f65f8d01d7, type: 2}
   - {fileID: 11400000, guid: af3f3d6bb41077b4985e57a67eb6bc16, type: 2}
   - {fileID: 11400000, guid: 5ce55a8bde5bd70488871b6eabe1866d, type: 2}
+  - {fileID: 11400000, guid: b0a51d0a11e14f2e9c3d4e5f60718293, type: 2}
   waves:
   - {fileID: 11400000, guid: d3be6179887972c4fbe108f89dfd63e6, type: 2}
   - {fileID: 11400000, guid: db0ee5355a1eb9e4987700fd65110e4c, type: 2}
@@ -33,6 +34,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b9f59e385fb06ec4db30a6f4e0912da2, type: 2}
   - {fileID: 11400000, guid: 8131befe10830da419cdf769bc6bd360, type: 2}
   - {fileID: 11400000, guid: b12d67a49311d604bb5088a46b87bf3f, type: 2}
+  - {fileID: 11400000, guid: c1d2e3f405162738495a6b7c8d9e0f12, type: 2}
   stations:
   - {fileID: 11400000, guid: 8a5c82decc699664cb60141ccb402b58, type: 2}
   - {fileID: 11400000, guid: a04a439c9b808b84d920c700b5689373, type: 2}

@@ -142,7 +142,8 @@ namespace LastTrain.EditorTools
                 "SummonPanel",
                 "BattleHud",
                 "SynergyHud",
-                "SynergyListLabel"
+                "SynergyListLabel",
+                "BossHpRoot"
             };
 
             int removed = CleanupAbilityPanelDuplicates(scene);

@@ -150,6 +150,29 @@ namespace LastTrain.Tests.EditMode
             Assert.AreEqual(spawnedBefore, _battleContext.SpawnedCount);
         }
 
+        [Test]
+        public void TryAdvanceToNextStation_WhenNoNextStation_RequestsVictoryAndCountsCompleted()
+        {
+            StationData station = CreateStation(
+                "station_final",
+                1,
+                CreateWave("wave_final", _enemyData, count: 1, interval: 0f));
+
+            bool victoryRequested = false;
+            var manager = new StationManager(_ => null);
+            manager.RunVictoryRequested += () => victoryRequested = true;
+            manager.Initialize(_runState, station);
+
+            Assert.IsTrue(manager.TryStartNextWave());
+
+            manager.Tick(1f, _battleContext);
+            _battleContext.AliveCount = 0;
+            manager.Tick(0f, _battleContext);
+
+            Assert.IsTrue(victoryRequested);
+            Assert.AreEqual(1, _runState.Station.CompletedStationCount);
+        }
+
         private static StationData CreateStation(string id, int stationIndex, params WaveData[] waves)
         {
             var station = ScriptableObject.CreateInstance<StationData>();
