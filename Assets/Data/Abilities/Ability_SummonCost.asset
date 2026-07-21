@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4df7fdcdd4033244ca6a33f779685264, type: 3}
+  m_Name: Ability_SummonCost
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Data.AbilityData
+  id: ability_summon_cost
+  displayName: "\uD560\uC778 \uD2F0\uCF13"
+  description: "\uC18C\uD658 \uBE44\uC6A9 \uC99D\uAC00\uB7C9 -1"
+  rarity: 1
+  effectType: 7
+  effectValue: 1
+  targetPassengerId: 
+  allowDuplicate: 1
+  maxStack: 99

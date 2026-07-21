@@ -1,6 +1,7 @@
 using LastTrain.Core;
 using LastTrain.Data;
 using LastTrain.Run;
+using LastTrain.Synergy;
 using UnityEngine;
 
 namespace LastTrain.UI
@@ -13,6 +14,7 @@ namespace LastTrain.UI
     public class GameGridBootstrap : MonoBehaviour
     {
         [SerializeField] private Grid.GridManager gridManager;
+        [SerializeField] private GameDatabase gameDatabase;
         [SerializeField] private PassengerData[] debugPassengers;
         [SerializeField] private int[] debugSlotIndices = { 0, 1, 2, 3 };
 
@@ -42,6 +44,7 @@ namespace LastTrain.UI
             }
 
             RunState runState = session.RunState;
+            EnsureSynergyCatalog(runState);
 
             // 이미 배치된 승객이 있으면(씬 재진입) 디버그 시드를 다시 넣지 않는다.
             if (!HasAnyPassenger(runState))
@@ -49,7 +52,31 @@ namespace LastTrain.UI
                 PlaceDebugPassengers(runState);
             }
 
+            SynergyEffectApplier.Refresh(runState);
             gridManager.Initialize(runState);
+        }
+
+        private void EnsureSynergyCatalog(RunState runState)
+        {
+            if (runState?.Synergies == null)
+            {
+                return;
+            }
+
+            if (runState.Synergies.Catalog.Count > 0)
+            {
+                return;
+            }
+
+            if (gameDatabase == null)
+            {
+                gameDatabase = Resources.Load<GameDatabase>("GameDatabase");
+            }
+
+            if (gameDatabase?.Synergies != null)
+            {
+                runState.Synergies.SetCatalog(gameDatabase.Synergies);
+            }
         }
 
         private static bool HasAnyPassenger(RunState runState)

@@ -41,14 +41,11 @@ namespace LastTrain.EditorTools
             Transform safeArea = canvas.transform.Find("SafeArea");
             Transform parent = safeArea != null ? safeArea : canvas.transform;
 
-            BattleHudController existing = Object.FindAnyObjectByType<BattleHudController>();
-            if (existing != null)
-            {
-                Object.DestroyImmediate(existing.gameObject);
-            }
+            SceneBuilderCleanup.CleanupGeneratedDuplicates(scene);
+            SceneBuilderCleanup.DestroyAllComponents<BattleHudController>(scene);
 
-            GridManager gridManager = Object.FindAnyObjectByType<GridManager>();
-            GameBattleBootstrap bootstrap = Object.FindAnyObjectByType<GameBattleBootstrap>();
+            GridManager gridManager = SceneBuilderCleanup.FindFirstInScene<GridManager>(scene);
+            GameBattleBootstrap bootstrap = SceneBuilderCleanup.FindFirstInScene<GameBattleBootstrap>(scene);
             if (bootstrap != null)
             {
                 var bootstrapSo = new SerializedObject(bootstrap);
@@ -132,9 +129,9 @@ namespace LastTrain.EditorTools
             Text statusLabel = CreateText(root.transform, "StatusLabel", "상태", 24, new Vector2(0f, 700f), new Vector2(900f, 36f));
 
             // 하단 앵커: SummonPanel 위 / Grid 아래 (겹침 방지)
-            Button readyButton = CreateBottomButton(root.transform, "ReadyButton", "준비 완료", new Vector2(-300f, 230f), new Vector2(200f, 80f));
-            Button speedButton = CreateBottomButton(root.transform, "SpeedButton", "1x", new Vector2(-100f, 230f), new Vector2(110f, 80f));
-            Button pauseButton = CreateBottomButton(root.transform, "PauseButton", "일시정지", new Vector2(100f, 230f), new Vector2(130f, 80f));
+            Button readyButton = CreateBottomButton(root.transform, "ReadyButton", "준비 완료", new Vector2(-180f, 230f), new Vector2(150f, 80f));
+            Button speedButton = CreateBottomButton(root.transform, "SpeedButton", "1x", new Vector2(0f, 230f), new Vector2(150f, 80f));
+            Button pauseButton = CreateBottomButton(root.transform, "PauseButton", "일시정지", new Vector2(180f, 230f), new Vector2(150f, 80f));
 
             // Pause overlay
             var pauseOverlay = new GameObject("PauseOverlay", typeof(RectTransform), typeof(Image));

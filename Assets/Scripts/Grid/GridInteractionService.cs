@@ -1,5 +1,7 @@
+using LastTrain.Ability;
 using LastTrain.Passenger;
 using LastTrain.Run;
+using LastTrain.Synergy;
 
 namespace LastTrain.Grid
 {
@@ -57,16 +59,25 @@ namespace LastTrain.Grid
             if (targetPassenger == null)
             {
                 runState.TrySwapSlots(fromSlot, toSlot);
+                RefreshPlacementBuffs(runState);
                 return GridDropResult.Moved;
             }
 
             if (MergeService.TryMerge(runState, fromSlot, toSlot, out _))
             {
+                RefreshPlacementBuffs(runState);
                 return GridDropResult.Merged;
             }
 
             runState.TrySwapSlots(fromSlot, toSlot);
+            RefreshPlacementBuffs(runState);
             return GridDropResult.Swapped;
+        }
+
+        private static void RefreshPlacementBuffs(RunState runState)
+        {
+            AbilityEffectApplier.RefreshPassengerBuffs(runState);
+            SynergyEffectApplier.Refresh(runState);
         }
     }
 }

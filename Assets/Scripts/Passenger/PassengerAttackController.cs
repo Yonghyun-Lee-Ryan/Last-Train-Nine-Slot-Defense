@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using LastTrain.Battle;
+using LastTrain.Data;
 using LastTrain.Enemy;
 using LastTrain.Run;
 using UnityEngine;
@@ -22,7 +23,8 @@ namespace LastTrain.Passenger
             Vector2 attackerPosition,
             float rangeInWorldUnits,
             IReadOnlyList<EnemyRuntime> enemies,
-            IProjectileLauncher launcher)
+            IProjectileLauncher launcher,
+            float fastEnemyDamagePercent = 0f)
         {
             if (runtime == null || launcher == null || runtime.GridSlotIndex < 0)
             {
@@ -46,7 +48,13 @@ namespace LastTrain.Passenger
                 return false;
             }
 
-            launcher.Launch(attackerPosition, target, runtime.GetEffectiveAttack());
+            float damage = runtime.GetEffectiveAttack();
+            if (fastEnemyDamagePercent != 0f && target.EnemyType == EnemyType.Fast)
+            {
+                damage *= 1f + fastEnemyDamagePercent / 100f;
+            }
+
+            launcher.Launch(attackerPosition, target, damage);
             runtime.SetAttackCooldownRemaining(runtime.GetEffectiveAttackInterval());
             return true;
         }

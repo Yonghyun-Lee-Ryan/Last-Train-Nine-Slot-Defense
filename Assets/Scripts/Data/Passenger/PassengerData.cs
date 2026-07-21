@@ -111,6 +111,17 @@ namespace LastTrain.Data
             return range + starData.rangeBonus;
         }
 
+        public float GetSkillValueMultiplier(int starLevel)
+        {
+            if (!TryGetStarData(starLevel, out PassengerStarData starData)
+                || starData.skillValueMultiplier <= 0f)
+            {
+                return 1f;
+            }
+
+            return starData.skillValueMultiplier;
+        }
+
         public int GetSellPrice(int starLevel)
         {
             return starLevel switch

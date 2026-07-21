@@ -1,3 +1,4 @@
+using LastTrain.Ability;
 using LastTrain.Enemy;
 using LastTrain.Run;
 
@@ -13,7 +14,15 @@ namespace LastTrain.Battle
                 return false;
             }
 
-            runState.RecordEnemyKill(enemy.CoinReward);
+            int coins = enemy.CoinReward;
+            if (runState.Abilities?.Modifiers != null)
+            {
+                coins = AbilityEffectCalculator.ApplyPercentBonus(
+                    enemy.CoinReward,
+                    runState.Abilities.Modifiers.CoinOnKillPercent);
+            }
+
+            runState.RecordEnemyKill(coins);
             return true;
         }
     }

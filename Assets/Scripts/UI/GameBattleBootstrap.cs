@@ -1,7 +1,9 @@
+using LastTrain.Ability;
 using LastTrain.Battle;
 using LastTrain.Core;
 using LastTrain.Data;
 using LastTrain.Run;
+using LastTrain.Synergy;
 using UnityEngine;
 
 namespace LastTrain.UI
@@ -21,15 +23,23 @@ namespace LastTrain.UI
 
         private StationManager _stationManager;
         private GameSession _gameSession;
+        private AbilityPanelController _abilityPanel;
+        private SynergyManager _synergyManager;
         private bool _paused;
 
         public StationManager StationManager => _stationManager;
+        public SynergyManager SynergyManager => _synergyManager;
         public GameDatabase GameDatabase => gameDatabase;
         public bool IsPaused => _paused;
 
         public void SetPaused(bool paused)
         {
             _paused = paused;
+        }
+
+        public void RegisterAbilityPanel(AbilityPanelController panel)
+        {
+            _abilityPanel = panel;
         }
 
         private void Start()
@@ -72,9 +82,18 @@ namespace LastTrain.UI
             battleManager.Initialize(runState, gridManager);
             battleManager.SetStationDifficulty(startingStation.DifficultyMultiplier);
 
+            _synergyManager = new SynergyManager(runState, gameDatabase.Synergies);
+            _synergyManager.Recalculate();
+
             _stationManager = new StationManager(ResolveStationByIndex);
             _stationManager.StationStarted += HandleStationStarted;
+            _stationManager.AbilityRewardRequested += HandleAbilityRewardRequested;
             _stationManager.Initialize(runState, startingStation);
+
+            if (_abilityPanel == null)
+            {
+                _abilityPanel = FindAnyObjectByType<AbilityPanelController>();
+            }
 
             _gameSession.RunEnded += HandleRunEnded;
 
@@ -104,6 +123,7 @@ namespace LastTrain.UI
             if (_stationManager != null)
             {
                 _stationManager.StationStarted -= HandleStationStarted;
+                _stationManager.AbilityRewardRequested -= HandleAbilityRewardRequested;
                 _stationManager.Cancel();
             }
         }
@@ -114,6 +134,18 @@ namespace LastTrain.UI
             {
                 battleManager.SetStationDifficulty(station.DifficultyMultiplier);
             }
+        }
+
+        private void HandleAbilityRewardRequested(StationData _)
+        {
+            if (_abilityPanel != null)
+            {
+                _abilityPanel.OpenRewardSelection();
+                return;
+            }
+
+            // 패널이 없으면 즉시 다음 역으로 진행
+            _stationManager?.ContinueAfterAbilityReward();
         }
 
         private void HandleRunEnded(RunResult _)

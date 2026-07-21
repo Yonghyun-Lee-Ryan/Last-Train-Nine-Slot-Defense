@@ -68,7 +68,7 @@ namespace LastTrain.Passenger
         }
 
         public int CurrentSummonCost =>
-            SummonCostCalculator.CalculateCost(_config, _runState.Summon.PaidSummonCount);
+            SummonCostCalculator.CalculateCost(_config, _runState);
 
         public int RemainingFreeRerolls =>
             Math.Max(0, _config.FreeRerollsPerRun - _runState.Summon.FreeRerollsUsed);
@@ -176,6 +176,8 @@ namespace LastTrain.Passenger
             _pendingCost = 0;
             _costReserved = false;
             _runState.Summon.ClearOffers();
+            Ability.AbilityEffectApplier.RefreshPassengerBuffs(_runState);
+            Synergy.SynergyEffectApplier.Refresh(_runState);
 
             OfferSelected?.Invoke(SelectOfferResult.Success, placed);
             return SelectOfferResult.Success;

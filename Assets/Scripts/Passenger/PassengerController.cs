@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using LastTrain.Battle;
+using LastTrain.Core;
 using LastTrain.Enemy;
+using LastTrain.Passenger.Skills;
 using LastTrain.Run;
 using UnityEngine;
 
@@ -13,29 +15,45 @@ namespace LastTrain.Passenger
     {
         private readonly PassengerRuntime _runtime;
         private readonly PassengerAttackController _attackController;
+        private readonly IPassengerSkill _skill;
 
-        public PassengerController(PassengerRuntime runtime, PassengerAttackController attackController = null)
+        public PassengerController(
+            PassengerRuntime runtime,
+            PassengerAttackController attackController = null,
+            IPassengerSkill skill = null)
         {
             _runtime = runtime ?? throw new System.ArgumentNullException(nameof(runtime));
             _attackController = attackController ?? new PassengerAttackController();
+            _skill = skill ?? NullPassengerSkill.Instance;
         }
 
         public PassengerRuntime Runtime => _runtime;
+        public IPassengerSkill Skill => _skill;
 
         public bool Tick(
             float deltaTime,
             Vector2 worldPosition,
             float rangeInWorldUnits,
             IReadOnlyList<EnemyRuntime> enemies,
-            IProjectileLauncher launcher)
+            IProjectileLauncher launcher,
+            PassengerSkillContext? skillContext = null,
+            float fastEnemyDamagePercent = 0f)
         {
-            return _attackController.Tick(
+            bool attacked = _attackController.Tick(
                 deltaTime,
                 _runtime,
                 worldPosition,
                 rangeInWorldUnits,
                 enemies,
-                launcher);
+                launcher,
+                fastEnemyDamagePercent);
+
+            if (skillContext.HasValue)
+            {
+                _skill.Tick(deltaTime, skillContext.Value);
+            }
+
+            return attacked;
         }
     }
 }

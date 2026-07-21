@@ -130,7 +130,31 @@ namespace LastTrain.EditorTools
                     attackInterval: 1.1f,
                     range: 5f,
                     TargetPriority.LowestHealth,
-                    skillId: "skill_train_heal")
+                    skillId: "skill_train_heal"),
+
+                CreatePassenger(
+                    "Assets/Data/Passengers/Passenger_Developer.asset",
+                    "passenger_developer",
+                    "개발자",
+                    PassengerRole.Summon,
+                    PassengerTag.Tech,
+                    baseAttack: 7f,
+                    attackInterval: 1.0f,
+                    range: 5f,
+                    TargetPriority.Nearest,
+                    skillId: "skill_temp_turret"),
+
+                CreatePassenger(
+                    "Assets/Data/Passengers/Passenger_Graduate.asset",
+                    "passenger_graduate",
+                    "대학원생",
+                    PassengerRole.Special,
+                    PassengerTag.Academic,
+                    baseAttack: 9f,
+                    attackInterval: 1.15f,
+                    range: 5.5f,
+                    TargetPriority.LowestHealth,
+                    skillId: "skill_crit_aoe")
             };
         }
 
@@ -450,6 +474,37 @@ namespace LastTrain.EditorTools
                     Rarity.Legendary,
                     AbilityEffectType.DiversePassengerDamagePercent,
                     20f,
+                    null,
+                    allowDuplicate: false),
+
+                CreateAbility(
+                    "Assets/Data/Abilities/Ability_AttackSpeed.asset",
+                    "ability_attack_speed",
+                    "빠른 손놀림",
+                    "모든 승객 공격속도 +10%",
+                    Rarity.Common,
+                    AbilityEffectType.PassengerAttackSpeedPercent,
+                    10f,
+                    null),
+
+                CreateAbility(
+                    "Assets/Data/Abilities/Ability_SummonCost.asset",
+                    "ability_summon_cost",
+                    "할인 티켓",
+                    "소환 비용 증가량 -1",
+                    Rarity.Rare,
+                    AbilityEffectType.SummonCostIncreaseReduction,
+                    1f,
+                    null),
+
+                CreateAbility(
+                    "Assets/Data/Abilities/Ability_SellBoost.asset",
+                    "ability_sell_boost",
+                    "중고 거래",
+                    "승객 판매 가격 +20%",
+                    Rarity.Rare,
+                    AbilityEffectType.SellPricePercent,
+                    20f,
                     null)
             };
         }
@@ -462,7 +517,8 @@ namespace LastTrain.EditorTools
             Rarity rarity,
             AbilityEffectType effectType,
             float effectValue,
-            string targetPassengerId)
+            string targetPassengerId,
+            bool allowDuplicate = true)
         {
             var data = LoadOrCreate<AbilityData>(path);
             var so = new SerializedObject(data);
@@ -473,8 +529,8 @@ namespace LastTrain.EditorTools
             so.FindProperty("effectType").enumValueIndex = (int)effectType;
             so.FindProperty("effectValue").floatValue = effectValue;
             so.FindProperty("targetPassengerId").stringValue = targetPassengerId ?? string.Empty;
-            so.FindProperty("allowDuplicate").boolValue = true;
-            so.FindProperty("maxStack").intValue = 99;
+            so.FindProperty("allowDuplicate").boolValue = allowDuplicate;
+            so.FindProperty("maxStack").intValue = allowDuplicate ? 99 : 1;
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(data);
             return data;

@@ -20,5 +20,5 @@ MonoBehaviour:
   effectType: 10
   effectValue: 20
   targetPassengerId: 
-  allowDuplicate: 1
-  maxStack: 99
+  allowDuplicate: 0
+  maxStack: 1

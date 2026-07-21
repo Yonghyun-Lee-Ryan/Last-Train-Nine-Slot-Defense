@@ -28,5 +28,47 @@ namespace LastTrain.Enemy
 
             return Vector2.Distance(next, targetPosition) <= reachRadius;
         }
+
+        /// <summary>
+        /// 적을 스폰 방향으로 밀어 이동 경로를 되돌린다.
+        /// 스폰을 지나치지 않도록 클램프한다.
+        /// </summary>
+        public static void ApplyKnockback(
+            EnemyRuntime enemy,
+            Vector2 spawnPoint,
+            Vector2 trainTarget,
+            float distance)
+        {
+            if (enemy == null || !enemy.IsAlive || distance <= 0f)
+            {
+                return;
+            }
+
+            Vector2 awayFromTrain = spawnPoint - trainTarget;
+            if (awayFromTrain.sqrMagnitude < 0.0001f)
+            {
+                awayFromTrain = spawnPoint - enemy.Position;
+            }
+
+            if (awayFromTrain.sqrMagnitude < 0.0001f)
+            {
+                return;
+            }
+
+            Vector2 direction = awayFromTrain.normalized;
+            Vector2 next = enemy.Position + direction * distance;
+
+            // 스폰을 지나치지 않도록 spawn-train 선분 위에 투영·클램프
+            Vector2 toSpawn = spawnPoint - trainTarget;
+            float pathLengthSq = toSpawn.sqrMagnitude;
+            if (pathLengthSq > 0.0001f)
+            {
+                float t = Vector2.Dot(next - trainTarget, toSpawn) / pathLengthSq;
+                t = Mathf.Clamp01(t);
+                next = trainTarget + toSpawn * t;
+            }
+
+            enemy.Position = next;
+        }
     }
 }

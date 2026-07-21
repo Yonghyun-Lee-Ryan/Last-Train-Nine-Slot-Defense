@@ -87,7 +87,7 @@ namespace LastTrain.UI
 
             if (sellPriceLabel != null)
             {
-                sellPriceLabel.text = $"판매가 {PassengerSellService.GetSellPrice(passenger)}";
+                sellPriceLabel.text = $"판매가 {PassengerSellService.GetSellPrice(passenger, _runState)}";
             }
 
             if (root != null)

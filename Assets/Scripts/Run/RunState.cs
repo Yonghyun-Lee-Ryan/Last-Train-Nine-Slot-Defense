@@ -21,6 +21,9 @@ namespace LastTrain.Run
         public StationProgress Station { get; private set; }
         public RunHistory History { get; private set; }
         public SummonProgress Summon { get; private set; }
+        public AbilityProgress Abilities { get; private set; }
+        public SynergyProgress Synergies { get; private set; }
+        public int BaseTrainMaxHp { get; private set; }
 
         private readonly PassengerRuntime[] _gridSlots = new PassengerRuntime[GridSlotCount];
         private readonly List<PassengerRuntime> _allPassengers = new();
@@ -39,6 +42,7 @@ namespace LastTrain.Run
 
             ClearGridInternal();
 
+            BaseTrainMaxHp = config.InitialTrainMaxHp;
             Train = new TrainState(config.InitialTrainMaxHp, config.InitialTrainCurrentHp);
             Currency = new CurrencyState(config.InitialCoins);
             Battle = new BattleState();
@@ -46,6 +50,10 @@ namespace LastTrain.Run
             History = new RunHistory();
             Summon = new SummonProgress();
             Summon.Reset();
+            Abilities = new AbilityProgress();
+            Abilities.Reset();
+            Synergies = new SynergyProgress();
+            Synergies.Reset();
 
             Station.Initialize(config.InitialStationIndex);
 

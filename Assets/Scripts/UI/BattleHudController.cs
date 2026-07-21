@@ -206,6 +206,13 @@ namespace LastTrain.UI
                 return;
             }
 
+            if (stationManager.IsWaitingForAbilityReward
+                || (_runState.Abilities != null && _runState.Abilities.IsSelectingReward))
+            {
+                SetStatus("능력 카드를 먼저 선택하세요.");
+                return;
+            }
+
             if (_runState.Battle.CurrentPhase != RunPhase.Preparing
                 && _runState.Battle.CurrentPhase != RunPhase.RewardSelecting
                 && _runState.Battle.CurrentPhase != RunPhase.StationCompleted
@@ -417,9 +424,12 @@ namespace LastTrain.UI
             }
 
             RunPhase phase = _runState.Battle.CurrentPhase;
-            bool canReady = phase == RunPhase.Preparing
-                            || phase == RunPhase.RewardSelecting
-                            || phase == RunPhase.StationCompleted;
+            StationManager stationManager = battleBootstrap != null ? battleBootstrap.StationManager : null;
+            bool waitingAbility = stationManager != null && stationManager.IsWaitingForAbilityReward
+                                  || (_runState.Abilities != null && _runState.Abilities.IsSelectingReward);
+            bool canReady = !waitingAbility
+                            && (phase == RunPhase.Preparing
+                                || phase == RunPhase.StationCompleted);
             readyButton.interactable = canReady && !_paused;
         }
 

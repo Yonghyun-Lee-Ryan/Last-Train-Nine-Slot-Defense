@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 623512b86ba9e2b45be3fb16790eb7c3, type: 3}
+  m_Name: Passenger_Developer
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Data.PassengerData
+  id: passenger_developer
+  displayName: "\uAC1C\uBC1C\uC790"
+  role: 3
+  tags: 16
+  baseAttack: 7
+  attackInterval: 1
+  range: 5
+  targetPriority: 0
+  maxTargetCount: 1
+  damageType: 0
+  skillId: skill_temp_turret
+  starLevels:
+  - starLevel: 1
+    displayNameOverride: "\uC77C\uBC18"
+    attackMultiplier: 1
+    attackSpeedMultiplier: 1
+    rangeBonus: 0
+    skillValueMultiplier: 1
+  - starLevel: 2
+    displayNameOverride: "\uC219\uB828"
+    attackMultiplier: 2.2
+    attackSpeedMultiplier: 1.05
+    rangeBonus: 0
+    skillValueMultiplier: 1.2
+  - starLevel: 3
+    displayNameOverride: "\uC804\uBB38"
+    attackMultiplier: 4.8
+    attackSpeedMultiplier: 1.1
+    rangeBonus: 0.5
+    skillValueMultiplier: 1.5
+  sellPriceStar1: 5
+  sellPriceStar2: 12
+  sellPriceStar3: 28

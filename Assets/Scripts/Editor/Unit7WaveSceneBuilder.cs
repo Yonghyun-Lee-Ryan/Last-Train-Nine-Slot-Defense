@@ -29,9 +29,10 @@ namespace LastTrain.EditorTools
             }
 
             var scene = EditorSceneManager.OpenScene(GameScenePath, OpenSceneMode.Single);
-            BattleManager battleManager = Object.FindAnyObjectByType<BattleManager>();
-            GridManager gridManager = Object.FindAnyObjectByType<GridManager>();
-            GameBattleBootstrap bootstrap = Object.FindAnyObjectByType<GameBattleBootstrap>();
+            SceneBuilderCleanup.CleanupGeneratedDuplicates(scene);
+            BattleManager battleManager = SceneBuilderCleanup.FindFirstInScene<BattleManager>(scene);
+            GridManager gridManager = SceneBuilderCleanup.FindFirstInScene<GridManager>(scene);
+            GameBattleBootstrap bootstrap = SceneBuilderCleanup.FindFirstInScene<GameBattleBootstrap>(scene);
 
             if (battleManager == null || gridManager == null)
             {

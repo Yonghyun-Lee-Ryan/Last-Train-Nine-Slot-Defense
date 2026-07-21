@@ -18,9 +18,10 @@ namespace LastTrain.EditorTools
         public static void FixLayout()
         {
             var scene = EditorSceneManager.OpenScene(GameScenePath, OpenSceneMode.Single);
+            SceneBuilderCleanup.CleanupGeneratedDuplicates(scene);
 
-            Transform safeArea = Object.FindAnyObjectByType<Canvas>()?.transform.Find("SafeArea")
-                                 ?? Object.FindAnyObjectByType<Canvas>()?.transform;
+            Canvas canvas = SceneBuilderCleanup.FindFirstInScene<Canvas>(scene);
+            Transform safeArea = canvas?.transform.Find("SafeArea") ?? canvas?.transform;
             if (safeArea == null)
             {
                 EditorUtility.DisplayDialog("오류", "SafeArea/Canvas를 찾지 못했습니다.", "확인");
@@ -28,7 +29,7 @@ namespace LastTrain.EditorTools
             }
 
             // Grid: 하단 액션바(소환/전투) 위
-            GridManager grid = Object.FindAnyObjectByType<GridManager>();
+            GridManager grid = SceneBuilderCleanup.FindFirstInScene<GridManager>(scene);
             if (grid != null)
             {
                 var gridRect = grid.GetComponent<RectTransform>();
@@ -47,7 +48,8 @@ namespace LastTrain.EditorTools
             }
 
             // 하단 SummonPanel
-            SummonPanelController summon = Object.FindAnyObjectByType<SummonPanelController>();
+            SummonPanelController summon =
+                SceneBuilderCleanup.FindFirstInScene<SummonPanelController>(scene);
             if (summon != null)
             {
                 var panelRect = summon.GetComponent<RectTransform>();
@@ -60,29 +62,24 @@ namespace LastTrain.EditorTools
                 PlaceBottom(panelRect, "CoinLabel", new Vector2(-320f, 140f), new Vector2(280f, 40f));
                 PlaceBottom(panelRect, "CostLabel", new Vector2(320f, 140f), new Vector2(280f, 40f));
                 PlaceBottom(panelRect, "StatusLabel", new Vector2(0f, 140f), new Vector2(400f, 40f));
-                PlaceBottom(panelRect, "SummonButton", new Vector2(-220f, 45f), new Vector2(200f, 80f));
-                PlaceBottom(panelRect, "SellButton", new Vector2(220f, 45f), new Vector2(200f, 80f));
+                PlaceBottom(panelRect, "SummonButton", new Vector2(0f, 45f), new Vector2(240f, 80f));
 
                 Transform sell = panelRect.Find("SellButton");
                 if (sell != null)
                 {
-                    sell.gameObject.SetActive(true);
-                    Text sellLabel = sell.GetComponentInChildren<Text>();
-                    if (sellLabel != null)
-                    {
-                        sellLabel.text = "판매하기";
-                    }
+                    Object.DestroyImmediate(sell.gameObject);
                 }
             }
 
             // 전투 버튼: SummonPanel 위, Grid 아래
-            BattleHudController hud = Object.FindAnyObjectByType<BattleHudController>();
+            BattleHudController hud =
+                SceneBuilderCleanup.FindFirstInScene<BattleHudController>(scene);
             if (hud != null)
             {
                 var hudRect = hud.GetComponent<RectTransform>();
-                PlaceBottom(hudRect, "ReadyButton", new Vector2(-300f, 230f), new Vector2(200f, 80f));
-                PlaceBottom(hudRect, "SpeedButton", new Vector2(-100f, 230f), new Vector2(110f, 80f));
-                PlaceBottom(hudRect, "PauseButton", new Vector2(100f, 230f), new Vector2(130f, 80f));
+                PlaceBottom(hudRect, "ReadyButton", new Vector2(-180f, 230f), new Vector2(150f, 80f));
+                PlaceBottom(hudRect, "SpeedButton", new Vector2(0f, 230f), new Vector2(150f, 80f));
+                PlaceBottom(hudRect, "PauseButton", new Vector2(180f, 230f), new Vector2(150f, 80f));
 
                 PlaceCenter(hudRect, "TrainHpLabel", new Vector2(-300f, 880f), new Vector2(340f, 40f));
                 PlaceCenter(hudRect, "TrainHpSlider", new Vector2(-300f, 835f), new Vector2(340f, 24f));
@@ -92,6 +89,10 @@ namespace LastTrain.EditorTools
                 PlaceCenter(hudRect, "PhaseLabel", new Vector2(300f, 780f), new Vector2(260f, 36f));
                 PlaceCenter(hudRect, "StatusLabel", new Vector2(0f, 720f), new Vector2(900f, 36f));
             }
+
+            // 적 이동 경로를 화면 안쪽에 배치
+            PlaceCenter(safeArea, "SpawnPoint", new Vector2(400f, 1500f), new Vector2(40f, 40f));
+            PlaceCenter(safeArea, "TrainTarget", new Vector2(400f, 340f), new Vector2(40f, 40f));
 
             // 임시 타이틀 숨김
             foreach (Transform child in safeArea)
@@ -106,7 +107,7 @@ namespace LastTrain.EditorTools
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
-            EditorUtility.DisplayDialog("완료", "UI를 하단 액션바 / 상단 HUD로 재배치하고 판매 버튼을 복구했습니다.", "확인");
+            EditorUtility.DisplayDialog("완료", "UI 버튼과 적 이동 경로를 화면 안쪽으로 재배치했습니다.", "확인");
         }
 
         private static void PlaceBottom(Transform parent, string childName, Vector2 anchoredPos, Vector2 size)

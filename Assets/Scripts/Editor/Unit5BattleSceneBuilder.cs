@@ -35,6 +35,7 @@ namespace LastTrain.EditorTools
             ProjectileController projectilePrefab = LoadOrCreateProjectilePrefab();
 
             var scene = EditorSceneManager.OpenScene(GameScenePath, OpenSceneMode.Single);
+            SceneBuilderCleanup.CleanupGeneratedDuplicates(scene);
             Canvas canvas = Object.FindAnyObjectByType<Canvas>();
             if (canvas == null)
             {
@@ -45,13 +46,10 @@ namespace LastTrain.EditorTools
             Transform safeArea = canvas.transform.Find("SafeArea");
             Transform parent = safeArea != null ? safeArea : canvas.transform;
 
-            BattleManager existingBattle = Object.FindAnyObjectByType<BattleManager>();
-            if (existingBattle != null)
-            {
-                Object.DestroyImmediate(existingBattle.gameObject);
-            }
+            SceneBuilderCleanup.DestroyAllComponents<BattleManager>(scene);
+            SceneBuilderCleanup.DestroyAllComponents<GameBattleBootstrap>(scene);
 
-            GridManager gridManager = Object.FindAnyObjectByType<GridManager>();
+            GridManager gridManager = SceneBuilderCleanup.FindFirstInScene<GridManager>(scene);
             (BattleManager battleManager, ProjectilePool pool) = CreateBattleHierarchy(parent, canvas, projectilePrefab, gridManager);
             AddBattleBootstrap(battleManager, gridManager);
 
@@ -136,12 +134,6 @@ namespace LastTrain.EditorTools
 
         private static void AddBattleBootstrap(BattleManager battleManager, GridManager gridManager)
         {
-            GameBattleBootstrap existing = Object.FindAnyObjectByType<GameBattleBootstrap>();
-            if (existing != null)
-            {
-                Object.DestroyImmediate(existing.gameObject);
-            }
-
             var bootstrapGo = new GameObject("GameBattleBootstrap");
             bootstrapGo.transform.SetParent(battleManager.transform.parent, false);
             var bootstrap = bootstrapGo.AddComponent<GameBattleBootstrap>();

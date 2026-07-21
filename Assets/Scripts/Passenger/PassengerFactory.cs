@@ -1,3 +1,4 @@
+using LastTrain.Passenger.Skills;
 using LastTrain.Run;
 
 namespace LastTrain.Passenger
@@ -7,7 +8,8 @@ namespace LastTrain.Passenger
     {
         public static PassengerController CreateController(PassengerRuntime runtime)
         {
-            return new PassengerController(runtime, new PassengerAttackController());
+            IPassengerSkill skill = PassengerSkillResolver.Create(runtime?.Data?.SkillId);
+            return new PassengerController(runtime, new PassengerAttackController(), skill);
         }
     }
 }

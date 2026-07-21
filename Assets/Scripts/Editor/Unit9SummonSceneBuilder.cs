@@ -41,13 +41,10 @@ namespace LastTrain.EditorTools
             Transform safeArea = canvas.transform.Find("SafeArea");
             Transform parent = safeArea != null ? safeArea : canvas.transform;
 
-            SummonPanelController existing = Object.FindAnyObjectByType<SummonPanelController>();
-            if (existing != null)
-            {
-                Object.DestroyImmediate(existing.gameObject);
-            }
+            SceneBuilderCleanup.CleanupGeneratedDuplicates(scene);
+            SceneBuilderCleanup.DestroyAllComponents<SummonPanelController>(scene);
 
-            GridManager gridManager = Object.FindAnyObjectByType<GridManager>();
+            GridManager gridManager = SceneBuilderCleanup.FindFirstInScene<GridManager>(scene);
             GameDatabase database = AssetDatabase.LoadAssetAtPath<GameDatabase>(GameDatabasePath);
 
             GameObject root = CreateSummonPanel(parent, gridManager, database, config);
@@ -96,8 +93,7 @@ namespace LastTrain.EditorTools
             Text costLabel = CreateBottomText(root.transform, "CostLabel", "소환 10", 28, new Vector2(320f, 140f), new Vector2(280f, 40f));
             Text statusLabel = CreateBottomText(root.transform, "StatusLabel", "상태", 24, new Vector2(0f, 140f), new Vector2(400f, 40f));
 
-            Button summonButton = CreateBottomButton(root.transform, "SummonButton", "소환", new Vector2(-220f, 45f), new Vector2(200f, 80f));
-            Button sellButton = CreateBottomButton(root.transform, "SellButton", "판매하기", new Vector2(220f, 45f), new Vector2(200f, 80f));
+            Button summonButton = CreateBottomButton(root.transform, "SummonButton", "소환", new Vector2(0f, 45f), new Vector2(240f, 80f));
 
             GameObject offerPanel = CreateOfferPanel(root.transform, out Button[] offerButtons, out Text[] offerLabels,
                 out Button cancelButton, out Button freeReroll, out Button adReroll);
@@ -111,7 +107,6 @@ namespace LastTrain.EditorTools
             so.FindProperty("costLabel").objectReferenceValue = costLabel;
             so.FindProperty("statusLabel").objectReferenceValue = statusLabel;
             so.FindProperty("summonButton").objectReferenceValue = summonButton;
-            so.FindProperty("sellButton").objectReferenceValue = sellButton;
             so.FindProperty("offerPanel").objectReferenceValue = offerPanel;
 
             SerializedProperty offerButtonsProp = so.FindProperty("offerButtons");

@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using LastTrain.Core;
 using LastTrain.Data;
 using LastTrain.Enemy;
 using LastTrain.Grid;
 using LastTrain.Passenger;
+using LastTrain.Passenger.Skills;
 using LastTrain.Run;
 using UnityEngine;
 
@@ -30,6 +32,8 @@ namespace LastTrain.Battle
         private readonly EnemyRegistry _enemyRegistry = new();
         private readonly Dictionary<string, PassengerController> _passengerControllers = new();
         private readonly Dictionary<string, EnemyController> _activeEnemies = new();
+        private readonly TemporaryTurretService _turretService = new();
+        private RandomService _skillRandom;
 
         private RunState _runState;
         private bool _initialized;
@@ -70,6 +74,7 @@ namespace LastTrain.Battle
             gridManager.PassengerDropped -= HandlePassengerDropped;
             gridManager.PassengerDropped += HandlePassengerDropped;
 
+            _skillRandom ??= new RandomService(runState.GetHashCode());
             SyncPassengerControllers();
             _initialized = true;
         }
@@ -130,6 +135,7 @@ namespace LastTrain.Battle
 
             _activeEnemies.Clear();
             _enemyRegistry.Clear();
+            _turretService.Clear();
         }
 
         public float ToWorldRange(float dataRange)
@@ -175,6 +181,7 @@ namespace LastTrain.Battle
 
             float deltaTime = Time.deltaTime;
             TickEnemyMovement(deltaTime);
+            TickTemporaryTurrets(deltaTime);
             TickPassengerAttacks(deltaTime);
         }
 
@@ -219,6 +226,11 @@ namespace LastTrain.Battle
             }
         }
 
+        private void TickTemporaryTurrets(float deltaTime)
+        {
+            _turretService.Tick(deltaTime, _enemyRegistry.Enemies);
+        }
+
         private void TickPassengerAttacks(float deltaTime)
         {
             if (projectilePool == null)
@@ -228,6 +240,11 @@ namespace LastTrain.Battle
 
             IReadOnlyList<EnemyRuntime> enemies = _enemyRegistry.Enemies;
             var passengers = new List<PassengerController>(_passengerControllers.Values);
+            AbilityModifiers modifiers = _runState.Abilities?.Modifiers ?? AbilityModifiers.Empty;
+            SynergyModifiers synergyModifiers = _runState.Synergies?.Modifiers ?? SynergyModifiers.Empty;
+            float fastEnemyBonus = synergyModifiers.FastEnemyDamagePercent;
+            Vector2 spawnPos = spawnPoint != null ? (Vector2)spawnPoint.position : Vector2.zero;
+            Vector2 trainPos = trainTarget != null ? (Vector2)trainTarget.position : Vector2.zero;
 
             for (int i = 0; i < passengers.Count; i++)
             {
@@ -241,7 +258,27 @@ namespace LastTrain.Battle
 
                 Vector2 position = GetSlotWorldPosition(runtime.GridSlotIndex);
                 float worldRange = ToWorldRange(runtime.GetEffectiveRange());
-                controller.Tick(deltaTime, position, worldRange, enemies, projectilePool);
+                var skillContext = new PassengerSkillContext(
+                    runtime,
+                    position,
+                    worldRange,
+                    enemies,
+                    _runState.Train,
+                    modifiers,
+                    spawnPos,
+                    trainPos,
+                    _turretService,
+                    _skillRandom,
+                    synergyModifiers);
+
+                controller.Tick(
+                    deltaTime,
+                    position,
+                    worldRange,
+                    enemies,
+                    projectilePool,
+                    skillContext,
+                    fastEnemyBonus);
             }
         }
 

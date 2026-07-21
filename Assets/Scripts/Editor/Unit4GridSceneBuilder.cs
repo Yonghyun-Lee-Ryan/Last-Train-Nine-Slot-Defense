@@ -33,6 +33,7 @@ namespace LastTrain.EditorTools
             PassengerView viewPrefab = LoadOrCreatePassengerViewPrefab();
 
             var scene = EditorSceneManager.OpenScene(GameScenePath, OpenSceneMode.Single);
+            SceneBuilderCleanup.CleanupGeneratedDuplicates(scene);
             Canvas canvas = Object.FindAnyObjectByType<Canvas>();
             if (canvas == null)
             {
@@ -43,11 +44,8 @@ namespace LastTrain.EditorTools
             Transform safeArea = canvas.transform.Find("SafeArea");
             Transform parent = safeArea != null ? safeArea : canvas.transform;
 
-            GridManager existing = Object.FindAnyObjectByType<GridManager>();
-            if (existing != null)
-            {
-                Object.DestroyImmediate(existing.gameObject);
-            }
+            SceneBuilderCleanup.DestroyAllComponents<GridManager>(scene);
+            SceneBuilderCleanup.DestroyAllNamed(scene, "GameGridBootstrap");
 
             (GridManager gridManager, GridSlot[] slots) = CreateGridPanel(parent, canvas, viewPrefab);
             AddBootstrap(canvas.gameObject, gridManager);

@@ -1,4 +1,5 @@
 using System;
+using LastTrain.Ability;
 using LastTrain.Data;
 using LastTrain.Run;
 using LastTrain.Wave;
@@ -12,6 +13,7 @@ namespace LastTrain.Battle
     {
         public event Action<StationData> StationStarted;
         public event Action<StationData> StationCompleted;
+        public event Action<StationData> AbilityRewardRequested;
 
         private readonly WaveManager _waveManager = new();
         private readonly Func<int, StationData> _stationLookup;
@@ -21,6 +23,7 @@ namespace LastTrain.Battle
         private int _currentWaveIndex;
         private bool _stationCompleteReported;
         private bool _runCancelled;
+        private bool _waitingForAbilityReward;
 
         public StationManager(Func<int, StationData> stationLookup)
         {
@@ -32,11 +35,13 @@ namespace LastTrain.Battle
         public StationData CurrentStation => _currentStation;
         public int CurrentWaveIndex => _currentWaveIndex;
         public RunPhase CurrentPhase => _runState?.Battle?.CurrentPhase ?? RunPhase.None;
+        public bool IsWaitingForAbilityReward => _waitingForAbilityReward;
 
         public void Initialize(RunState runState, StationData startingStation)
         {
             _runState = runState ?? throw new ArgumentNullException(nameof(runState));
             _runCancelled = false;
+            _waitingForAbilityReward = false;
             BeginStation(startingStation);
         }
 
@@ -50,6 +55,7 @@ namespace LastTrain.Battle
             _currentStation = station;
             _currentWaveIndex = 0;
             _stationCompleteReported = false;
+            _waitingForAbilityReward = false;
             _runState.Station.SetCurrentStation(station.Id, station.StationIndex);
             _runState.Battle.SetPhase(RunPhase.Preparing);
             StationStarted?.Invoke(station);
@@ -58,7 +64,10 @@ namespace LastTrain.Battle
         /// <summary>Preparing 이후 첫 웨이브 또는 다음 웨이브를 시작한다.</summary>
         public bool TryStartNextWave()
         {
-            if (_runCancelled || _currentStation == null || !_runState.Battle.IsRunActive)
+            if (_runCancelled
+                || _waitingForAbilityReward
+                || _currentStation == null
+                || !_runState.Battle.IsRunActive)
             {
                 return false;
             }
@@ -80,6 +89,7 @@ namespace LastTrain.Battle
         public void Tick(float deltaTime, IBattleFlowContext battleContext)
         {
             if (_runCancelled
+                || _waitingForAbilityReward
                 || _runState == null
                 || !_runState.Battle.IsRunActive
                 || battleContext == null)
@@ -101,7 +111,20 @@ namespace LastTrain.Battle
         public void Cancel()
         {
             _runCancelled = true;
+            _waitingForAbilityReward = false;
             _waveManager.Cancel();
+        }
+
+        /// <summary>능력 카드 선택 완료 후 다음 역으로 진행한다.</summary>
+        public bool ContinueAfterAbilityReward()
+        {
+            if (!_waitingForAbilityReward)
+            {
+                return false;
+            }
+
+            _waitingForAbilityReward = false;
+            return TryAdvanceToNextStation();
         }
 
         public bool TryAdvanceToNextStation()
@@ -152,9 +175,17 @@ namespace LastTrain.Battle
             _stationCompleteReported = true;
             _runState.Battle.SetPhase(RunPhase.StationCompleted);
             _runState.Currency.AddCoins(_currentStation.RewardCoins);
+            AbilityEffectApplier.ApplyStationCompleteHeal(_runState);
             StationCompleted?.Invoke(_currentStation);
 
             _runState.Battle.SetPhase(RunPhase.RewardSelecting);
+
+            if (_currentStation.GrantsAbilityChoice)
+            {
+                _waitingForAbilityReward = true;
+                AbilityRewardRequested?.Invoke(_currentStation);
+                return;
+            }
 
             // 다음 역 준비 단계로 이동. 전투 시작은 UI의 준비 완료 버튼에서 처리한다.
             TryAdvanceToNextStation();

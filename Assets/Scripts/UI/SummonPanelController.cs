@@ -29,7 +29,6 @@ namespace LastTrain.UI
         [SerializeField] private Text costLabel;
         [SerializeField] private Text statusLabel;
         [SerializeField] private Button summonButton;
-        [SerializeField] private Button sellButton;
 
         [Header("Offer Popup")]
         [SerializeField] private GameObject offerPanel;
@@ -156,11 +155,6 @@ namespace LastTrain.UI
                 summonButton.onClick.AddListener(OnSummonClicked);
             }
 
-            if (sellButton != null)
-            {
-                sellButton.onClick.AddListener(OnSellClicked);
-            }
-
             if (cancelOfferButton != null)
             {
                 cancelOfferButton.onClick.AddListener(OnCancelOfferClicked);
@@ -191,11 +185,6 @@ namespace LastTrain.UI
             if (summonButton != null)
             {
                 summonButton.onClick.RemoveListener(OnSummonClicked);
-            }
-
-            if (sellButton != null)
-            {
-                sellButton.onClick.RemoveListener(OnSellClicked);
             }
 
             if (cancelOfferButton != null)
@@ -295,32 +284,6 @@ namespace LastTrain.UI
             RefreshHud();
         }
 
-        private void OnSellClicked()
-        {
-            if (_runState == null || gridManager == null)
-            {
-                return;
-            }
-
-            int slot = gridManager.SelectedSlotIndex;
-            if (slot < 0)
-            {
-                SetStatus("판매할 승객을 먼저 터치하세요.");
-                return;
-            }
-
-            if (!PassengerSellService.TrySell(_runState, slot, out int coins))
-            {
-                SetStatus("판매에 실패했습니다.");
-                return;
-            }
-
-            gridManager.ClearSelection();
-            gridManager.RefreshViews();
-            SetStatus($"승객을 판매했습니다. (+{coins} 코인)");
-            RefreshHud();
-        }
-
         private void RefreshOfferPanel()
         {
             bool open = _summonManager != null && _summonManager.HasActiveOffers;
@@ -394,7 +357,7 @@ namespace LastTrain.UI
             PassengerRuntime passenger = _runState?.GetPassengerAtSlot(slotIndex);
             if (passenger != null)
             {
-                int price = PassengerSellService.GetSellPrice(passenger);
+                int price = PassengerSellService.GetSellPrice(passenger, _runState);
                 SetStatus($"선택: {passenger.Data.DisplayName} {passenger.StarLevel}★ (판매 {price})");
             }
         }

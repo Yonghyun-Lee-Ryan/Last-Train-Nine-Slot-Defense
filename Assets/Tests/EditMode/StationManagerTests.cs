@@ -95,6 +95,42 @@ namespace LastTrain.Tests.EditMode
         }
 
         [Test]
+        public void CompleteStation_WithAbilityChoice_WaitsForReward()
+        {
+            StationData station = CreateStation(
+                "station_ability",
+                1,
+                CreateWave("wave_ability", _enemyData, count: 1, interval: 0f));
+            var rewardSo = new SerializedObject(station);
+            rewardSo.FindProperty("grantsAbilityChoice").boolValue = true;
+            rewardSo.ApplyModifiedPropertiesWithoutUndo();
+
+            StationData rewardStation = null;
+            var manager = new StationManager(index => index == 2
+                ? CreateStation(
+                    "station_2",
+                    2,
+                    CreateWave("wave_s2", _enemyData, count: 1, interval: 0f))
+                : null);
+            manager.AbilityRewardRequested += s => rewardStation = s;
+            manager.Initialize(_runState, station);
+            manager.TryStartNextWave();
+
+            manager.Tick(1f, _battleContext);
+            _battleContext.AliveCount = 0;
+            manager.Tick(0f, _battleContext);
+
+            Assert.AreSame(station, rewardStation);
+            Assert.IsTrue(manager.IsWaitingForAbilityReward);
+            Assert.AreEqual(RunPhase.RewardSelecting, _runState.Battle.CurrentPhase);
+            Assert.AreEqual(1, _runState.Station.CurrentStationIndex);
+
+            Assert.IsTrue(manager.ContinueAfterAbilityReward());
+            Assert.AreEqual(RunPhase.Preparing, _runState.Battle.CurrentPhase);
+            Assert.AreEqual(2, _runState.Station.CurrentStationIndex);
+        }
+
+        [Test]
         public void Cancel_StopsFurtherSpawns()
         {
             StationData station = CreateStation(

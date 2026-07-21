@@ -141,6 +141,12 @@ namespace LastTrain.Run
             return Data.GetRangeAtStar(StarLevel);
         }
 
+        /// <summary>등급을 반영한 스킬 수치 배율.</summary>
+        public float GetEffectiveSkillMultiplier()
+        {
+            return Data.GetSkillValueMultiplier(StarLevel);
+        }
+
         private float SumBuffValues(Func<RuntimeBuff, float> selector)
         {
             float sum = 0f;

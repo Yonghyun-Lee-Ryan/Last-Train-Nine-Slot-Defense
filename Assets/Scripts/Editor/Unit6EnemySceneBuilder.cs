@@ -36,6 +36,7 @@ namespace LastTrain.EditorTools
             EnemyController enemyPrefab = LoadOrCreateEnemyPrefab();
 
             var scene = EditorSceneManager.OpenScene(GameScenePath, OpenSceneMode.Single);
+            SceneBuilderCleanup.CleanupGeneratedDuplicates(scene);
             Canvas canvas = Object.FindAnyObjectByType<Canvas>();
             if (canvas == null)
             {
@@ -46,16 +47,21 @@ namespace LastTrain.EditorTools
             Transform safeArea = canvas.transform.Find("SafeArea");
             Transform parent = safeArea != null ? safeArea : canvas.transform;
 
-            BattleManager battleManager = Object.FindAnyObjectByType<BattleManager>();
+            BattleManager battleManager = SceneBuilderCleanup.FindFirstInScene<BattleManager>(scene);
             if (battleManager == null)
             {
                 EditorUtility.DisplayDialog("오류", "BattleManager가 없습니다. 먼저 개발 단위 5를 적용하세요.", "확인");
                 return;
             }
 
-            GridManager gridManager = Object.FindAnyObjectByType<GridManager>();
-            RectTransform spawnPoint = CreateMarker(parent, "SpawnPoint", new Vector2(540f, 1650f), new Color(0.2f, 0.9f, 0.4f, 0.5f));
-            RectTransform trainTarget = CreateMarker(parent, "TrainTarget", new Vector2(540f, 260f), new Color(0.95f, 0.35f, 0.25f, 0.55f));
+            GridManager gridManager = SceneBuilderCleanup.FindFirstInScene<GridManager>(scene);
+            SceneBuilderCleanup.DestroyAllNamed(scene, "SpawnPoint");
+            SceneBuilderCleanup.DestroyAllNamed(scene, "TrainTarget");
+            SceneBuilderCleanup.DestroyAllNamed(scene, "EnemyPoolRoot");
+
+            // 적 경로를 화면 오른쪽 가장자리 안쪽으로 이동해 전체 스프라이트가 보이게 한다.
+            RectTransform spawnPoint = CreateMarker(parent, "SpawnPoint", new Vector2(400f, 1500f), new Color(0.2f, 0.9f, 0.4f, 0.5f));
+            RectTransform trainTarget = CreateMarker(parent, "TrainTarget", new Vector2(400f, 340f), new Color(0.95f, 0.35f, 0.25f, 0.55f));
 
             EnemyPool enemyPool = SetupEnemyPool(battleManager.gameObject, enemyPrefab);
             WireBattleManager(battleManager, gridManager, enemyPool, spawnPoint, trainTarget);
@@ -112,12 +118,6 @@ namespace LastTrain.EditorTools
 
         private static RectTransform CreateMarker(Transform parent, string name, Vector2 anchoredPosition, Color color)
         {
-            Transform existing = parent.Find(name);
-            if (existing != null)
-            {
-                Object.DestroyImmediate(existing.gameObject);
-            }
-
             var go = new GameObject(name, typeof(RectTransform), typeof(Image));
             var rect = go.GetComponent<RectTransform>();
             rect.SetParent(parent, false);
@@ -142,22 +142,13 @@ namespace LastTrain.EditorTools
                 pool = battleRoot.AddComponent<EnemyPool>();
             }
 
-            Transform poolRootTransform = battleRoot.transform.Find("EnemyPoolRoot");
-            RectTransform poolRoot;
-            if (poolRootTransform == null)
-            {
-                var poolGo = new GameObject("EnemyPoolRoot", typeof(RectTransform));
-                poolRoot = poolGo.GetComponent<RectTransform>();
-                poolRoot.SetParent(battleRoot.transform, false);
-                poolRoot.anchorMin = Vector2.zero;
-                poolRoot.anchorMax = Vector2.one;
-                poolRoot.offsetMin = Vector2.zero;
-                poolRoot.offsetMax = Vector2.zero;
-            }
-            else
-            {
-                poolRoot = poolRootTransform as RectTransform;
-            }
+            var poolGo = new GameObject("EnemyPoolRoot", typeof(RectTransform));
+            RectTransform poolRoot = poolGo.GetComponent<RectTransform>();
+            poolRoot.SetParent(battleRoot.transform, false);
+            poolRoot.anchorMin = Vector2.zero;
+            poolRoot.anchorMax = Vector2.one;
+            poolRoot.offsetMin = Vector2.zero;
+            poolRoot.offsetMax = Vector2.zero;
 
             var poolSo = new SerializedObject(pool);
             poolSo.FindProperty("prefab").objectReferenceValue = prefab;
@@ -183,7 +174,8 @@ namespace LastTrain.EditorTools
 
         private static void UpdateBattleBootstrap(BattleManager battleManager, GridManager gridManager)
         {
-            GameBattleBootstrap bootstrap = Object.FindAnyObjectByType<GameBattleBootstrap>();
+            GameBattleBootstrap bootstrap =
+                SceneBuilderCleanup.FindFirstInScene<GameBattleBootstrap>(battleManager.gameObject.scene);
             if (bootstrap == null)
             {
                 var bootstrapGo = new GameObject("GameBattleBootstrap");
