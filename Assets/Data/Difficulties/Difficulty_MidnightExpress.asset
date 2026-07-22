@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b8c5ab4204fe37740b680d841c65a004, type: 3}
+  m_Name: Difficulty_MidnightExpress
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Difficulty.DifficultyData
+  id: midnight_express
+  displayName: "\uC2EC\uC57C \uD2B9\uAE09"
+  description: 
+  sortOrder: 2
+  unlockCondition:
+    requirements:
+    - unlockType: 1
+      requiredDifficultyId: express
+      requiredAccountLevel: 0
+      requiredUnlockedPassengerCount: 0
+    - unlockType: 3
+      requiredDifficultyId: 
+      requiredAccountLevel: 0
+      requiredUnlockedPassengerCount: 4
+  enemyHealthMultiplier: 1.55
+  enemyMoveSpeedMultiplier: 1.1
+  enemyTrainDamageMultiplier: 1.2
+  enemyCountMultiplier: 1.15
+  spawnIntervalMultiplier: 1
+  eliteSpawnRate: 0.2
+  bossHealthMultiplier: 1
+  bossAbilityCount: 1
+  startingCoins: 0
+  startingTrainHealth: 0
+  summonCostMultiplier: 1
+  shopPriceMultiplier: 1
+  rewardMultiplier: 1.6
+  preparationTime: 5
+  allowedModifiers: []

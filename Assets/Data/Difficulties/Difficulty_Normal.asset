@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b8c5ab4204fe37740b680d841c65a004, type: 3}
+  m_Name: Difficulty_Normal
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Difficulty.DifficultyData
+  id: normal
+  displayName: "\uC77C\uBC18 \uB9C9\uCC28"
+  description: 
+  sortOrder: 0
+  unlockCondition:
+    unlockType: 0
+    requiredDifficultyId: 
+    requiredAccountLevel: 1
+    requiredUnlockedPassengerCount: 0
+  enemyHealthMultiplier: 1
+  enemyMoveSpeedMultiplier: 1
+  enemyTrainDamageMultiplier: 1
+  enemyCountMultiplier: 1
+  spawnIntervalMultiplier: 1
+  eliteSpawnRate: 0
+  bossHealthMultiplier: 1
+  bossAbilityCount: 0
+  startingCoins: 0
+  startingTrainHealth: 0
+  summonCostMultiplier: 1
+  shopPriceMultiplier: 1
+  rewardMultiplier: 1
+  preparationTime: 5
+  allowedModifiers: []

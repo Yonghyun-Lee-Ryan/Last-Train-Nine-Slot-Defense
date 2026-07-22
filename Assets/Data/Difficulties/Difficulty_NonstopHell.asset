@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b8c5ab4204fe37740b680d841c65a004, type: 3}
+  m_Name: Difficulty_NonstopHell
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Difficulty.DifficultyData
+  id: nonstop_hell
+  displayName: "\uBB34\uC815\uCC28 \uC9C0\uC625\uC120"
+  description: 
+  sortOrder: 3
+  unlockCondition:
+    requirements:
+    - unlockType: 1
+      requiredDifficultyId: midnight_express
+      requiredAccountLevel: 0
+      requiredUnlockedPassengerCount: 0
+    - unlockType: 2
+      requiredDifficultyId: 
+      requiredAccountLevel: 10
+      requiredUnlockedPassengerCount: 0
+  enemyHealthMultiplier: 2
+  enemyMoveSpeedMultiplier: 1.15
+  enemyTrainDamageMultiplier: 1.35
+  enemyCountMultiplier: 1.25
+  spawnIntervalMultiplier: 0.82
+  eliteSpawnRate: 0.3
+  bossHealthMultiplier: 1
+  bossAbilityCount: 0
+  startingCoins: 0
+  startingTrainHealth: 0
+  summonCostMultiplier: 1
+  shopPriceMultiplier: 1
+  rewardMultiplier: 2.1
+  preparationTime: 3
+  allowedModifiers: []
