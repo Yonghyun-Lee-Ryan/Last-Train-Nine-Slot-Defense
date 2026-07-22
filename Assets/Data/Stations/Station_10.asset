@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 96c8f60974a119d4fb01a9817396a6d7, type: 3}
+  m_Name: Station_10
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Data.StationData
+  id: line1_station_10
+  displayName: "10\uBC88\uC9F8 \uC5ED (\uC885\uCC29 \uBCF4\uC2A4)"
+  stationType: 3
+  stationIndex: 10
+  difficultyMultiplier: 2.4
+  waves:
+  - {fileID: 11400000, guid: d8e58131a72643049836f4929cd4afd1, type: 2}
+  - {fileID: 11400000, guid: 635146aebee99f343851f5567f4aba0b, type: 2}
+  - {fileID: 11400000, guid: 091d41fec0bdf2143a5c4c0ed4824585, type: 2}
+  rewardCoins: 40
+  grantsAbilityChoice: 1
+  bossPatternHint: "\uC885\uCC29\uC5ED \uAE30\uAD00\uC0AC\uAC00 \uAC15\uB825\uD55C
+    \uC5F0\uC18D \uACF5\uACA9\uC744 \uC0AC\uC6A9\uD569\uB2C8\uB2E4."

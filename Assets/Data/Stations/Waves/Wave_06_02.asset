@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4bfcb70024090f44584f65032ce37e4e, type: 3}
+  m_Name: Wave_06_02
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Data.WaveData
+  id: wave_06_02
+  delayBeforeStart: 0
+  spawns:
+  - enemy: {fileID: 11400000, guid: af3f3d6bb41077b4985e57a67eb6bc16, type: 2}
+    count: 4
+    spawnInterval: 0.75
+    spawnDelay: 0
