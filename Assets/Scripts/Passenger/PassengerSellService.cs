@@ -1,3 +1,4 @@
+using System;
 using LastTrain.Ability;
 using LastTrain.Run;
 
@@ -6,6 +7,9 @@ namespace LastTrain.Passenger
     /// <summary>승객 판매 순수 로직.</summary>
     public static class PassengerSellService
     {
+        /// <summary>판매 성공 시 (slotIndex, passengerId, coinsGained, starLevel).</summary>
+        public static event Action<int, string, int, int> Sold;
+
         public static int GetSellPrice(PassengerRuntime passenger, RunState runState = null)
         {
             if (passenger?.Data == null)
@@ -41,6 +45,8 @@ namespace LastTrain.Passenger
                 return false;
             }
 
+            string passengerId = passenger.Data.Id;
+            int starLevel = passenger.StarLevel;
             coinsGained = GetSellPrice(passenger, runState);
             if (!runState.TryConsumePassenger(slotIndex, out _))
             {
@@ -56,6 +62,7 @@ namespace LastTrain.Passenger
 
             AbilityEffectApplier.RefreshPassengerBuffs(runState);
             Synergy.SynergyEffectApplier.Refresh(runState);
+            Sold?.Invoke(slotIndex, passengerId, coinsGained, starLevel);
             return true;
         }
     }

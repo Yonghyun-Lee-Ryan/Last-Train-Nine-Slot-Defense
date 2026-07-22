@@ -40,6 +40,7 @@ namespace LastTrain.UI
             GameSession session = appRoot.GameSession;
             if (!session.HasActiveRun)
             {
+                // MainMenu/Result에서 이미 StartNewRun한 경우에는 중복 run_started를 만들지 않는다.
                 session.StartNewRun();
             }
 

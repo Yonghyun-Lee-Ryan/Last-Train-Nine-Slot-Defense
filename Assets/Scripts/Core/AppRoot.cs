@@ -1,3 +1,5 @@
+using LastTrain.Ads;
+using LastTrain.Analytics;
 using LastTrain.Run;
 using LastTrain.Save;
 using UnityEngine;
@@ -22,13 +24,27 @@ namespace LastTrain.Core
 
         private SceneLoader _sceneLoader;
         private GameSession _gameSession;
+        private AdCoordinator _ads;
+        private AnalyticsCoordinator _analytics;
+        private AnalyticsRunBinder _analyticsRunBinder;
         private bool _subscribedRunEnded;
+        private bool _subscribedRunStarted;
+        private bool _subscribedRevive;
 
         /// <summary>비동기 Scene 전환 담당. AppRoot 생성 시 함께 초기화된다.</summary>
         public SceneLoader SceneLoader => _sceneLoader;
 
         /// <summary>현재 게임 세션. Scene 전환 후에도 유지된다.</summary>
         public GameSession GameSession => _gameSession ??= new GameSession();
+
+        /// <summary>광고 추상화 진입점. SDK 타입을 노출하지 않는다.</summary>
+        public AdCoordinator Ads => _ads;
+
+        /// <summary>분석 이벤트 진입점. SDK 타입을 노출하지 않는다.</summary>
+        public AnalyticsCoordinator Analytics => _analytics;
+
+        /// <summary>전투 씬 이벤트 바인더. GameBattleBootstrap이 사용한다.</summary>
+        public AnalyticsRunBinder AnalyticsRunBinder => _analyticsRunBinder;
 
         private void Awake()
         {
@@ -44,11 +60,22 @@ namespace LastTrain.Core
 
             Initialize();
 
-            // 저장 파일은 회차 종료 시점에만 정리한다.
             if (!_subscribedRunEnded)
             {
                 GameSession.RunEnded += HandleRunEnded;
                 _subscribedRunEnded = true;
+            }
+
+            if (!_subscribedRunStarted)
+            {
+                GameSession.RunStarted += HandleRunStarted;
+                _subscribedRunStarted = true;
+            }
+
+            if (!_subscribedRevive)
+            {
+                GameSession.ReviveOffered += HandleReviveOffered;
+                _subscribedRevive = true;
             }
         }
 
@@ -62,7 +89,49 @@ namespace LastTrain.Core
                 _sceneLoader = gameObject.AddComponent<SceneLoader>();
             }
 
+            EnsureAnalytics();
+            EnsureAds();
+            _analytics.Track(AnalyticsEventNames.AppStarted);
             Debug.Log("[AppRoot] 초기화 완료.");
+        }
+
+        private void EnsureAnalytics()
+        {
+            if (_analytics != null)
+            {
+                return;
+            }
+
+            IAnalyticsService inner =
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                new DebugAnalyticsService();
+#else
+                new NoOpAnalyticsService();
+#endif
+            _analytics = new AnalyticsCoordinator(new SafeAnalyticsService(inner));
+            _analyticsRunBinder = new AnalyticsRunBinder(_analytics);
+        }
+
+        private void EnsureAds()
+        {
+            if (_ads != null)
+            {
+                _ads.Analytics ??= _analytics;
+                return;
+            }
+
+            var limits = new AdLimitService();
+            var rewards = new AdRewardService(limits);
+            IAdService service =
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                new MockAdService();
+#else
+                new NoOpAdService();
+#endif
+            _ads = new AdCoordinator(service, limits, rewards)
+            {
+                Analytics = _analytics,
+            };
         }
 
         private void Start()
@@ -73,9 +142,93 @@ namespace LastTrain.Core
             }
         }
 
-        private void HandleRunEnded(RunResult _)
+        private void HandleRunStarted(RunState runState)
         {
+            EnsureAnalytics();
+            EnsureAds();
+            _ads.Limits.BeginRun();
+            _analytics.BindRun(runState);
+            _analytics.Track(AnalyticsEventNames.RunStarted, new System.Collections.Generic.Dictionary<string, object>
+            {
+                ["initial_coins"] = runState?.Currency?.CurrentCoins ?? 0,
+                ["train_max_hp"] = runState?.Train?.MaxHp ?? 0,
+            });
+        }
+
+        private void HandleReviveOffered()
+        {
+            EnsureAds();
+            GameSession session = GameSession;
+            if (session == null || !session.IsPendingDefeat)
+            {
+                return;
+            }
+
+            if (!_ads.IsReady(RewardedAdPlacement.Revive) || !session.ReviveAvailableThisRun)
+            {
+                session.DeclineReviveAndEnd();
+                return;
+            }
+
+            // UI가 없으면 AppRoot가 바로 Mock/광고를 띄운다.
+            _ads.ShowRevive(session, result =>
+            {
+                if (result != AdResult.Completed)
+                {
+                    session.DeclineReviveAndEnd();
+                }
+            });
+        }
+
+        private void HandleRunEnded(RunResult result)
+        {
+            EnsureAnalytics();
+            RunState snapshot = GameSession?.RunState;
+            _analytics.TrackRunEnded(result, snapshot);
+
+            if (result != null)
+            {
+                MetaApplyResult apply = MetaSaveSystem.ApplyRunResult(result);
+                TrackMetaRewards(apply);
+            }
+
             RunSaveSystem.DeleteRunSave();
+            _analytics.ClearRun();
+        }
+
+        private void TrackMetaRewards(MetaApplyResult apply)
+        {
+            if (apply == null || !apply.Applied || apply.WasDuplicate)
+            {
+                return;
+            }
+
+            MetaRewardBreakdown breakdown = apply.Breakdown;
+            _analytics.Track(AnalyticsEventNames.MetaRewardReceived, new System.Collections.Generic.Dictionary<string, object>
+            {
+                ["tickets"] = breakdown?.TotalTickets ?? 0,
+                ["ticket_fragments_after"] = apply.TicketFragmentsAfter,
+                ["account_level_after"] = apply.AccountLevelAfter,
+            });
+
+            if (breakdown?.NewlyUnlockedPassengers == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < breakdown.NewlyUnlockedPassengers.Count; i++)
+            {
+                string id = breakdown.NewlyUnlockedPassengers[i];
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    continue;
+                }
+
+                _analytics.Track(AnalyticsEventNames.PassengerUnlocked, new System.Collections.Generic.Dictionary<string, object>
+                {
+                    ["passenger_id"] = id,
+                });
+            }
         }
 
         private void OnApplicationPause(bool pauseStatus)
@@ -93,9 +246,6 @@ namespace LastTrain.Core
             RunSaveSystem.TrySavePreparing(GameSession);
         }
 
-        /// <summary>
-        /// 앱 공통 설정을 적용한다. Portrait 고정, 프레임레이트, 슬립 방지 등.
-        /// </summary>
         private void ApplyApplicationSettings()
         {
             Screen.orientation = ScreenOrientation.Portrait;
@@ -118,6 +268,19 @@ namespace LastTrain.Core
                     _subscribedRunEnded = false;
                 }
 
+                if (_subscribedRunStarted)
+                {
+                    GameSession.RunStarted -= HandleRunStarted;
+                    _subscribedRunStarted = false;
+                }
+
+                if (_subscribedRevive)
+                {
+                    GameSession.ReviveOffered -= HandleReviveOffered;
+                    _subscribedRevive = false;
+                }
+
+                _analyticsRunBinder?.Dispose();
                 _gameSession?.ClearRun();
                 Instance = null;
             }
