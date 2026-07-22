@@ -72,6 +72,27 @@ namespace LastTrain.Save
         {
             return Service.DeleteRunSave();
         }
+
+        public static bool TryLoadMeta(out MetaSaveData metaSave)
+        {
+            return Service.TryLoadMeta(out metaSave);
+        }
+
+        public static bool SaveMeta(MetaSaveData metaSave)
+        {
+            return Service.SaveMeta(metaSave);
+        }
+
+        public static bool DeleteMetaSave()
+        {
+            return Service.DeleteMetaSave();
+        }
+
+        /// <summary>EditMode 테스트용. 기본 Service 대신 주입한다.</summary>
+        public static void SetServiceForTests(ISaveService service)
+        {
+            _service = service;
+        }
     }
 
     internal static class AppPathUtil

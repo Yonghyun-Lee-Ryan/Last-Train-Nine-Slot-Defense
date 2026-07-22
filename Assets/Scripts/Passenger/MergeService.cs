@@ -80,7 +80,7 @@ namespace LastTrain.Passenger
             }
 
             // 합성 후 공격 쿨타임은 TryUpgradeStar에서 초기화된다.
-            runState.RecordMerge(target.StarLevel);
+            runState.RecordMerge(target.StarLevel, target.Data.Id);
 
             result = new MergeResult(
                 sourceSlot,

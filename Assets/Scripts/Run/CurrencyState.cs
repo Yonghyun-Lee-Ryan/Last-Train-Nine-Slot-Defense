@@ -65,5 +65,12 @@ namespace LastTrain.Run
 
             CoinsChanged?.Invoke(CurrentCoins);
         }
+
+        /// <summary>디버그용 코인 직접 설정. 누적 earned/spent는 유지한다.</summary>
+        public void SetCoins(int coins)
+        {
+            CurrentCoins = Math.Max(0, coins);
+            CoinsChanged?.Invoke(CurrentCoins);
+        }
     }
 }

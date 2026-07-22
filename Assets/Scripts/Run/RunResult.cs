@@ -1,7 +1,7 @@
 namespace LastTrain.Run
 {
     /// <summary>
-    /// 회차 종료 시 결과 화면으로 전달하는 불변 스냅샷.
+    /// 회차 종료 시 결과 화면·메타 보상으로 전달하는 불변 스냅샷.
     /// </summary>
     public sealed class RunResult
     {
@@ -13,6 +13,7 @@ namespace LastTrain.Run
             int reachedStationIndex,
             int completedStationCount,
             int enemiesKilled,
+            int bossesKilled,
             int mergeCount,
             int highestPassengerStar,
             int remainingTrainHp,
@@ -22,7 +23,11 @@ namespace LastTrain.Run
             int totalCoinsSpent,
             int passengersSummoned,
             int passengersSold,
-            int abilityCardsSelected)
+            int abilityCardsSelected,
+            string[] discoveredPassengerIds = null,
+            string[] discoveredEnemyIds = null,
+            string[] discoveredBossIds = null,
+            RunPassengerMasterySnapshot[] passengerMasteries = null)
         {
             RunId = runId ?? string.Empty;
             LineId = lineId ?? string.Empty;
@@ -31,6 +36,7 @@ namespace LastTrain.Run
             ReachedStationIndex = reachedStationIndex;
             CompletedStationCount = completedStationCount;
             EnemiesKilled = enemiesKilled;
+            BossesKilled = bossesKilled;
             MergeCount = mergeCount;
             HighestPassengerStar = highestPassengerStar;
             RemainingTrainHp = remainingTrainHp;
@@ -41,6 +47,10 @@ namespace LastTrain.Run
             PassengersSummoned = passengersSummoned;
             PassengersSold = passengersSold;
             AbilityCardsSelected = abilityCardsSelected;
+            DiscoveredPassengerIds = discoveredPassengerIds ?? System.Array.Empty<string>();
+            DiscoveredEnemyIds = discoveredEnemyIds ?? System.Array.Empty<string>();
+            DiscoveredBossIds = discoveredBossIds ?? System.Array.Empty<string>();
+            PassengerMasteries = passengerMasteries ?? System.Array.Empty<RunPassengerMasterySnapshot>();
         }
 
         public string RunId { get; }
@@ -50,6 +60,7 @@ namespace LastTrain.Run
         public int ReachedStationIndex { get; }
         public int CompletedStationCount { get; }
         public int EnemiesKilled { get; }
+        public int BossesKilled { get; }
         public int MergeCount { get; }
         public int HighestPassengerStar { get; }
         public int RemainingTrainHp { get; }
@@ -60,5 +71,9 @@ namespace LastTrain.Run
         public int PassengersSummoned { get; }
         public int PassengersSold { get; }
         public int AbilityCardsSelected { get; }
+        public string[] DiscoveredPassengerIds { get; }
+        public string[] DiscoveredEnemyIds { get; }
+        public string[] DiscoveredBossIds { get; }
+        public RunPassengerMasterySnapshot[] PassengerMasteries { get; }
     }
 }

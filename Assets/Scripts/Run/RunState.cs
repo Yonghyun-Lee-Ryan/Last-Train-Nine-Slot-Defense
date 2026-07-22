@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using LastTrain.Data;
+using LastTrain.Enemy;
 
 namespace LastTrain.Run
 {
@@ -116,6 +118,10 @@ namespace LastTrain.Run
             {
                 _allPassengers.Add(passenger);
                 History.RecordSummon(passenger.StarLevel);
+                if (passenger.Data != null)
+                {
+                    History.RecordPassengerUsage(passenger.Data.Id, passenger.StarLevel);
+                }
             }
 
             return true;
@@ -214,15 +220,37 @@ namespace LastTrain.Run
             return true;
         }
 
-        public void RecordEnemyKill(int coinReward)
+        public void RecordEnemyKill(int coinReward, EnemyRuntime enemy = null)
         {
-            History.RecordEnemyKill();
+            if (enemy?.Data != null)
+            {
+                History.RecordEnemyKill(enemy.Data.Id, enemy.EnemyType);
+                if (enemy.EnemyType == EnemyType.Boss)
+                {
+                    RecordBossKillParticipationFromGrid();
+                }
+            }
+            else
+            {
+                History.RecordEnemyKill(null, EnemyType.Normal);
+            }
+
             Currency.AddCoins(coinReward);
         }
 
-        public void RecordMerge(int resultingStarLevel)
+        public void RecordEnemyEncounter(EnemyRuntime enemy)
         {
-            History.RecordMerge(resultingStarLevel);
+            if (enemy?.Data == null)
+            {
+                return;
+            }
+
+            History.RecordEnemyEncounter(enemy.Data.Id, enemy.EnemyType);
+        }
+
+        public void RecordMerge(int resultingStarLevel, string passengerId = null)
+        {
+            History.RecordMerge(resultingStarLevel, passengerId);
         }
 
         public void RecordPassengerSold()
@@ -245,6 +273,7 @@ namespace LastTrain.Run
                 Station.CurrentStationIndex,
                 Station.CompletedStationCount,
                 History.EnemiesKilled,
+                History.BossesKilled,
                 History.MergeCount,
                 History.HighestPassengerStar,
                 Train.CurrentHp,
@@ -254,7 +283,28 @@ namespace LastTrain.Run
                 Currency.TotalSpent,
                 History.PassengersSummoned,
                 History.PassengersSold,
-                History.AbilityCardsSelected);
+                History.AbilityCardsSelected,
+                History.DiscoveredPassengerIds,
+                History.DiscoveredEnemyIds,
+                History.DiscoveredBossIds,
+                History.PassengerMasteries);
+        }
+
+        private void RecordBossKillParticipationFromGrid()
+        {
+            var ids = new List<string>(GridSlotCount);
+            for (int i = 0; i < GridSlotCount; i++)
+            {
+                PassengerRuntime passenger = _gridSlots[i];
+                if (passenger?.Data == null || string.IsNullOrWhiteSpace(passenger.Data.Id))
+                {
+                    continue;
+                }
+
+                ids.Add(passenger.Data.Id);
+            }
+
+            History.RecordBossKillParticipation(ids);
         }
 
         public void Dispose()

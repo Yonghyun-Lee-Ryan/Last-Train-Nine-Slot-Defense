@@ -43,6 +43,10 @@ namespace LastTrain.Data
         [SerializeField] private int sellPriceStar2 = 12;
         [SerializeField] private int sellPriceStar3 = 28;
 
+        [Header("Meta")]
+        [Tooltip("true면 메타 저장에 없어도 처음부터 소환 후보에 포함된다.")]
+        [SerializeField] private bool startsUnlocked;
+
         public string Id => id;
         public string DisplayName => displayName;
         public PassengerRole Role => role;
@@ -56,6 +60,7 @@ namespace LastTrain.Data
         public string SkillId => skillId;
         public IReadOnlyList<PassengerStarData> StarLevels => starLevels;
         public int MaxStarLevel => starLevels != null && starLevels.Length > 0 ? starLevels.Length : 1;
+        public bool StartsUnlocked => startsUnlocked;
 
         /// <summary>등급별 표시 이름. override가 없으면 기본 이름을 반환한다.</summary>
         public string GetDisplayNameAtStar(int starLevel)

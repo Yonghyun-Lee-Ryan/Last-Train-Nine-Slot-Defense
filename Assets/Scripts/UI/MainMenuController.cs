@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using LastTrain.Analytics;
 using LastTrain.Core;
 using LastTrain.Run;
 using LastTrain.Data;
@@ -14,8 +17,12 @@ namespace LastTrain.UI
     /// </summary>
     public class MainMenuController : MonoBehaviour
     {
+        /// <summary>계정 레벨·승차권 조각·해금 진행률 표시용.</summary>
+        public event Action<MetaProgressSnapshot> MetaProgressUpdated;
+
         [SerializeField] private Button startButton;
         [SerializeField] private Button continueButton;
+        [SerializeField] private Text metaStatusLabel;
 
         private void Awake()
         {
@@ -28,6 +35,45 @@ namespace LastTrain.UI
             startButton.onClick.AddListener(OnStartClicked);
 
             EnsureContinueButton();
+            EnsureMetaStatusLabel();
+            RefreshMetaProgress();
+        }
+
+        private void EnsureMetaStatusLabel()
+        {
+            if (metaStatusLabel != null)
+            {
+                return;
+            }
+
+            Canvas canvas = UnityEngine.Object.FindAnyObjectByType<Canvas>();
+            if (canvas == null)
+            {
+                return;
+            }
+
+            Transform safeArea = canvas.transform.Find("SafeArea");
+            Transform parent = safeArea != null ? safeArea : canvas.transform;
+
+            GameObject go = new GameObject("MetaStatusLabel", typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+
+            RectTransform rect = go.GetComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(900, 100);
+            rect.anchoredPosition = new Vector2(0, 320);
+
+            metaStatusLabel = go.AddComponent<Text>();
+            metaStatusLabel.alignment = TextAnchor.MiddleCenter;
+            metaStatusLabel.fontSize = 28;
+            metaStatusLabel.color = Color.white;
+            metaStatusLabel.horizontalOverflow = HorizontalWrapMode.Wrap;
+            metaStatusLabel.verticalOverflow = VerticalWrapMode.Overflow;
+
+            Font font = GameFontProvider.Get();
+            if (font != null)
+            {
+                metaStatusLabel.font = font;
+            }
         }
 
         private void OnDestroy()
@@ -40,6 +86,28 @@ namespace LastTrain.UI
             if (continueButton != null)
             {
                 continueButton.onClick.RemoveListener(OnContinueClicked);
+            }
+        }
+
+        public void RefreshMetaProgress()
+        {
+            MetaProgressSnapshot snapshot = MetaSaveSystem.GetSnapshot();
+            MetaProgressUpdated?.Invoke(snapshot);
+
+            if (metaStatusLabel != null)
+            {
+                GameDatabase db = GameDatabaseLocator.Load();
+                int totalPassengers = db?.Passengers?.Count ?? 0;
+                float unlock01 = snapshot.GetUnlockProgress01(totalPassengers);
+                metaStatusLabel.text =
+                    $"계정 Lv.{snapshot.AccountLevel}  |  승차권 조각 {snapshot.TicketFragments}\n" +
+                    $"해금 {snapshot.UnlockedPassengerCount}/{Math.Max(totalPassengers, snapshot.UnlockedPassengerCount)}" +
+                    $" ({unlock01 * 100f:0}%)";
+            }
+
+            if (snapshot.PendingNewDiscoveryIds != null && snapshot.PendingNewDiscoveryIds.Count > 0)
+            {
+                MetaSaveSystem.ClearPendingDiscoveries();
             }
         }
 
@@ -69,7 +137,7 @@ namespace LastTrain.UI
             }
 
             // 없으면 SafeArea 아래에 최소 UI를 런타임 생성
-            Canvas canvas = Object.FindAnyObjectByType<Canvas>();
+            Canvas canvas = UnityEngine.Object.FindAnyObjectByType<Canvas>();
             if (canvas == null)
             {
                 return;
@@ -196,6 +264,14 @@ namespace LastTrain.UI
             var config = RunSaveMapper.CreateStartConfigFromSave(save);
             appRoot.GameSession.StartNewRun(config);
             RunSaveMapper.ApplyToRunState(appRoot.GameSession.RunState, save, gameDatabase);
+
+            // RunStarted는 저장 복원 전에 발생하므로, 복원 후 Context를 다시 맞춘다.
+            appRoot.Analytics?.BindRun(appRoot.GameSession.RunState);
+            appRoot.Analytics?.Track(AnalyticsEventNames.SaveRecovered, new Dictionary<string, object>
+            {
+                ["station_index"] = save.stationIndex,
+                ["run_id"] = appRoot.GameSession.RunState?.RunId ?? string.Empty,
+            });
 
             SceneFlow.Load(SceneNames.Game);
         }

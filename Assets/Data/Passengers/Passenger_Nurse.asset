@@ -45,3 +45,4 @@ MonoBehaviour:
   sellPriceStar1: 5
   sellPriceStar2: 12
   sellPriceStar3: 28
+  startsUnlocked: 1
