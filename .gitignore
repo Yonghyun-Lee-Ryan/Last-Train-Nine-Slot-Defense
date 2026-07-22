@@ -84,6 +84,18 @@ Desktop.ini
 # Local simulation outputs
 SimResults/
 
+# Temporary audio download/extract cache
+_tmp_audio/
+
+# Android signing (never commit secrets)
+*.keystore
+*.jks
+*.keystore.meta
+*.jks.meta
+keystore.properties
+signing.properties
+local.properties
+
 # Legacy Flash/ActionScript (existing project entries)
 bin-debug/
 bin-release/

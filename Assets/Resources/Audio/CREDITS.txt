@@ -1,0 +1,21 @@
+﻿Audio Credits (Last Train Nine Slot Defense)
+===========================================
+
+1) Kenney Interface Sounds
+   Author: Kenney (www.kenney.nl)
+   License: CC0 1.0 Universal (public domain dedication)
+   Source: https://opengameart.org/content/interface-sounds
+   Files used (renamed under Assets/Art/Audio/Sfx):
+   - ui_*.ogg, summon_*.ogg, shop_buy.ogg, pause.ogg, resume.ogg, reward.ogg, switch.ogg
+
+2) Background Music 1 (menu)
+   Author: Tozan
+   License: CC0 1.0
+   Source: https://opengameart.org/content/background-music-1
+   File: Assets/Art/Audio/Bgm/bgm_menu.ogg
+
+3) Original procedural audio (authored for this project)
+   License: CC0 / public domain equivalent for this repository
+   Files: combat_*.wav, enemy_death.wav, train_damage.wav, coin.wav, merge.wav,
+          wave_start.wav, station_clear.wav, victory.wav, defeat.wav, boss_spawn.wav,
+          bgm_battle.wav, bgm_result.wav
