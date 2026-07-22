@@ -1,5 +1,7 @@
+using LastTrain.Ads;
 using LastTrain.Core;
 using LastTrain.Run;
+using LastTrain.Save;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -19,10 +21,14 @@ namespace LastTrain.UI
 
         [SerializeField] private Button retryButton;
         [SerializeField] private Button mainMenuButton;
+        [SerializeField] private Button doubleRewardAdButton;
+
+        private readonly UiInputGuard _adGuard = new(0.25f);
 
         private void Awake()
         {
             RefreshResultUi();
+            EnsureDoubleRewardButton();
 
             if (retryButton != null)
             {
@@ -41,6 +47,12 @@ namespace LastTrain.UI
             {
                 Debug.LogError("[ResultPlaceholderController] mainMenuButton이 연결되지 않았습니다.", this);
             }
+
+            if (doubleRewardAdButton != null)
+            {
+                doubleRewardAdButton.onClick.AddListener(OnDoubleRewardClicked);
+                RefreshDoubleRewardButton();
+            }
         }
 
         private void OnDestroy()
@@ -53,6 +65,11 @@ namespace LastTrain.UI
             if (mainMenuButton != null)
             {
                 mainMenuButton.onClick.RemoveListener(OnMainMenuClicked);
+            }
+
+            if (doubleRewardAdButton != null)
+            {
+                doubleRewardAdButton.onClick.RemoveListener(OnDoubleRewardClicked);
             }
         }
 
@@ -82,6 +99,33 @@ namespace LastTrain.UI
             SceneFlow.Load(SceneNames.MainMenu);
         }
 
+        private void OnDoubleRewardClicked()
+        {
+            if (!_adGuard.TryAcquire())
+            {
+                return;
+            }
+
+            AdCoordinator ads = AppRoot.Instance?.Ads;
+            if (ads == null || !ads.IsReady(RewardedAdPlacement.DoubleResultReward))
+            {
+                return;
+            }
+
+            UiInputGuard.SetInteractable(doubleRewardAdButton, false);
+            ads.ShowDoubleResultReward(result =>
+            {
+                if (result == AdResult.Completed && statsLabel != null)
+                {
+                    statsLabel.text = RunResultFormatter.BuildStatsText(AppRoot.Instance.GameSession.LastResult)
+                        + RunResultFormatter.BuildMetaRewardText(MetaSaveSystem.LastApplyResult)
+                        + "\n\n[광고] 승차권 조각 2배 보너스 지급!";
+                }
+
+                RefreshDoubleRewardButton();
+            });
+        }
+
         private void SetButtonsInteractable(bool value)
         {
             if (retryButton != null)
@@ -93,6 +137,58 @@ namespace LastTrain.UI
             {
                 mainMenuButton.interactable = value;
             }
+
+            RefreshDoubleRewardButton();
+        }
+
+        private void RefreshDoubleRewardButton()
+        {
+            if (doubleRewardAdButton == null)
+            {
+                return;
+            }
+
+            AdCoordinator ads = AppRoot.Instance?.Ads;
+            doubleRewardAdButton.interactable =
+                ads != null && ads.IsReady(RewardedAdPlacement.DoubleResultReward);
+        }
+
+        private void EnsureDoubleRewardButton()
+        {
+            if (doubleRewardAdButton != null)
+            {
+                return;
+            }
+
+            if (mainMenuButton == null)
+            {
+                return;
+            }
+
+            Transform parent = mainMenuButton.transform.parent;
+            GameObject go = new GameObject("DoubleRewardAdButton", typeof(RectTransform), typeof(Image), typeof(Button));
+            go.transform.SetParent(parent, false);
+            RectTransform rect = go.GetComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(600, 120);
+            rect.anchoredPosition = new Vector2(0, -400);
+
+            Image image = go.GetComponent<Image>();
+            image.color = new Color(0.25f, 0.55f, 0.35f, 1f);
+            doubleRewardAdButton = go.GetComponent<Button>();
+
+            var textGo = new GameObject("Text", typeof(RectTransform));
+            textGo.transform.SetParent(go.transform, false);
+            RectTransform textRect = textGo.GetComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            Text text = textGo.AddComponent<Text>();
+            text.text = "광고로 보상 2배";
+            text.alignment = TextAnchor.MiddleCenter;
+            text.fontSize = 36;
+            text.color = Color.white;
+            text.font = GameFontProvider.Get();
         }
 
         private void RefreshResultUi()
@@ -121,7 +217,8 @@ namespace LastTrain.UI
 
             if (statsLabel != null)
             {
-                statsLabel.text = RunResultFormatter.BuildStatsText(result);
+                statsLabel.text = RunResultFormatter.BuildStatsText(result)
+                    + RunResultFormatter.BuildMetaRewardText(MetaSaveSystem.LastApplyResult);
             }
         }
     }

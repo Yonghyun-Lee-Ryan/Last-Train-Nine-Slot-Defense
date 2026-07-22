@@ -15,6 +15,8 @@ namespace LastTrain.Battle
         public event Action<StationData> StationCompleted;
         public event Action<StationData> AbilityRewardRequested;
         public event Action RunVictoryRequested;
+        /// <summary>역 클리어 코인 지급 직후. (역, 지급 코인)</summary>
+        public event Action<StationData, int> StationRewardGranted;
 
         private readonly WaveManager _waveManager = new();
         private readonly Func<int, StationData> _stationLookup;
@@ -57,6 +59,7 @@ namespace LastTrain.Battle
             _currentWaveIndex = 0;
             _stationCompleteReported = false;
             _waitingForAbilityReward = false;
+            _runCancelled = false;
             _runState.Station.SetCurrentStation(station.Id, station.StationIndex);
             _runState.Battle.SetPhase(RunPhase.Preparing);
             StationStarted?.Invoke(station);
@@ -177,9 +180,11 @@ namespace LastTrain.Battle
 
             _stationCompleteReported = true;
             _runState.Battle.SetPhase(RunPhase.StationCompleted);
-            _runState.Currency.AddCoins(_currentStation.RewardCoins);
+            int rewardCoins = _currentStation.RewardCoins;
+            _runState.Currency.AddCoins(rewardCoins);
             AbilityEffectApplier.ApplyStationCompleteHeal(_runState);
             StationCompleted?.Invoke(_currentStation);
+            StationRewardGranted?.Invoke(_currentStation, rewardCoins);
 
             _runState.Battle.SetPhase(RunPhase.RewardSelecting);
 

@@ -1,6 +1,7 @@
 using System;
 using System.Text;
 using LastTrain.Ability;
+using LastTrain.Ads;
 using LastTrain.Core;
 using LastTrain.Data;
 using LastTrain.Run;
@@ -92,6 +93,7 @@ namespace LastTrain.UI
                 onRewardFinished: HandleRewardFinished);
 
             _abilityManager.StatusMessage += HandleStatusMessage;
+            AppRoot.Instance?.AnalyticsRunBinder?.BindAbility(_abilityManager);
             _runState.Abilities.OffersChanged += RefreshOfferPanel;
             _runState.Abilities.SelectionChanged += RefreshOwnedList;
 
@@ -112,6 +114,8 @@ namespace LastTrain.UI
             {
                 _abilityManager.StatusMessage -= HandleStatusMessage;
             }
+
+            AppRoot.Instance?.AnalyticsRunBinder?.BindAbility(null);
 
             if (_runState?.Abilities != null)
             {
@@ -237,8 +241,31 @@ namespace LastTrain.UI
 
         private void OnAdRerollClicked()
         {
-            _abilityManager?.TryRerollWithAd();
-            RefreshOfferPanel();
+            if (_abilityManager == null)
+            {
+                return;
+            }
+
+            AdCoordinator ads = AppRoot.Instance?.Ads;
+            if (ads == null)
+            {
+                _abilityManager.TryRerollWithAd();
+                RefreshOfferPanel();
+                return;
+            }
+
+            if (!_abilityManager.HasActiveOffers
+                || _abilityManager.RemainingAdRerolls <= 0
+                || !ads.IsReady(RewardedAdPlacement.AbilityReroll))
+            {
+                return;
+            }
+
+            UiInputGuard.SetInteractable(adRerollButton, false);
+            ads.ShowRewarded(
+                RewardedAdPlacement.AbilityReroll,
+                () => _abilityManager.ApplyAdReroll(recordUsage: true),
+                _ => RefreshOfferPanel());
         }
 
         private void HandleRewardFinished()
@@ -287,7 +314,10 @@ namespace LastTrain.UI
 
             if (adRerollButton != null)
             {
-                adRerollButton.interactable = _abilityManager != null && _abilityManager.RemainingAdRerolls > 0;
+                AdCoordinator ads = AppRoot.Instance?.Ads;
+                adRerollButton.interactable = _abilityManager != null
+                    && _abilityManager.RemainingAdRerolls > 0
+                    && (ads == null || ads.IsReady(RewardedAdPlacement.AbilityReroll));
             }
         }
 

@@ -40,7 +40,7 @@ namespace LastTrain.Tests.EditMode
         }
 
         [Test]
-        public void TrainDestroyed_AutoEndsRunAsDefeat()
+        public void TrainDestroyed_WithoutReviveHandler_AutoEndsAsDefeat()
         {
             _session.StartNewRun();
             RunEndReason endReason = RunEndReason.None;
@@ -50,6 +50,47 @@ namespace LastTrain.Tests.EditMode
 
             Assert.AreEqual(RunEndReason.Defeat, endReason);
             Assert.IsFalse(_session.HasActiveRun);
+            Assert.IsFalse(_session.IsPendingDefeat);
+        }
+
+        [Test]
+        public void TrainDestroyed_WithReviveHandler_WaitsUntilDecline()
+        {
+            _session.StartNewRun();
+            bool reviveOffered = false;
+            _session.ReviveOffered += () => reviveOffered = true;
+
+            _session.RunState.Train.ApplyDamage(100);
+
+            Assert.IsTrue(reviveOffered);
+            Assert.IsTrue(_session.IsPendingDefeat);
+            Assert.IsTrue(_session.HasActiveRun);
+
+            _session.DeclineReviveAndEnd();
+
+            Assert.IsFalse(_session.HasActiveRun);
+            Assert.IsFalse(_session.IsPendingDefeat);
+            Assert.AreEqual(RunEndReason.Defeat, _session.LastResult.EndReason);
+        }
+
+        [Test]
+        public void MarkReviveUsed_ClearsAvailabilityFlag()
+        {
+            _session.StartNewRun();
+            _session.ReviveOffered += () => { };
+            _session.RunState.Train.ApplyDamage(100);
+
+            Assert.IsTrue(_session.IsPendingDefeat);
+            Assert.AreEqual(0, _session.RunState.Train.CurrentHp);
+
+            _session.RunState.Train.SetCurrentHp(35);
+            _session.MarkReviveUsed();
+            _session.ClearPendingDefeat();
+
+            Assert.IsFalse(_session.IsPendingDefeat);
+            Assert.IsTrue(_session.HasActiveRun);
+            Assert.AreEqual(35, _session.RunState.Train.CurrentHp);
+            Assert.IsFalse(_session.ReviveAvailableThisRun);
         }
 
         [Test]

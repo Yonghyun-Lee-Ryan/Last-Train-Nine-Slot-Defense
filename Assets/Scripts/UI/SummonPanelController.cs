@@ -1,9 +1,11 @@
 using System;
+using LastTrain.Ads;
 using LastTrain.Core;
 using LastTrain.Data;
 using LastTrain.Grid;
 using LastTrain.Passenger;
 using LastTrain.Run;
+using LastTrain.Save;
 using UnityEngine;
 using UnityEngine.UI;
 #if UNITY_EDITOR
@@ -41,6 +43,7 @@ namespace LastTrain.UI
         private SummonManager _summonManager;
         private RunState _runState;
         private GameSession _session;
+        private readonly UiInputGuard _adInputGuard = new(0.2f);
 
         private void Start()
         {
@@ -70,13 +73,15 @@ namespace LastTrain.UI
 
             int seed = randomSeed != 0 ? randomSeed : unchecked(Environment.TickCount);
             var random = new RandomService(seed);
+            var unlockedPassengers = MetaSaveSystem.FilterUnlockedPassengers(gameDatabase.Passengers);
             var offerService = new PassengerOfferService(
-                gameDatabase.Passengers,
+                unlockedPassengers,
                 random,
                 economyConfig.OfferCount);
 
             _summonManager = new SummonManager(_runState, economyConfig, offerService);
             _summonManager.StatusMessage += HandleStatusMessage;
+            AppRoot.Instance?.AnalyticsRunBinder?.BindSummon(_summonManager);
 
             WireButtons();
 
@@ -139,6 +144,11 @@ namespace LastTrain.UI
             if (_summonManager != null)
             {
                 _summonManager.StatusMessage -= HandleStatusMessage;
+            }
+
+            if (AppRoot.Instance?.AnalyticsRunBinder != null)
+            {
+                AppRoot.Instance.AnalyticsRunBinder.BindSummon(null);
             }
 
             if (gridManager != null)
@@ -298,18 +308,56 @@ namespace LastTrain.UI
 
         private void OnAdRerollClicked()
         {
-            if (_summonManager == null)
+            if (_summonManager == null || !_adInputGuard.TryAcquire())
             {
                 return;
             }
 
-            if (_summonManager.TryRerollWithAd() == RerollResult.Success)
+            AdCoordinator ads = AppRoot.Instance?.Ads;
+            if (ads == null)
             {
-                SetStatus($"광고 리롤 사용 (남은 {_summonManager.RemainingAdRerolls}회)");
+                if (_summonManager.TryRerollWithAd() == RerollResult.Success)
+                {
+                    SetStatus($"광고 리롤 사용 (남은 {_summonManager.RemainingAdRerolls}회)");
+                }
+
+                RefreshOfferPanel();
+                RefreshHud();
+                return;
             }
 
-            RefreshOfferPanel();
-            RefreshHud();
+            if (!_summonManager.HasActiveOffers)
+            {
+                return;
+            }
+
+            if (!ads.IsReady(RewardedAdPlacement.PassengerReroll)
+                || _summonManager.RemainingAdRerolls <= 0)
+            {
+                SetStatus("광고 리롤을 사용할 수 없습니다.");
+                return;
+            }
+
+            UiInputGuard.SetInteractable(adRerollButton, false);
+            ads.ShowRewarded(
+                RewardedAdPlacement.PassengerReroll,
+                () =>
+                {
+                    if (_summonManager.ApplyAdReroll(recordUsage: true) == RerollResult.Success)
+                    {
+                        SetStatus($"광고 리롤 사용 (남은 {_summonManager.RemainingAdRerolls}회)");
+                    }
+                },
+                result =>
+                {
+                    if (result != AdResult.Completed)
+                    {
+                        SetStatus($"광고 {(result == AdResult.Cancelled ? "취소" : "실패")} — 보상 없음");
+                    }
+
+                    RefreshOfferPanel();
+                    RefreshHud();
+                });
         }
 
         private void RefreshOfferPanel()
@@ -347,7 +395,9 @@ namespace LastTrain.UI
 
             if (adRerollButton != null)
             {
-                adRerollButton.interactable = _summonManager.RemainingAdRerolls > 0;
+                AdCoordinator ads = AppRoot.Instance?.Ads;
+                adRerollButton.interactable = _summonManager.RemainingAdRerolls > 0
+                    && (ads == null || ads.IsReady(RewardedAdPlacement.PassengerReroll));
             }
         }
 

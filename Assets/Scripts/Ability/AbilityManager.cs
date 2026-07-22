@@ -175,14 +175,34 @@ namespace LastTrain.Ability
 
             if (!_tryShowRewardedAd())
             {
-                StatusMessage?.Invoke("광고 시청에 실패했습니다. (Mock)");
+                StatusMessage?.Invoke("광고 시청에 실패했습니다.");
                 return AbilityRerollResult.AdFailed;
             }
 
+            return ApplyAdRerollInternal(recordUsage: true);
+        }
+
+        /// <summary>광고 Completed 이후 호출.</summary>
+        public AbilityRerollResult ApplyAdReroll(bool recordUsage = true)
+        {
+            if (!_runState.Abilities.HasActiveOffers)
+            {
+                return AbilityRerollResult.NoActiveOffers;
+            }
+
+            return ApplyAdRerollInternal(recordUsage);
+        }
+
+        private AbilityRerollResult ApplyAdRerollInternal(bool recordUsage)
+        {
             List<AbilityData> offers = _offerService.GenerateOffers(_runState.Abilities);
-            _runState.Abilities.RecordAdReroll();
+            if (recordUsage)
+            {
+                _runState.Abilities.RecordAdReroll();
+            }
+
             _runState.Abilities.SetOffers(offers);
-            StatusMessage?.Invoke("능력 광고 리롤 성공 (Mock)");
+            StatusMessage?.Invoke("능력 광고 리롤 성공");
             return AbilityRerollResult.Success;
         }
 

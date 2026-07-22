@@ -218,14 +218,37 @@ namespace LastTrain.Passenger
 
             if (!_tryShowRewardedAd())
             {
-                StatusMessage?.Invoke("광고 시청에 실패했습니다. (Mock)");
+                StatusMessage?.Invoke("광고 시청에 실패했습니다.");
                 return RerollResult.AdFailed;
             }
 
+            return ApplyAdRerollInternal(recordUsage: true);
+        }
+
+        /// <summary>
+        /// 광고 Completed 이후 호출. 한도 소비는 AdLimitService가 담당한 경우를 위해
+        /// recordUsage로 SummonProgress 기록 여부를 제어한다.
+        /// </summary>
+        public RerollResult ApplyAdReroll(bool recordUsage = true)
+        {
+            if (!_runState.Summon.HasActiveOffers)
+            {
+                return RerollResult.NoActiveOffers;
+            }
+
+            return ApplyAdRerollInternal(recordUsage);
+        }
+
+        private RerollResult ApplyAdRerollInternal(bool recordUsage)
+        {
             List<PassengerData> offers = _offerService.GenerateOffers();
-            _runState.Summon.RecordAdReroll();
+            if (recordUsage)
+            {
+                _runState.Summon.RecordAdReroll();
+            }
+
             _runState.Summon.SetOffers(offers);
-            StatusMessage?.Invoke("광고 리롤 성공 (Mock)");
+            StatusMessage?.Invoke("광고 리롤 성공");
             return RerollResult.Success;
         }
 

@@ -1,4 +1,6 @@
 using LastTrain.Ability;
+using LastTrain.Ads;
+using LastTrain.Analytics;
 using LastTrain.Battle;
 using LastTrain.Core;
 using LastTrain.Data;
@@ -93,12 +95,16 @@ namespace LastTrain.UI
             _stationManager.StationStarted += HandleStationStarted;
             _stationManager.AbilityRewardRequested += HandleAbilityRewardRequested;
             _stationManager.RunVictoryRequested += HandleRunVictoryRequested;
+            _stationManager.StationRewardGranted += HandleStationRewardGranted;
             _stationManager.Initialize(runState, startingStation);
 
             if (_abilityPanel == null)
             {
                 _abilityPanel = FindAnyObjectByType<AbilityPanelController>();
             }
+
+            AnalyticsRunBinder binder = appRoot.AnalyticsRunBinder;
+            binder?.BindBattle(_stationManager, battleManager, _synergyManager, gridManager);
 
             _gameSession.RunEnded += HandleRunEnded;
 
@@ -132,8 +138,31 @@ namespace LastTrain.UI
                 _stationManager.StationStarted -= HandleStationStarted;
                 _stationManager.AbilityRewardRequested -= HandleAbilityRewardRequested;
                 _stationManager.RunVictoryRequested -= HandleRunVictoryRequested;
+                _stationManager.StationRewardGranted -= HandleStationRewardGranted;
                 _stationManager.Cancel();
             }
+
+            AppRoot.Instance?.AnalyticsRunBinder?.UnbindBattle();
+            AppRoot.Instance?.AnalyticsRunBinder?.BindSummon(null);
+            AppRoot.Instance?.AnalyticsRunBinder?.BindAbility(null);
+        }
+
+        private void HandleStationRewardGranted(StationData station, int rewardCoins)
+        {
+            AdCoordinator ads = AppRoot.Instance?.Ads;
+            if (ads == null || station == null || rewardCoins <= 0 || _gameSession?.RunState == null)
+            {
+                return;
+            }
+
+            ads.Limits.NotifyStationChanged(station.StationIndex);
+            if (!ads.IsReady(RewardedAdPlacement.StationRewardDouble))
+            {
+                return;
+            }
+
+            // Mock/실광고: 역 클리어 보상 2배 기회 (취소해도 게임 진행 유지)
+            ads.ShowStationRewardDouble(_gameSession.RunState, rewardCoins, null);
         }
 
         private void HandleStationStarted(StationData station)
