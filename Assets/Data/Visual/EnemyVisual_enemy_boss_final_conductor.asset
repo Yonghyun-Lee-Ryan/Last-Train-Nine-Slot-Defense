@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b70dd3bd3d11f48428b6c8c2acafd8a7, type: 3}
+  m_Name: EnemyVisual_enemy_boss_final_conductor
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Data.EnemyVisualSet
+  id: enemy_boss_final_conductor
+  move:
+    frames:
+    - {fileID: -2112989293, guid: 7408dc67a614e324bb784ba3d2d51450, type: 3}
+    - {fileID: 473914694, guid: 7408dc67a614e324bb784ba3d2d51450, type: 3}
+    - {fileID: -2023380673, guid: 7408dc67a614e324bb784ba3d2d51450, type: 3}
+    - {fileID: 221178634, guid: 7408dc67a614e324bb784ba3d2d51450, type: 3}
+    framesPerSecond: 8
+    loop: 1
+  hit:
+    frames:
+    - {fileID: -1576667499, guid: 9046491a94a28b34dbd557d732867260, type: 3}
+    - {fileID: -2089518652, guid: 9046491a94a28b34dbd557d732867260, type: 3}
+    framesPerSecond: 8
+    loop: 0
+  death:
+    frames:
+    - {fileID: -1169916896, guid: 6d3d4a4f1b120cf4cb76a9ec2af5389d, type: 3}
+    - {fileID: 27768576, guid: 6d3d4a4f1b120cf4cb76a9ec2af5389d, type: 3}
+    - {fileID: -537334930, guid: 6d3d4a4f1b120cf4cb76a9ec2af5389d, type: 3}
+    - {fileID: -271089598, guid: 6d3d4a4f1b120cf4cb76a9ec2af5389d, type: 3}
+    framesPerSecond: 8
+    loop: 0
+  cast:
+    frames:
+    - {fileID: 1939688099, guid: 54cd02c68878e7f4a827e6098198e99f, type: 3}
+    - {fileID: 1264627598, guid: 54cd02c68878e7f4a827e6098198e99f, type: 3}
+    - {fileID: -1461624921, guid: 54cd02c68878e7f4a827e6098198e99f, type: 3}
+    - {fileID: -548084475, guid: 54cd02c68878e7f4a827e6098198e99f, type: 3}
+    framesPerSecond: 8
+    loop: 0
+  enraged:
+    frames:
+    - {fileID: -731054319, guid: bed0ca8a95b08f648ba2c733ff73399b, type: 3}
+    - {fileID: -404216754, guid: bed0ca8a95b08f648ba2c733ff73399b, type: 3}
+    - {fileID: 78920290, guid: bed0ca8a95b08f648ba2c733ff73399b, type: 3}
+    - {fileID: -889322597, guid: bed0ca8a95b08f648ba2c733ff73399b, type: 3}
+    framesPerSecond: 8
+    loop: 1
+  accentColor: {r: 0.49803922, g: 0.11372549, b: 0.11372549, a: 1}
+  displaySize: {x: 320, y: 320}
