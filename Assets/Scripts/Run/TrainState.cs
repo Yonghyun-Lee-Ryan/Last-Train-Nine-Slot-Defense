@@ -50,6 +50,11 @@ namespace LastTrain.Run
                 return;
             }
 
+            if (LastTrain.DebugTools.DebugCombatSettings.Invulnerable)
+            {
+                return;
+            }
+
             int previous = CurrentHp;
             CurrentHp = Math.Max(0, CurrentHp - amount);
             NotifyHpChanged();
@@ -58,6 +63,13 @@ namespace LastTrain.Run
             {
                 Destroyed?.Invoke();
             }
+        }
+
+        /// <summary>디버그/시뮬용 현재 체력 직접 설정.</summary>
+        public void SetCurrentHp(int currentHp)
+        {
+            CurrentHp = Math.Clamp(currentHp, 0, MaxHp);
+            NotifyHpChanged();
         }
 
         public void Heal(int amount)

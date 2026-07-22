@@ -22,7 +22,7 @@ namespace LastTrain.Battle
                     runState.Abilities.Modifiers.CoinOnKillPercent);
             }
 
-            runState.RecordEnemyKill(coins);
+            runState.RecordEnemyKill(coins, enemy);
             return true;
         }
     }

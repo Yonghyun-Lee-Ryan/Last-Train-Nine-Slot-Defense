@@ -81,6 +81,9 @@ ehthumbs.db
 Thumbs.db
 Desktop.ini
 
+# Local simulation outputs
+SimResults/
+
 # Legacy Flash/ActionScript (existing project entries)
 bin-debug/
 bin-release/

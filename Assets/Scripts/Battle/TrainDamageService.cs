@@ -1,3 +1,4 @@
+using LastTrain.DebugTools;
 using LastTrain.Enemy;
 using LastTrain.Run;
 using UnityEngine;
@@ -12,6 +13,11 @@ namespace LastTrain.Battle
             if (runState?.Train == null || enemy == null || !enemy.TryResolve(EnemyResolution.ReachedTrain))
             {
                 return false;
+            }
+
+            if (DebugCombatSettings.Invulnerable)
+            {
+                return true;
             }
 
             int damage = Mathf.Max(0, Mathf.RoundToInt(enemy.TrainDamage));

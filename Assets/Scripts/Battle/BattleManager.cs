@@ -96,6 +96,35 @@ namespace LastTrain.Battle
             _initialized = true;
         }
 
+        /// <summary>디버그로 슬롯 승객을 바꾼 뒤 전투 컨트롤러를 재동기화한다.</summary>
+        public void RefreshPassengerControllers()
+        {
+            SyncPassengerControllers();
+        }
+
+        /// <summary>스킬/소환 RNG를 고정 시드로 재설정한다.</summary>
+        public void ReseedSkillRandom(int seed)
+        {
+            _skillRandom ??= new RandomService(seed);
+            _skillRandom.Reseed(seed);
+        }
+
+        /// <summary>디버그용: Fighting 페이즈에서 보스/적을 강제 스폰한다.</summary>
+        public EnemyController DebugForceSpawn(EnemyData data)
+        {
+            if (!_initialized || data == null || enemyPool == null || _runState == null)
+            {
+                return null;
+            }
+
+            if (_runState.Battle.CurrentPhase != RunPhase.Fighting)
+            {
+                _runState.Battle.SetPhase(RunPhase.Fighting);
+            }
+
+            return SpawnEnemy(data);
+        }
+
         public EnemyController SpawnEnemy(EnemyData data, Vector2? spawnPositionOverride = null)
         {
             if (!_initialized || data == null || enemyPool == null || !IsWaveSpawnActive())
@@ -122,6 +151,7 @@ namespace LastTrain.Battle
 
             _activeEnemies[runtime.InstanceId] = controller;
             _enemyRegistry.Register(runtime);
+            _runState?.RecordEnemyEncounter(runtime);
             TryAttachBossBrain(runtime);
             return controller;
         }
@@ -142,6 +172,7 @@ namespace LastTrain.Battle
             enemy.Died += HandleEnemyKilled;
             enemy.ReachedTrain += HandleEnemyReachedTrain;
             _enemyRegistry.Register(enemy);
+            _runState?.RecordEnemyEncounter(enemy);
         }
 
         public void ClearEnemies()
