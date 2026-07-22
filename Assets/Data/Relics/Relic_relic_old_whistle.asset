@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 489e4401cebad924c965cc8c37614843, type: 3}
+  m_Name: Relic_relic_old_whistle
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Data.RelicData
+  id: relic_old_whistle
+  displayName: "\uB0A1\uC740 \uD638\uB8E8\uB77C\uAE30"
+  description: "\uBCF4\uC2A4 \uCD5C\uCD08 \uD589\uB3D9 1.5\uCD08 \uC9C0\uC5F0"
+  rarity: 0
+  effectType: 8
+  effectValue: 1.5

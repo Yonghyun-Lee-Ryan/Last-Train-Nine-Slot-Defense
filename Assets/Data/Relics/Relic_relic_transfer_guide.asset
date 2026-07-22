@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 489e4401cebad924c965cc8c37614843, type: 3}
+  m_Name: Relic_relic_transfer_guide
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Data.RelicData
+  id: relic_transfer_guide
+  displayName: "\uD658\uC2B9 \uC548\uB0B4\uC11C"
+  description: "\uC774\uBCA4\uD2B8 \uB098\uC05C \uACB0\uACFC -20%"
+  rarity: 0
+  effectType: 10
+  effectValue: 20
