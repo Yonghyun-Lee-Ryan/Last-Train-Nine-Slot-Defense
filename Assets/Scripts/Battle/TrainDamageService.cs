@@ -1,3 +1,4 @@
+using LastTrain.Audio;
 using LastTrain.DebugTools;
 using LastTrain.Enemy;
 using LastTrain.Run;
@@ -24,6 +25,7 @@ namespace LastTrain.Battle
             if (damage > 0)
             {
                 runState.Train.ApplyDamage(damage);
+                GameAudio.PlaySfx(SfxId.TrainDamage);
             }
 
             return true;

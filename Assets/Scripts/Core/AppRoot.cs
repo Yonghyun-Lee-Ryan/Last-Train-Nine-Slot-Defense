@@ -1,5 +1,8 @@
 using LastTrain.Ads;
 using LastTrain.Analytics;
+using LastTrain.Audio;
+using LastTrain.Integrations;
+using LastTrain.Release;
 using LastTrain.Run;
 using LastTrain.Save;
 using UnityEngine;
@@ -22,11 +25,17 @@ namespace LastTrain.Core
         [Tooltip("Bootstrap 초기화 완료 후 자동으로 MainMenu로 이동할지 여부")]
         [SerializeField] private bool autoLoadMainMenu = true;
 
+        [Header("Integration (Unit 21)")]
+        [SerializeField] private AdUnitConfig adUnitConfig;
+        [SerializeField] private RemoteConfigDefaults remoteConfigDefaults;
+
         private SceneLoader _sceneLoader;
         private GameSession _gameSession;
+        private IntegrationBootstrap _integrations;
         private AdCoordinator _ads;
         private AnalyticsCoordinator _analytics;
         private AnalyticsRunBinder _analyticsRunBinder;
+        private readonly GameSettingsService _gameSettings = new GameSettingsService();
         private bool _subscribedRunEnded;
         private bool _subscribedRunStarted;
         private bool _subscribedRevive;
@@ -37,6 +46,12 @@ namespace LastTrain.Core
         /// <summary>현재 게임 세션. Scene 전환 후에도 유지된다.</summary>
         public GameSession GameSession => _gameSession ??= new GameSession();
 
+        /// <summary>광고·Firebase·Remote Config 통합 부트스트랩.</summary>
+        public IntegrationBootstrap Integrations => _integrations;
+
+        /// <summary>개인정보 동의 상태.</summary>
+        public PrivacyConsentService Privacy => _integrations?.Privacy;
+
         /// <summary>광고 추상화 진입점. SDK 타입을 노출하지 않는다.</summary>
         public AdCoordinator Ads => _ads;
 
@@ -45,6 +60,9 @@ namespace LastTrain.Core
 
         /// <summary>전투 씬 이벤트 바인더. GameBattleBootstrap이 사용한다.</summary>
         public AnalyticsRunBinder AnalyticsRunBinder => _analyticsRunBinder;
+
+        /// <summary>사운드·진동·알림 설정.</summary>
+        public GameSettingsService GameSettings => _gameSettings;
 
         private void Awake()
         {
@@ -82,6 +100,8 @@ namespace LastTrain.Core
         private void Initialize()
         {
             ApplyApplicationSettings();
+            _gameSettings.Load();
+            EnsureAudio();
 
             _sceneLoader = GetComponent<SceneLoader>();
             if (_sceneLoader == null)
@@ -89,10 +109,26 @@ namespace LastTrain.Core
                 _sceneLoader = gameObject.AddComponent<SceneLoader>();
             }
 
+            EnsureIntegrations();
             EnsureAnalytics();
             EnsureAds();
             _analytics.Track(AnalyticsEventNames.AppStarted);
             Debug.Log("[AppRoot] 초기화 완료.");
+        }
+
+        private void EnsureIntegrations()
+        {
+            if (_integrations != null)
+            {
+                return;
+            }
+
+            _integrations = new IntegrationBootstrap();
+            _integrations.Initialize(
+                adUnitConfig,
+                remoteConfigDefaults,
+                _sceneLoader,
+                () => GameSession);
         }
 
         private void EnsureAnalytics()
@@ -102,13 +138,8 @@ namespace LastTrain.Core
                 return;
             }
 
-            IAnalyticsService inner =
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                new DebugAnalyticsService();
-#else
-                new NoOpAnalyticsService();
-#endif
-            _analytics = new AnalyticsCoordinator(new SafeAnalyticsService(inner));
+            EnsureIntegrations();
+            _analytics = _integrations.CreateAnalyticsCoordinator();
             _analyticsRunBinder = new AnalyticsRunBinder(_analytics);
         }
 
@@ -120,18 +151,50 @@ namespace LastTrain.Core
                 return;
             }
 
-            var limits = new AdLimitService();
-            var rewards = new AdRewardService(limits);
-            IAdService service =
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                new MockAdService();
-#else
-                new NoOpAdService();
-#endif
-            _ads = new AdCoordinator(service, limits, rewards)
+            EnsureIntegrations();
+            EnsureAnalytics();
+            _ads = _integrations.CreateAdCoordinator(_analytics);
+        }
+
+        private void EnsureAudio()
+        {
+            AudioManager audio = AudioManager.Instance;
+            if (audio == null)
             {
-                Analytics = _analytics,
-            };
+                audio = GetComponentInChildren<AudioManager>(true);
+            }
+
+            if (audio == null)
+            {
+                var go = new GameObject("AudioManager");
+                audio = go.AddComponent<AudioManager>();
+            }
+
+            audio.Initialize(_gameSettings);
+        }
+
+        /// <summary>동의 변경 후 광고·분석 서비스를 PlayerPrefs 상태에 맞게 재구성한다.</summary>
+        public void ApplyPrivacyConsent(bool adsGranted, bool analyticsGranted)
+        {
+            EnsureIntegrations();
+            Privacy?.SetAdsConsent(adsGranted);
+            Privacy?.SetAnalyticsConsent(analyticsGranted);
+            Privacy?.MarkConsentPromptCompleted();
+            RebuildIntegrationServices();
+        }
+
+        private void RebuildIntegrationServices()
+        {
+            _analyticsRunBinder?.Dispose();
+            _analyticsRunBinder = null;
+            _integrations?.Dispose();
+            _integrations = null;
+            _ads = null;
+            _analytics = null;
+
+            EnsureIntegrations();
+            EnsureAnalytics();
+            EnsureAds();
         }
 
         private void Start()
@@ -147,11 +210,12 @@ namespace LastTrain.Core
             EnsureAnalytics();
             EnsureAds();
             _ads.Limits.BeginRun();
-            _analytics.BindRun(runState);
+            _analytics.BindRun(runState, runState?.DifficultyId);
             _analytics.Track(AnalyticsEventNames.RunStarted, new System.Collections.Generic.Dictionary<string, object>
             {
                 ["initial_coins"] = runState?.Currency?.CurrentCoins ?? 0,
                 ["train_max_hp"] = runState?.Train?.MaxHp ?? 0,
+                ["difficulty_id"] = runState?.DifficultyId ?? Difficulty.DifficultyIds.Normal,
             });
         }
 
@@ -171,9 +235,14 @@ namespace LastTrain.Core
             }
 
             // UI가 없으면 AppRoot가 바로 Mock/광고를 띄운다.
+            GameAudio.PlaySfx(SfxId.UiOpen);
             _ads.ShowRevive(session, result =>
             {
-                if (result != AdResult.Completed)
+                if (result == AdResult.Completed)
+                {
+                    GameAudio.PlaySfx(SfxId.Reward);
+                }
+                else
                 {
                     session.DeclineReviveAndEnd();
                 }
@@ -194,6 +263,7 @@ namespace LastTrain.Core
 
             RunSaveSystem.DeleteRunSave();
             _analytics.ClearRun();
+            _integrations?.NotifyRunCompleted();
         }
 
         private void TrackMetaRewards(MetaApplyResult apply)
@@ -281,6 +351,8 @@ namespace LastTrain.Core
                 }
 
                 _analyticsRunBinder?.Dispose();
+                _integrations?.Dispose();
+                _integrations = null;
                 _gameSession?.ClearRun();
                 Instance = null;
             }

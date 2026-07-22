@@ -29,7 +29,9 @@ namespace LastTrain.Passenger.Skills
                 return;
             }
 
-            float duration = BaseDurationSeconds * context.SkillValueMultiplier;
+            float duration = BaseDurationSeconds
+                           * context.SkillValueMultiplier
+                           * (1f + context.RelicTurretDurationPercent / 100f);
             float damage = context.Runtime.GetEffectiveAttack() * TurretDamageRatio;
             context.TurretSpawner.Spawn(
                 context.AttackerPosition,

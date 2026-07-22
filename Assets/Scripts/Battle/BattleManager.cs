@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using LastTrain.Audio;
 using LastTrain.Core;
 using LastTrain.Data;
+using LastTrain.Difficulty;
 using LastTrain.Enemy;
 using LastTrain.Grid;
 using LastTrain.Passenger;
@@ -39,9 +41,11 @@ namespace LastTrain.Battle
         private readonly Dictionary<string, EnemyController> _activeEnemies = new();
         private readonly TemporaryTurretService _turretService = new();
         private readonly List<BossBrain> _bossBrains = new();
+        private readonly System.Random _eliteRandom = new();
         private RandomService _skillRandom;
 
         private RunState _runState;
+        private DifficultyRuntime _difficulty;
         private bool _initialized;
 
         public event Action<EnemyRuntime> BossSpawned;
@@ -62,6 +66,7 @@ namespace LastTrain.Battle
             }
 
             _runState = runState;
+            _difficulty = runState.Difficulty;
             if (database != null)
             {
                 gameDatabase = database;
@@ -135,7 +140,12 @@ namespace LastTrain.Battle
             Vector2 spawnPosition = spawnPositionOverride
                                     ?? (spawnPoint != null ? (Vector2)spawnPoint.position : Vector2.zero);
 
-            EnemyRuntime runtime = EnemyFactory.CreateRuntime(data, spawnPosition, stationDifficulty);
+            EnemyRuntime runtime = EnemyFactory.CreateRuntime(
+                data,
+                spawnPosition,
+                stationDifficulty,
+                _difficulty);
+            ApplyElitePromotion(runtime);
             runtime.SetRouteWaypointIndex(GetInitialRouteWaypointIndex(spawnPosition));
             runtime.SetTargetable(false);
             runtime.Died += HandleEnemyKilled;
@@ -200,9 +210,26 @@ namespace LastTrain.Battle
             return dataRange * rangeScale;
         }
 
-        public void SetStationDifficulty(float difficulty)
+        public void SetStationDifficulty(float difficulty, float eventEnemyHealthMultiplier = 1f)
         {
-            stationDifficulty = UnityEngine.Mathf.Max(0.01f, difficulty);
+            stationDifficulty = UnityEngine.Mathf.Max(
+                0.01f,
+                difficulty * UnityEngine.Mathf.Max(0.01f, eventEnemyHealthMultiplier));
+        }
+
+        private void ApplyElitePromotion(EnemyRuntime runtime)
+        {
+            if (runtime?.Data == null
+                || runtime.EnemyType != EnemyType.Normal
+                || _difficulty == null
+                || !DifficultyCalculator.ShouldPromoteToElite(_difficulty, _eliteRandom))
+            {
+                return;
+            }
+
+            runtime.IsElitePromoted = true;
+            runtime.MoveSpeedMultiplier *= 1.1f;
+            runtime.TrainDamageMultiplier *= 1.15f;
         }
 
         public bool TrySpawnEnemy(EnemyData enemyData)
@@ -400,6 +427,7 @@ namespace LastTrain.Battle
             var passengers = new List<PassengerController>(_passengerControllers.Values);
             AbilityModifiers modifiers = _runState.Abilities?.Modifiers ?? AbilityModifiers.Empty;
             SynergyModifiers synergyModifiers = _runState.Synergies?.Modifiers ?? SynergyModifiers.Empty;
+            Relic.RelicModifiers relicModifiers = _runState.Relics?.Modifiers ?? Relic.RelicModifiers.Empty;
             float fastEnemyBonus = synergyModifiers.FastEnemyDamagePercent;
             float bossDamageBonus = modifiers.PoliceBossDamagePercent;
             Vector2 spawnPos = spawnPoint != null ? (Vector2)spawnPoint.position : Vector2.zero;
@@ -428,7 +456,9 @@ namespace LastTrain.Battle
                     trainPos,
                     _turretService,
                     _skillRandom,
-                    synergyModifiers);
+                    synergyModifiers,
+                    relicModifiers.CritChancePercent,
+                    relicModifiers.DeveloperTurretDurationPercent);
 
                 controller.Tick(
                     deltaTime,
@@ -474,7 +504,14 @@ namespace LastTrain.Battle
         private void TryAttachBossBrain(EnemyRuntime runtime)
         {
             EnemyData minion = ResolveBossMinionData();
-            BossBrain brain = BossBrain.Create(runtime, _runState, this, minion);
+            EnemyData splitMinion = ResolveSplitMinionData(runtime);
+            BossBrain brain = BossBrain.Create(
+                runtime,
+                _runState,
+                this,
+                minion,
+                () => _enemyRegistry.Enemies,
+                splitMinion);
             if (brain == null)
             {
                 return;
@@ -483,8 +520,14 @@ namespace LastTrain.Battle
             brain.HealthChanged += HandleBossHealthChanged;
             brain.PhaseChanged += HandleBossPhaseChanged;
             _bossBrains.Add(brain);
+            float bossDelay = _runState?.Relics?.Modifiers?.BossFirstActionDelaySeconds ?? 0f;
+            if (bossDelay > 0f)
+            {
+                runtime.PauseAbilities(bossDelay);
+            }
             BossSpawned?.Invoke(runtime);
             BossHealthChanged?.Invoke(runtime, runtime.CurrentHealth, runtime.MaxHealth);
+            GameAudio.PlaySfx(SfxId.BossSpawn);
         }
 
         private void RemoveBossBrain(EnemyRuntime enemy)
@@ -557,6 +600,22 @@ namespace LastTrain.Battle
             }
 
             return null;
+        }
+
+        private EnemyData ResolveSplitMinionData(EnemyRuntime runtime)
+        {
+            if (runtime?.Data == null || string.IsNullOrWhiteSpace(runtime.Data.SplitMinionId))
+            {
+                return null;
+            }
+
+            if (gameDatabase != null
+                && gameDatabase.TryGetEnemy(runtime.Data.SplitMinionId, out EnemyData splitMinion))
+            {
+                return splitMinion;
+            }
+
+            return ResolveBossMinionData();
         }
 
         private void UnsubscribeEnemyEvents(EnemyRuntime enemy)

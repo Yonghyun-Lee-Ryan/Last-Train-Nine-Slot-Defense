@@ -18,6 +18,7 @@ namespace LastTrain.Enemy
             SpawnPosition = spawnPosition;
             InstanceId = string.IsNullOrWhiteSpace(instanceId) ? Guid.NewGuid().ToString("N") : instanceId;
             MoveSpeedMultiplier = 1f;
+            TrainDamageMultiplier = 1f;
             IsTargetable = true;
         }
 
@@ -32,6 +33,11 @@ namespace LastTrain.Enemy
         public Vector2 Position { get; set; }
         public Vector2 SpawnPosition { get; }
         public float MoveSpeedMultiplier { get; set; }
+        public float TrainDamageMultiplier { get; set; } = 1f;
+        public bool IsElitePromoted { get; set; }
+        public float AbilityPauseRemaining { get; private set; }
+
+        public bool AreAbilitiesPaused => AbilityPauseRemaining > 0f;
         public bool IsTargetable { get; private set; }
         public int RouteWaypointIndex { get; private set; }
         public Vector2 RouteSegmentStart { get; private set; }
@@ -43,7 +49,7 @@ namespace LastTrain.Enemy
         public float HealthRatio => MaxHealth > 0f ? CurrentHealth / MaxHealth : 0f;
 
         public float MoveSpeed => Data.MoveSpeed * Math.Max(0.01f, MoveSpeedMultiplier);
-        public float TrainDamage => Data.TrainDamage;
+        public float TrainDamage => Data.TrainDamage * Math.Max(0.01f, TrainDamageMultiplier);
         public int CoinReward => Data.CoinReward;
         public EnemyType EnemyType => Data.EnemyType;
         public float Defense => Data.Defense;
@@ -68,6 +74,37 @@ namespace LastTrain.Enemy
             RouteSegmentStart = start;
             RouteSegmentEnd = end;
             HasRouteSegment = true;
+        }
+
+        public void PauseAbilities(float durationSeconds)
+        {
+            if (durationSeconds <= 0f)
+            {
+                return;
+            }
+
+            AbilityPauseRemaining = Math.Max(AbilityPauseRemaining, durationSeconds);
+        }
+
+        public void TickAbilityPause(float deltaTime)
+        {
+            if (AbilityPauseRemaining <= 0f)
+            {
+                return;
+            }
+
+            AbilityPauseRemaining = Math.Max(0f, AbilityPauseRemaining - deltaTime);
+        }
+
+        public void ApplyHeal(float amount)
+        {
+            if (!IsAlive || amount <= 0f)
+            {
+                return;
+            }
+
+            CurrentHealth = Math.Min(MaxHealth, CurrentHealth + amount);
+            HealthChanged?.Invoke(this, CurrentHealth, MaxHealth);
         }
 
         public void ApplyDamage(float amount)

@@ -8,6 +8,9 @@ namespace LastTrain.Run
         public event Action<int, int> HpChanged;
         public event Action Destroyed;
 
+        /// <summary>치명 피해 직전 호출. true면 파괴 이벤트를 발생시키지 않는다.</summary>
+        public Func<bool> TryPreventDestruction { get; set; }
+
         public int MaxHp { get; private set; }
         public int CurrentHp { get; private set; }
         public bool IsDestroyed => CurrentHp <= 0;
@@ -61,6 +64,11 @@ namespace LastTrain.Run
 
             if (previous > 0 && CurrentHp <= 0)
             {
+                if (TryPreventDestruction != null && TryPreventDestruction.Invoke())
+                {
+                    return;
+                }
+
                 Destroyed?.Invoke();
             }
         }

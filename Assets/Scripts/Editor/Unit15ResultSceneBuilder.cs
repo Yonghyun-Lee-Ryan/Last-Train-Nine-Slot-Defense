@@ -78,20 +78,45 @@ namespace LastTrain.EditorTools
             SetRect(retryButton.GetComponent<RectTransform>(), new Vector2(0, -280), new Vector2(600, 140));
             SetRect(mainMenuButton.GetComponent<RectTransform>(), new Vector2(0, -470), new Vector2(600, 140));
 
+            Button doubleRewardButton = EnsureDoubleRewardButton(safeArea, retryButton);
+            ResultUiLayout.EnsureButtonGroup(retryButton, doubleRewardButton, mainMenuButton);
+
             var so = new SerializedObject(controller);
             SerializedProperty titleProp = so.FindProperty("titleLabel");
             SerializedProperty msgProp = so.FindProperty("messageLabel");
             SerializedProperty statsProp = so.FindProperty("statsLabel");
+            SerializedProperty adProp = so.FindProperty("doubleRewardAdButton");
 
             if (titleProp != null) titleProp.objectReferenceValue = titleText;
             if (msgProp != null) msgProp.objectReferenceValue = messageLabel;
             if (statsProp != null) statsProp.objectReferenceValue = statsLabel;
+            if (adProp != null) adProp.objectReferenceValue = doubleRewardButton;
             so.ApplyModifiedPropertiesWithoutUndo();
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
 
             EditorUtility.DisplayDialog("완료", "결과 화면 UI를 추가했습니다.", "확인");
+        }
+
+        private static Button EnsureDoubleRewardButton(Transform safeArea, Button template)
+        {
+            Transform existing = safeArea.Find("DoubleRewardAdButton");
+            if (existing != null)
+            {
+                return existing.GetComponent<Button>();
+            }
+
+            GameObject clone = Object.Instantiate(template.gameObject, safeArea);
+            clone.name = "DoubleRewardAdButton";
+            Button button = clone.GetComponent<Button>();
+            Text label = clone.GetComponentInChildren<Text>();
+            if (label != null)
+            {
+                label.text = "광고로 보상 2배";
+            }
+
+            return button;
         }
 
         private static Text CreateText(Transform parent, string name, string text, int fontSize, Vector2 pos, Vector2 size)

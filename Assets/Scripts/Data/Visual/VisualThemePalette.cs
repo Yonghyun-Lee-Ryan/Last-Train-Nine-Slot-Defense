@@ -28,7 +28,9 @@ namespace LastTrain.Data
             Hex("#EF4444"), // trainer
             Hex("#EC4899"), // nurse
             Hex("#6366F1"), // developer
-            Hex("#8B5CF6")  // graduate
+            Hex("#8B5CF6"), // graduate
+            Hex("#3B82F6"), // police
+            Hex("#F59E0B")  // cat
         };
 
         public static readonly Color[] EnemyAccent =
@@ -36,7 +38,12 @@ namespace LastTrain.Data
             Hex("#84CC16"), // normal
             Hex("#06B6D4"), // fast
             Hex("#78716C"), // tank
-            Hex("#B91C1C")  // boss
+            Hex("#B91C1C"), // boss drunk manager
+            Hex("#A855F7"), // split
+            Hex("#C084FC"), // split minion
+            Hex("#14B8A6"), // aura watcher
+            Hex("#F59E0B"), // seat blocker
+            Hex("#7F1D1D")  // final conductor
         };
 
         public static Color Hex(string hex)

@@ -1,4 +1,8 @@
 using System.Collections.Generic;
+using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace LastTrain.Data
 {
@@ -7,6 +11,19 @@ namespace LastTrain.Data
     /// </summary>
     public static class DataValidationUtility
     {
+        /// <summary>
+        /// 프로젝트에 저장된 에셋인지 여부.
+        /// CreateInstance로 만든 테스트/런타임 인스턴스에서는 false.
+        /// </summary>
+        public static bool IsPersistedProjectAsset(Object asset)
+        {
+#if UNITY_EDITOR
+            return asset != null && !string.IsNullOrEmpty(AssetDatabase.GetAssetPath(asset));
+#else
+            return false;
+#endif
+        }
+
         public static bool IsValidId(string id)
         {
             return !string.IsNullOrWhiteSpace(id);

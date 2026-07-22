@@ -15,6 +15,8 @@ namespace LastTrain.Enemy
         private readonly RunState _runState;
         private readonly IEnemySpawner _spawner;
         private readonly EnemyData _minionData;
+        private readonly EnemyData _splitMinionData;
+        private readonly Func<IReadOnlyList<EnemyRuntime>> _activeEnemiesProvider;
         private readonly IReadOnlyList<IEnemyAbility> _abilities;
         private readonly BossPhaseController _phaseController = new();
         private readonly Vector2 _spawnPosition;
@@ -25,14 +27,29 @@ namespace LastTrain.Enemy
             RunState runState,
             IEnemySpawner spawner,
             EnemyData minionData,
-            IReadOnlyList<IEnemyAbility> abilities)
+            IReadOnlyList<IEnemyAbility> abilities,
+            Func<IReadOnlyList<EnemyRuntime>> activeEnemiesProvider = null,
+            EnemyData splitMinionData = null)
         {
             _owner = owner ?? throw new ArgumentNullException(nameof(owner));
             _runState = runState;
             _spawner = spawner;
             _minionData = minionData;
+            _splitMinionData = splitMinionData;
+            _activeEnemiesProvider = activeEnemiesProvider;
             _abilities = abilities ?? Array.Empty<IEnemyAbility>();
             _spawnPosition = owner.Position;
+
+            if (owner.EnemyType == EnemyType.Boss)
+            {
+                BossPhaseThresholds thresholds = owner.Data.BossPhaseThresholds;
+                if (thresholds.EnrageHealthRatio <= 0f && thresholds.DoorOpenHealthRatio <= 0f)
+                {
+                    thresholds = BossPhaseThresholds.Create(0f, BossPhaseController.LegacyEnrageHealthRatio);
+                }
+
+                _phaseController.Configure(thresholds);
+            }
 
             _owner.HealthChanged += HandleHealthChanged;
             _owner.Died += HandleOwnerDied;
@@ -43,6 +60,11 @@ namespace LastTrain.Enemy
             for (int i = 0; i < _abilities.Count; i++)
             {
                 _abilities[i].OnAttach(context);
+            }
+
+            if (owner.EnemyType == EnemyType.Boss)
+            {
+                _phaseController.NotifyHealth(owner.CurrentHealth, owner.MaxHealth);
             }
         }
 
@@ -55,15 +77,17 @@ namespace LastTrain.Enemy
             EnemyRuntime owner,
             RunState runState,
             IEnemySpawner spawner,
-            EnemyData minionData)
+            EnemyData minionData,
+            Func<IReadOnlyList<EnemyRuntime>> activeEnemiesProvider = null,
+            EnemyData splitMinionData = null)
         {
             if (owner?.Data == null)
             {
                 return null;
             }
 
-            bool isBoss = owner.EnemyType == EnemyType.Boss
-                          || !string.IsNullOrWhiteSpace(owner.Data.AbilityId);
+            bool hasAbility = !string.IsNullOrWhiteSpace(owner.Data.AbilityId);
+            bool isBoss = owner.EnemyType == EnemyType.Boss || hasAbility;
             if (!isBoss)
             {
                 return null;
@@ -78,12 +102,20 @@ namespace LastTrain.Enemy
                 runState,
                 spawner,
                 minionData,
-                EnemyAbilityResolver.Create(abilityId));
+                EnemyAbilityResolver.Create(abilityId),
+                activeEnemiesProvider,
+                splitMinionData);
         }
 
         public void Tick(float deltaTime)
         {
             if (_disposed || _owner == null || !_owner.IsAlive)
+            {
+                return;
+            }
+
+            _owner.TickAbilityPause(deltaTime);
+            if (_owner.AreAbilitiesPaused)
             {
                 return;
             }
@@ -121,7 +153,11 @@ namespace LastTrain.Enemy
 
         private void HandleHealthChanged(EnemyRuntime enemy, float current, float max)
         {
-            _phaseController.NotifyHealth(current, max);
+            if (enemy.EnemyType == EnemyType.Boss)
+            {
+                _phaseController.NotifyHealth(current, max);
+            }
+
             HealthChanged?.Invoke(enemy, current, max);
         }
 
@@ -143,12 +179,18 @@ namespace LastTrain.Enemy
 
         private EnemyAbilityContext BuildContext()
         {
+            IReadOnlyList<EnemyRuntime> activeEnemies = _activeEnemiesProvider != null
+                ? _activeEnemiesProvider.Invoke()
+                : Array.Empty<EnemyRuntime>();
+
             return new EnemyAbilityContext(
                 _owner,
                 _runState,
                 _spawner,
                 _minionData,
-                _spawnPosition);
+                _spawnPosition,
+                activeEnemies,
+                _splitMinionData);
         }
     }
 }

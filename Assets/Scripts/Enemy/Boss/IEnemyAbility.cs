@@ -24,26 +24,32 @@ namespace LastTrain.Enemy
         void OnOwnerDied(in EnemyAbilityContext context);
     }
 
-    public readonly struct EnemyAbilityContext
-    {
-        public EnemyAbilityContext(
-            EnemyRuntime owner,
-            RunState runState,
-            IEnemySpawner spawner,
-            EnemyData minionData,
-            Vector2 spawnPosition)
+        public readonly struct EnemyAbilityContext
         {
-            Owner = owner;
-            RunState = runState;
-            Spawner = spawner;
-            MinionData = minionData;
-            SpawnPosition = spawnPosition;
-        }
+            public EnemyAbilityContext(
+                EnemyRuntime owner,
+                RunState runState,
+                IEnemySpawner spawner,
+                EnemyData minionData,
+                Vector2 spawnPosition,
+                System.Collections.Generic.IReadOnlyList<EnemyRuntime> activeEnemies = null,
+                EnemyData splitMinionData = null)
+            {
+                Owner = owner;
+                RunState = runState;
+                Spawner = spawner;
+                MinionData = minionData;
+                SpawnPosition = spawnPosition;
+                ActiveEnemies = activeEnemies ?? System.Array.Empty<EnemyRuntime>();
+                SplitMinionData = splitMinionData;
+            }
 
-        public EnemyRuntime Owner { get; }
-        public RunState RunState { get; }
-        public IEnemySpawner Spawner { get; }
-        public EnemyData MinionData { get; }
-        public Vector2 SpawnPosition { get; }
-    }
+            public EnemyRuntime Owner { get; }
+            public RunState RunState { get; }
+            public IEnemySpawner Spawner { get; }
+            public EnemyData MinionData { get; }
+            public Vector2 SpawnPosition { get; }
+            public System.Collections.Generic.IReadOnlyList<EnemyRuntime> ActiveEnemies { get; }
+            public EnemyData SplitMinionData { get; }
+        }
 }

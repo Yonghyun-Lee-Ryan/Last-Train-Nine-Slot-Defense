@@ -9,6 +9,7 @@ namespace LastTrain.Enemy
         public const int MinionCount = 3;
 
         private float _cooldownRemaining;
+        private float _cooldownMultiplier = 1f;
         private bool _stopped;
 
         public string AbilityId => EnemyAbilityIds.SpawnMinions;
@@ -43,11 +44,17 @@ namespace LastTrain.Enemy
                 context.Spawner.TrySpawn(context.MinionData, context.SpawnPosition + offset);
             }
 
-            _cooldownRemaining = CooldownSeconds;
+            _cooldownRemaining = CooldownSeconds * _cooldownMultiplier;
         }
 
         public void OnPhaseChanged(BossPhase previous, BossPhase next, in EnemyAbilityContext context)
         {
+            _cooldownMultiplier = next switch
+            {
+                BossPhase.Enraged => 0.6f,
+                BossPhase.DoorOpen => 0.8f,
+                _ => 1f
+            };
         }
 
         public void OnOwnerDied(in EnemyAbilityContext context)

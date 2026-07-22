@@ -77,7 +77,31 @@ namespace LastTrain.Run
             AttackCooldownRemaining = Math.Max(0f, AttackCooldownRemaining - deltaTime);
         }
 
-        public bool IsAttackReady => AttackCooldownRemaining <= 0f;
+        public bool IsAttackReady => AttackCooldownRemaining <= 0f && !IsAttackBlocked;
+
+        public float AttackBlockRemaining { get; private set; }
+
+        public bool IsAttackBlocked => AttackBlockRemaining > 0f;
+
+        public void SetAttackBlock(float durationSeconds)
+        {
+            if (durationSeconds <= 0f)
+            {
+                return;
+            }
+
+            AttackBlockRemaining = Math.Max(AttackBlockRemaining, durationSeconds);
+        }
+
+        public void TickAttackBlock(float deltaTime)
+        {
+            if (AttackBlockRemaining <= 0f)
+            {
+                return;
+            }
+
+            AttackBlockRemaining = Math.Max(0f, AttackBlockRemaining - deltaTime);
+        }
 
         public void AddBuff(RuntimeBuff buff)
         {

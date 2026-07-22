@@ -55,7 +55,8 @@ namespace LastTrain.EditorTools
                 return;
             }
 
-            EnsureBackground(safeArea, theme.SubwayBackground, "MainMenuBackground", stretch: true, alpha: 0.35f);
+            EnsureBackground(safeArea, theme.MainMenuBackground, "MainMenuBackground", stretch: true, alpha: 0.55f);
+            ApplySpriteToNamedImage(safeArea, "TitleArtwork", theme.MainMenuTitle, preserveAspect: true);
             ApplySpriteToNamedImage(safeArea, "Title", theme.MainMenuTitle, preserveAspect: true);
             EnsureContinueButton(scene, safeArea);
             SkinButtons(safeArea, theme);

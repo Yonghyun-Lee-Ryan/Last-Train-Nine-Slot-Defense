@@ -33,11 +33,25 @@ namespace LastTrain.Ads
         /// <summary>선택적. AppRoot가 연결한다.</summary>
         public AnalyticsCoordinator Analytics { get; set; }
 
+        /// <summary>보상형 광고 표시가 끝났을 때(전면 광고 쿨다운 등).</summary>
+        public event Action<AdResult> RewardedShowFinished;
+
         public bool IsReady(RewardedAdPlacement placement)
         {
             return !_isShowing
                    && _limits.CanUse(placement)
                    && _adService.IsRewardedReady(placement);
+        }
+
+        /// <summary>리롤 UI 버튼용. 게임 쪽 RemainingAdRerolls와 함께 사용한다.</summary>
+        public bool CanOfferReroll(RewardedAdPlacement placement)
+        {
+            return placement == RewardedAdPlacement.PassengerReroll
+                   || placement == RewardedAdPlacement.AbilityReroll
+                ? !_isShowing
+                  && _limits.GetRemaining(placement) > 0
+                  && _adService.IsRewardedReady(placement)
+                : IsReady(placement);
         }
 
         /// <summary>
@@ -143,6 +157,7 @@ namespace LastTrain.Ads
                     {
                         _isShowing = false;
                         TrackAdResult(placement, request.RequestId, finalResult);
+                        RewardedShowFinished?.Invoke(finalResult);
                         onFinished?.Invoke(finalResult);
                     }
                 });

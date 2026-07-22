@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LastTrain.Integrations;
 using LastTrain.Run;
 
 namespace LastTrain.Save
@@ -73,7 +74,29 @@ namespace LastTrain.Save
             breakdown.AchievementTickets =
                 breakdown.NewlyUnlockedAchievements.Count * MetaProgressionDefaults.TicketPerAchievement;
 
+            ApplyResultRewardMultiplier(breakdown, result);
             return breakdown;
+        }
+
+        private static void ApplyResultRewardMultiplier(MetaRewardBreakdown breakdown, RunResult result)
+        {
+            if (breakdown == null || result == null)
+            {
+                return;
+            }
+
+            float multiplier = result.DifficultyRewardMultiplier * RemoteConfigRuntime.Current.ResultRewardMultiplier;
+            if (Math.Abs(multiplier - 1f) < 0.001f)
+            {
+                return;
+            }
+
+            breakdown.StationTickets = Difficulty.DifficultyCalculator.ApplyMetaReward(breakdown.StationTickets, multiplier);
+            breakdown.KillTickets = Difficulty.DifficultyCalculator.ApplyMetaReward(breakdown.KillTickets, multiplier);
+            breakdown.BossTickets = Difficulty.DifficultyCalculator.ApplyMetaReward(breakdown.BossTickets, multiplier);
+            breakdown.RemainingHpTickets = Difficulty.DifficultyCalculator.ApplyMetaReward(breakdown.RemainingHpTickets, multiplier);
+            breakdown.DiscoveryTickets = Difficulty.DifficultyCalculator.ApplyMetaReward(breakdown.DiscoveryTickets, multiplier);
+            breakdown.AchievementTickets = Difficulty.DifficultyCalculator.ApplyMetaReward(breakdown.AchievementTickets, multiplier);
         }
 
         public static MetaApplyResult TryApplyRunResult(MetaSaveData meta, RunResult result)
@@ -129,6 +152,14 @@ namespace LastTrain.Save
             MergeIds(ref meta.discoveredBossIds, result.DiscoveredBossIds);
 
             AppendId(ref meta.rewardedRunIds, result.RunId);
+
+            int runScore = breakdown.TotalTickets;
+            Difficulty.DifficultyProgressService.ApplyRunResult(
+                meta,
+                result,
+                runScore,
+                result.ElapsedSeconds,
+                usedAds: false);
 
             applyResult.Applied = true;
             applyResult.TicketFragmentsAfter = meta.ticketFragments;
@@ -188,6 +219,22 @@ namespace LastTrain.Save
                 if (TryUnlockPassenger(meta, MetaProgressionDefaults.PassengerGraduateId))
                 {
                     newlyUnlocked.Add(MetaProgressionDefaults.PassengerGraduateId);
+                }
+            }
+
+            if (meta.accountLevel >= MetaProgressionDefaults.PoliceUnlockAccountLevel)
+            {
+                if (TryUnlockPassenger(meta, MetaProgressionDefaults.PassengerPoliceId))
+                {
+                    newlyUnlocked.Add(MetaProgressionDefaults.PassengerPoliceId);
+                }
+            }
+
+            if (meta.accountLevel >= MetaProgressionDefaults.CatUnlockAccountLevel)
+            {
+                if (TryUnlockPassenger(meta, MetaProgressionDefaults.PassengerCatId))
+                {
+                    newlyUnlocked.Add(MetaProgressionDefaults.PassengerCatId);
                 }
             }
         }

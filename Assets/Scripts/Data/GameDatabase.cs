@@ -32,6 +32,15 @@ namespace LastTrain.Data
         [Header("Relics")]
         [SerializeField] private RelicData[] relics;
 
+        [Header("Difficulties")]
+        [SerializeField] private Difficulty.DifficultyData[] difficulties;
+
+        [Header("Routes")]
+        [SerializeField] private RouteData[] routes;
+
+        [Header("Events")]
+        [SerializeField] private EventData[] events;
+
         public IReadOnlyList<PassengerData> Passengers => passengers;
         public IReadOnlyList<EnemyData> Enemies => enemies;
         public IReadOnlyList<WaveData> Waves => waves;
@@ -39,6 +48,12 @@ namespace LastTrain.Data
         public IReadOnlyList<AbilityData> Abilities => abilities;
         public IReadOnlyList<SynergyData> Synergies => synergies;
         public IReadOnlyList<RelicData> Relics => relics;
+        public IReadOnlyList<Difficulty.DifficultyData> Difficulties => difficulties;
+        public IReadOnlyList<RouteData> Routes => routes;
+        public IReadOnlyList<EventData> Events => events;
+
+        public bool TryGetEvent(string id, out EventData data) =>
+            TryFindById(events, id, out data);
 
         public bool TryGetPassenger(string id, out PassengerData data) =>
             TryFindById(passengers, id, out data);
@@ -82,6 +97,41 @@ namespace LastTrain.Data
         public bool TryGetRelic(string id, out RelicData data) =>
             TryFindById(relics, id, out data);
 
+        public bool TryGetDifficulty(string id, out Difficulty.DifficultyData data) =>
+            TryFindById(difficulties, id, out data);
+
+        public bool TryGetRoute(string routeId, out RouteData route)
+        {
+            route = null;
+            if (!DataValidationUtility.IsValidId(routeId))
+            {
+                return false;
+            }
+
+            return TryFindById(routes, routeId, out route);
+        }
+
+        public bool TryGetStationByRouteIndex(string routeId, int stationIndex, out StationData data)
+        {
+            data = null;
+            if (!TryGetRoute(routeId, out RouteData route) || route == null)
+            {
+                return false;
+            }
+
+            return route.TryGetStationByIndex(stationIndex, out data);
+        }
+
+        public int GetRouteStationCount(string routeId)
+        {
+            if (!TryGetRoute(routeId, out RouteData route) || route == null)
+            {
+                return stations != null ? stations.Length : 0;
+            }
+
+            return route.StationCount;
+        }
+
         private static bool TryFindById<T>(T[] items, string id, out T data) where T : ScriptableObject, IDataWithId
         {
             data = null;
@@ -112,8 +162,56 @@ namespace LastTrain.Data
             ValidateCategory("Ability", abilities);
             ValidateCategory("Synergy", synergies);
             ValidateCategory("Relic", relics);
+            ValidateCategory("Difficulty", difficulties);
+            ValidateCategory("Route", routes);
+            ValidateCategory("Event", events);
 
             ValidateStationIndices();
+            ValidateAlphaContentCounts();
+        }
+
+        private void ValidateAlphaContentCounts()
+        {
+            // EditMode 테스트의 CreateInstance 인스턴스에서는 콘텐츠 수량 경고를 내지 않는다.
+            if (!DataValidationUtility.IsPersistedProjectAsset(this))
+            {
+                return;
+            }
+
+            int passengerCount = CountNonNull(passengers);
+            if (passengerCount < 8)
+            {
+                Debug.LogWarning(
+                    $"[GameDatabase] 알파 콘텐츠 승객이 {passengerCount}/8 입니다. Unit 26 빌더를 실행하세요.",
+                    this);
+            }
+
+            int enemyCount = CountNonNull(enemies);
+            if (enemyCount < 6)
+            {
+                Debug.LogWarning(
+                    $"[GameDatabase] 알파 콘텐츠 적이 {enemyCount}/6 입니다. Unit 26 빌더를 실행하세요.",
+                    this);
+            }
+        }
+
+        private static int CountNonNull<T>(T[] items) where T : class
+        {
+            if (items == null)
+            {
+                return 0;
+            }
+
+            int count = 0;
+            for (int i = 0; i < items.Length; i++)
+            {
+                if (items[i] != null)
+                {
+                    count++;
+                }
+            }
+
+            return count;
         }
 
         private void ValidateCategory<T>(string categoryName, T[] items) where T : ScriptableObject, IDataWithId

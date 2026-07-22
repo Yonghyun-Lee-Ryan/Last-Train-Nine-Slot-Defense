@@ -119,6 +119,96 @@ namespace LastTrain.Tests.EditMode
         }
 
         [Test]
+        public void RunSaveMapper_RoundTrip_PreservesDifficultyId()
+        {
+            RunStartConfig config = RunStartConfig.CreateDefault();
+            config.DifficultyId = "hard_mode";
+
+            RunState runState = new RunState();
+            runState.Initialize(config);
+            runState.Battle.StartRun();
+
+            RunSaveData save = RunSaveMapper.CreateFromRunState(runState);
+            Assert.AreEqual("hard_mode", save.difficultyId);
+
+            RunState restored = new RunState();
+            restored.Initialize(RunSaveMapper.CreateStartConfigFromSave(save));
+            restored.Battle.StartRun();
+
+            bool applied = RunSaveMapper.ApplyToRunState(restored, save, null);
+            Assert.IsTrue(applied);
+            Assert.AreEqual("hard_mode", restored.DifficultyId);
+
+            runState.Dispose();
+            restored.Dispose();
+        }
+
+        [Test]
+        public void RunSaveMapper_RoundTrip_PreservesShopAndEventState()
+        {
+            RunState runState = new RunState();
+            runState.Initialize(RunStartConfig.CreateDefault());
+            runState.Battle.StartRun();
+
+            runState.Shop.Restore(
+                "shop_station_3",
+                3,
+                isActive: true,
+                isResolved: false,
+                new[]
+                {
+                    new Shop.ShopOffer
+                    {
+                        offerId = "offer_1",
+                        itemType = Shop.ShopItemType.TrainHeal,
+                        price = 25,
+                        payloadValue = 20,
+                        purchased = true,
+                    },
+                    new Shop.ShopOffer
+                    {
+                        offerId = "offer_2",
+                        itemType = Shop.ShopItemType.RandomAbility,
+                        price = 40,
+                        payloadId = "ability_test",
+                        purchased = false,
+                    },
+                });
+
+            runState.Events.Restore(
+                "event_station_4",
+                "event_test",
+                isActive: true,
+                isResolved: false,
+                selectedChoiceIndex: -1);
+
+            RunSaveData save = RunSaveMapper.CreateFromRunState(runState);
+            Assert.IsTrue(save.shopActive);
+            Assert.IsFalse(save.shopResolved);
+            Assert.AreEqual(2, save.shopOffers.Length);
+            Assert.IsTrue(save.shopOffers[0].purchased);
+            Assert.IsTrue(save.eventActive);
+            Assert.AreEqual("event_test", save.eventId);
+
+            RunState restored = new RunState();
+            restored.Initialize(RunSaveMapper.CreateStartConfigFromSave(save));
+            restored.Battle.StartRun();
+
+            bool applied = RunSaveMapper.ApplyToRunState(restored, save, ScriptableObject.CreateInstance<GameDatabase>());
+            Assert.IsTrue(applied);
+            Assert.IsTrue(restored.Shop.IsActive);
+            Assert.IsFalse(restored.Shop.IsResolved);
+            Assert.AreEqual(2, restored.Shop.Offers.Count);
+            Assert.IsTrue(restored.Shop.Offers[0].purchased);
+            Assert.IsTrue(restored.Events.IsActive);
+            Assert.AreEqual("event_test", restored.Events.EventId);
+            Assert.AreEqual(RunPhase.ShopOpen, restored.Battle.CurrentPhase);
+
+            runState.Dispose();
+            restored.Dispose();
+        }
+
+        [Test]
         public void JsonSaveService_InvalidJson_ReturnsFalse()
         {
             string dir = Path.Combine(Path.GetTempPath(), "LastTrainSaveTests_" + Guid.NewGuid().ToString("N"));

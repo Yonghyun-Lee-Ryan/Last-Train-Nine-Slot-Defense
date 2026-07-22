@@ -22,11 +22,35 @@ namespace LastTrain.Enemy
                 };
             }
 
+            if (abilityId == EnemyAbilityIds.BossDrunkManager)
+            {
+                return new IEnemyAbility[]
+                {
+                    new PassengerAttackSpeedDebuffAbility(),
+                    new PeriodicShieldAbility()
+                };
+            }
+
+            if (abilityId == EnemyAbilityIds.BossFinalConductor)
+            {
+                return new IEnemyAbility[]
+                {
+                    new SpawnMinionsAbility(),
+                    new BlackoutAbility(),
+                    new EnrageMoveSpeedAbility()
+                };
+            }
+
             return abilityId switch
             {
                 EnemyAbilityIds.SpawnMinions => new IEnemyAbility[] { new SpawnMinionsAbility() },
                 EnemyAbilityIds.AttackSpeedDebuff => new IEnemyAbility[] { new PassengerAttackSpeedDebuffAbility() },
                 EnemyAbilityIds.EnrageMoveSpeed => new IEnemyAbility[] { new EnrageMoveSpeedAbility() },
+                EnemyAbilityIds.PeriodicShield => new IEnemyAbility[] { new PeriodicShieldAbility() },
+                EnemyAbilityIds.Blackout => new IEnemyAbility[] { new BlackoutAbility() },
+                EnemyAbilityIds.SplitOnDeath => new IEnemyAbility[] { new SplitOnDeathAbility() },
+                EnemyAbilityIds.NearbyBuff => new IEnemyAbility[] { new NearbyEnemyBuffAbility() },
+                EnemyAbilityIds.SeatBlock => new IEnemyAbility[] { new SeatBlockAbility() },
                 _ => System.Array.Empty<IEnemyAbility>()
             };
         }

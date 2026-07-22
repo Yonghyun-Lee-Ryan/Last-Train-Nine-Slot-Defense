@@ -20,6 +20,9 @@ namespace LastTrain.Ads
         private int _currentStationIndex = -1;
         private string _dailyKey = string.Empty;
         private int _dailyFreeSummonUsed;
+        private int _dailyRewardedUsed;
+        private int _rewardedDailyLimit = int.MaxValue;
+        private int _revivePerRun = RevivePerRun;
         private DateTime _nextAvailableUtc = DateTime.MinValue;
 
         /// <summary>테스트용 현재 시각 주입. null이면 UtcNow.</summary>
@@ -28,6 +31,20 @@ namespace LastTrain.Ads
         public TimeSpan Cooldown { get; set; } = DefaultCooldown;
 
         public bool IsOnCooldown => UtcNow() < _nextAvailableUtc;
+
+        /// <summary>Remote Config 스냅샷을 광고 한도에 반영한다.</summary>
+        public void ApplyRemoteConfig(Integrations.RemoteConfigSnapshot snapshot)
+        {
+            if (snapshot == null)
+            {
+                return;
+            }
+
+            _rewardedDailyLimit = snapshot.RewardedDailyLimit > 0
+                ? snapshot.RewardedDailyLimit
+                : int.MaxValue;
+            _revivePerRun = Math.Max(0, snapshot.FreeRevivePerRun);
+        }
 
         public void BeginRun()
         {
@@ -50,7 +67,12 @@ namespace LastTrain.Ads
         public bool CanUse(RewardedAdPlacement placement)
         {
             EnsureDailyBucket();
-            if (IsOnCooldown)
+            if (IsOnCooldown && !IsRerollPlacement(placement))
+            {
+                return false;
+            }
+
+            if (IsRewardedPlacement(placement) && _dailyRewardedUsed >= _rewardedDailyLimit)
             {
                 return false;
             }
@@ -90,12 +112,28 @@ namespace LastTrain.Ads
                 _runUsage[placement] = used + 1;
             }
 
-            if (Cooldown > TimeSpan.Zero)
+            if (IsRewardedPlacement(placement))
+            {
+                _dailyRewardedUsed++;
+            }
+
+            if (Cooldown > TimeSpan.Zero && !IsRerollPlacement(placement))
             {
                 _nextAvailableUtc = UtcNow() + Cooldown;
             }
 
             return true;
+        }
+
+        private static bool IsRewardedPlacement(RewardedAdPlacement placement)
+        {
+            return true;
+        }
+
+        private static bool IsRerollPlacement(RewardedAdPlacement placement)
+        {
+            return placement == RewardedAdPlacement.PassengerReroll
+                   || placement == RewardedAdPlacement.AbilityReroll;
         }
 
         private DateTime UtcNow()
@@ -118,13 +156,13 @@ namespace LastTrain.Ads
             return _runUsage.TryGetValue(placement, out int used) ? used : 0;
         }
 
-        private static int GetLimit(RewardedAdPlacement placement)
+        private int GetLimit(RewardedAdPlacement placement)
         {
             return placement switch
             {
                 RewardedAdPlacement.PassengerReroll => PassengerRerollPerRun,
                 RewardedAdPlacement.AbilityReroll => AbilityRerollPerRun,
-                RewardedAdPlacement.Revive => RevivePerRun,
+                RewardedAdPlacement.Revive => _revivePerRun,
                 RewardedAdPlacement.DoubleResultReward => DoubleResultPerRun,
                 RewardedAdPlacement.StationRewardDouble => StationRewardDoublePerStation,
                 RewardedAdPlacement.FreeSummon => FreeSummonPerDay,
@@ -143,6 +181,7 @@ namespace LastTrain.Ads
 
             _dailyKey = today;
             _dailyFreeSummonUsed = 0;
+            _dailyRewardedUsed = 0;
         }
     }
 }

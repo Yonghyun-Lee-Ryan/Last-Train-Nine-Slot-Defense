@@ -83,6 +83,22 @@ namespace LastTrain.Tests.EditMode
         }
 
         [Test]
+        public void FreeReroll_DoesNotConsumeAdRerollBudget()
+        {
+            AbilityData a = CreateAbility("a1", AbilityEffectType.CoinOnKillPercent, 10f, Rarity.Rare);
+            AbilityData b = CreateAbility("a2", AbilityEffectType.CoinOnKillPercent, 10f, Rarity.Rare);
+            var offerService = new AbilityOfferService(new List<AbilityData> { a, b }, new RandomService(3), 3);
+            var manager = new AbilityManager(_runState, offerService, _runState.BaseTrainMaxHp);
+
+            manager.TryBeginRewardSelection();
+            Assert.AreEqual(AbilityRerollResult.Success, manager.TryRerollFree());
+            Assert.AreEqual(0, manager.RemainingFreeRerolls);
+            Assert.AreEqual(2, manager.RemainingAdRerolls);
+            Assert.AreEqual(1, _runState.Abilities.FreeRerollsUsed);
+            Assert.AreEqual(0, _runState.Abilities.AdRerollsUsed);
+        }
+
+        [Test]
         public void AdReroll_UsesInjectedCallback()
         {
             AbilityData a = CreateAbility("a1", AbilityEffectType.CoinOnKillPercent, 10f, Rarity.Rare);

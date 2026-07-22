@@ -1,5 +1,7 @@
 using System;
 using LastTrain.Ability;
+using LastTrain.Audio;
+using LastTrain.Difficulty;
 using LastTrain.Run;
 
 namespace LastTrain.Passenger
@@ -18,14 +20,24 @@ namespace LastTrain.Passenger
             }
 
             int basePrice = passenger.Data.GetSellPrice(passenger.StarLevel);
-            if (runState?.Abilities?.Modifiers == null)
+            if (runState?.Abilities?.Modifiers != null)
             {
-                return basePrice;
+                basePrice = AbilityEffectCalculator.ApplyPercentBonus(
+                    basePrice,
+                    runState.Abilities.Modifiers.SellPricePercent);
             }
 
-            return AbilityEffectCalculator.ApplyPercentBonus(
+            if (runState?.Relics?.Modifiers != null)
+            {
+                basePrice = AbilityEffectCalculator.ApplyPercentBonus(
+                    basePrice,
+                    runState.Relics.Modifiers.SellPricePercent);
+            }
+
+            return DifficultyCalculator.ApplyShopPrice(
                 basePrice,
-                runState.Abilities.Modifiers.SellPricePercent);
+                runState?.Difficulty,
+                runState?.DifficultyModifiers?.SellPriceMultiplier ?? 1f);
         }
 
         /// <summary>
@@ -58,6 +70,7 @@ namespace LastTrain.Passenger
             if (coinsGained > 0)
             {
                 runState.Currency.AddCoins(coinsGained);
+                GameAudio.PlaySfx(SfxId.Coin);
             }
 
             AbilityEffectApplier.RefreshPassengerBuffs(runState);

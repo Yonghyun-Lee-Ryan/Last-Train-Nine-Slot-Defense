@@ -24,6 +24,8 @@ namespace LastTrain.Data
 
         [Header("Special")]
         [SerializeField] private string abilityId;
+        [SerializeField] private string splitMinionId;
+        [SerializeField] private BossPhaseThresholds bossPhaseThresholds;
 
         public string Id => id;
         public string DisplayName => displayName;
@@ -34,6 +36,8 @@ namespace LastTrain.Data
         public EnemyType EnemyType => enemyType;
         public int CoinReward => coinReward;
         public string AbilityId => abilityId;
+        public string SplitMinionId => splitMinionId ?? string.Empty;
+        public BossPhaseThresholds BossPhaseThresholds => bossPhaseThresholds;
 
         /// <summary>난도 계수를 적용한 최종 체력.</summary>
         public float GetScaledHealth(float stationDifficulty, float lineDifficulty = 1f)

@@ -19,6 +19,10 @@ namespace LastTrain.Passenger.Skills
                 PassengerSkillIds.TrainHeal => new TrainHealSkill(),
                 PassengerSkillIds.TemporaryTurret => new TemporaryTurretSkill(),
                 PassengerSkillIds.CriticalAreaDamage => new CriticalAreaDamageSkill(),
+                PassengerSkillIds.PaperThrow => new PaperThrowSkill(),
+                PassengerSkillIds.LowHpBonus => new LowHpBonusSkill(),
+                PassengerSkillIds.BossInterrupt => new BossInterruptSkill(),
+                PassengerSkillIds.LuckyCrit => new LuckyCritSkill(),
                 _ => NullPassengerSkill.Instance
             };
         }

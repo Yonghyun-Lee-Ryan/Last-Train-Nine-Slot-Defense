@@ -13,6 +13,8 @@ namespace LastTrain.Save
 
         public const string PassengerDeveloperId = "passenger_developer";
         public const string PassengerGraduateId = "passenger_graduate";
+        public const string PassengerPoliceId = "passenger_police";
+        public const string PassengerCatId = "passenger_cat";
 
         public const int TicketPerCompletedStation = 8;
         public const int TicketPerReachedStationIndex = 2;
@@ -27,6 +29,8 @@ namespace LastTrain.Save
 
         public const int DeveloperUnlockAccountLevel = 2;
         public const int GraduateUnlockAccountLevel = 3;
+        public const int PoliceUnlockAccountLevel = 4;
+        public const int CatUnlockAccountLevel = 5;
 
         public const string AchFirstVictory = "ach_first_victory";
         public const string AchFirstBossKill = "ach_first_boss_kill";

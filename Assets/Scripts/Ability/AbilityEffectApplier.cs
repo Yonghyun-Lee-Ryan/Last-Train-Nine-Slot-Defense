@@ -76,6 +76,12 @@ namespace LastTrain.Ability
                 float speedPercent = modifiers.GlobalAttackSpeedPercent
                                      + modifiers.GetPassengerAttackSpeedPercent(passenger.Data.Id);
 
+                if ((passenger.Data.Tags & PassengerTag.OfficeWorker) != 0
+                    && runState.Relics?.Modifiers != null)
+                {
+                    speedPercent += runState.Relics.Modifiers.OfficeWorkerAttackSpeedPercent;
+                }
+
                 if (IsFrontRow(slot))
                 {
                     attackPercent += modifiers.FrontRowAttackPercent;

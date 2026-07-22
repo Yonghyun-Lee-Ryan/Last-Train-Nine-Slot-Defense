@@ -6,7 +6,7 @@ namespace LastTrain.Analytics
     /// <summary>세션/런 공통 파라미터. SessionId와 RunId를 분리한다.</summary>
     public sealed class AnalyticsContext
     {
-        public const string DefaultDifficultyId = "standard";
+        public const string DefaultDifficultyId = Difficulty.DifficultyIds.Normal;
 
         public AnalyticsContext(string sessionId = null)
         {

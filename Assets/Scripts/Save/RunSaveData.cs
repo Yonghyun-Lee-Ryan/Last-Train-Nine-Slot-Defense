@@ -1,4 +1,5 @@
 using System;
+using LastTrain.Difficulty;
 using LastTrain.Run;
 
 namespace LastTrain.Save
@@ -6,11 +7,10 @@ namespace LastTrain.Save
     [Serializable]
     public sealed class RunSaveData
     {
-        public const int CurrentVersion = 1;
+        public const int CurrentVersion = 2;
 
         public int version = CurrentVersion;
 
-        // 저장 시점 검증용
         public int savedBattlePhase = (int)RunPhase.None;
 
         public int stationIndex = 1;
@@ -34,10 +34,29 @@ namespace LastTrain.Save
 
         public SlotSave[] slots = new SlotSave[RunState.GridSlotCount];
 
-        // 스택 수만큼 중복된 ability id를 포함한다.
         public string[] selectedAbilityIdsExpanded = Array.Empty<string>();
 
         public string lineId = string.Empty;
+        public string difficultyId = DifficultyIds.Normal;
+
+        public bool shopActive;
+        public bool shopResolved;
+        public string shopStationId = string.Empty;
+        public int shopStationIndex;
+        public ShopOfferSave[] shopOffers = Array.Empty<ShopOfferSave>();
+
+        public bool eventActive;
+        public bool eventResolved;
+        public string eventStationId = string.Empty;
+        public string eventId = string.Empty;
+        public int eventChoiceIndex = -1;
+
+        public string[] relicIds = Array.Empty<string>();
+        public bool emergencyAutoHealUsed;
+        public int freeSummonCharges;
+        public int summonCostReductionStacks;
+        public float nextEnemyHealthMultiplier = 1f;
+        public float nextRewardCoinMultiplier = 1f;
 
         [Serializable]
         public struct SlotSave
@@ -47,4 +66,3 @@ namespace LastTrain.Save
         }
     }
 }
-

@@ -1,5 +1,7 @@
 using System;
 using LastTrain.Data;
+using LastTrain.Difficulty;
+using LastTrain.Integrations;
 using LastTrain.Run;
 
 namespace LastTrain.Economy
@@ -17,9 +19,13 @@ namespace LastTrain.Economy
                 return 0;
             }
 
+            RemoteConfigSnapshot remote = RemoteConfigRuntime.Current;
+            int baseCost = remote.BaseSummonCost;
+            int costIncrease = remote.SummonCostIncrease;
+
             return Ability.AbilityEffectCalculator.CalculateSummonCost(
-                config.BaseSummonCost,
-                config.SummonCostIncrease,
+                baseCost,
+                costIncrease,
                 paidSummonCount,
                 costIncreaseReduction);
         }
@@ -27,8 +33,10 @@ namespace LastTrain.Economy
         public static int CalculateCost(SummonEconomyConfig config, RunState runState)
         {
             int reduction = runState?.Abilities?.Modifiers?.SummonCostIncreaseReduction ?? 0;
+            reduction += runState?.ShopTokens?.SummonCostReductionStacks ?? 0;
             int count = runState?.Summon?.PaidSummonCount ?? 0;
-            return CalculateCost(config, count, reduction);
+            int baseCost = CalculateCost(config, count, reduction);
+            return DifficultyCalculator.ApplySummonCost(baseCost, runState?.Difficulty);
         }
 
         public static int CalculateNextCost(SummonEconomyConfig config, int paidSummonCount)

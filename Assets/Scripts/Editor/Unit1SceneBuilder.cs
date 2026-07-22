@@ -141,6 +141,7 @@ namespace LastTrain.EditorTools
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.06f, 0.07f, 0.10f);
             cam.orthographic = true;
+            camGo.AddComponent<AudioListener>();
             camGo.transform.position = new Vector3(0, 0, -10);
         }
 

@@ -1,4 +1,5 @@
 using LastTrain.Data;
+using LastTrain.Difficulty;
 using UnityEngine;
 
 namespace LastTrain.Enemy
@@ -10,7 +11,7 @@ namespace LastTrain.Enemy
             EnemyData data,
             Vector2 spawnPosition,
             float stationDifficulty = 1f,
-            float lineDifficulty = 1f,
+            DifficultyRuntime difficulty = null,
             string instanceId = null)
         {
             if (data == null)
@@ -18,8 +19,22 @@ namespace LastTrain.Enemy
                 throw new System.ArgumentNullException(nameof(data));
             }
 
-            float maxHealth = data.GetScaledHealth(stationDifficulty, lineDifficulty);
-            return new EnemyRuntime(data, maxHealth, spawnPosition, instanceId);
+            float lineMultiplier = difficulty?.EnemyHealthMultiplier ?? 1f;
+            if (data.EnemyType == EnemyType.Boss)
+            {
+                lineMultiplier *= difficulty?.BossHealthMultiplier ?? 1f;
+            }
+
+            float maxHealth = data.GetScaledHealth(stationDifficulty, lineMultiplier);
+            var runtime = new EnemyRuntime(data, maxHealth, spawnPosition, instanceId);
+
+            if (difficulty != null)
+            {
+                runtime.MoveSpeedMultiplier = difficulty.EnemyMoveSpeedMultiplier;
+                runtime.TrainDamageMultiplier = difficulty.EnemyTrainDamageMultiplier;
+            }
+
+            return runtime;
         }
     }
 }

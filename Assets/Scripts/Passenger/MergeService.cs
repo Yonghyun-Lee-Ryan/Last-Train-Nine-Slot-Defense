@@ -1,3 +1,4 @@
+using LastTrain.Audio;
 using LastTrain.Run;
 
 namespace LastTrain.Passenger
@@ -81,6 +82,7 @@ namespace LastTrain.Passenger
 
             // 합성 후 공격 쿨타임은 TryUpgradeStar에서 초기화된다.
             runState.RecordMerge(target.StarLevel, target.Data.Id);
+            GameAudio.PlaySfx(SfxId.Merge);
 
             result = new MergeResult(
                 sourceSlot,

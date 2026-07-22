@@ -1,6 +1,8 @@
 using System;
 using LastTrain.Ability;
+using LastTrain.Audio;
 using LastTrain.Data;
+using LastTrain.Difficulty;
 using LastTrain.Run;
 using LastTrain.Wave;
 
@@ -20,25 +22,46 @@ namespace LastTrain.Battle
 
         private readonly WaveManager _waveManager = new();
         private readonly Func<int, StationData> _stationLookup;
+        private readonly NonCombatStationServices _nonCombatServices;
 
         private RunState _runState;
         private StationData _currentStation;
+        private IStationHandler _currentHandler;
+        private StationHandlerContext _handlerContext;
         private int _currentWaveIndex;
         private bool _stationCompleteReported;
         private bool _runCancelled;
         private bool _waitingForAbilityReward;
 
-        public StationManager(Func<int, StationData> stationLookup)
+        public StationManager(
+            Func<int, StationData> stationLookup,
+            NonCombatStationServices nonCombatServices = null)
         {
             _stationLookup = stationLookup ?? throw new ArgumentNullException(nameof(stationLookup));
+            _nonCombatServices = nonCombatServices;
             _waveManager.WaveCompleted += HandleWaveCompleted;
         }
 
         public WaveManager WaveManager => _waveManager;
         public StationData CurrentStation => _currentStation;
         public int CurrentWaveIndex => _currentWaveIndex;
+        public bool UsesWaveManager => _currentHandler?.UsesWaveManager ?? true;
         public RunPhase CurrentPhase => _runState?.Battle?.CurrentPhase ?? RunPhase.None;
         public bool IsWaitingForAbilityReward => _waitingForAbilityReward;
+
+        public bool IsWaitingForNonCombatInteraction =>
+            (_runState?.Shop.IsActive == true && !_runState.Shop.IsResolved)
+            || (_runState?.Events.IsActive == true && !_runState.Events.IsResolved);
+
+        public StationBriefing GetCurrentBriefing()
+        {
+            if (_currentStation == null || _runState == null)
+            {
+                return new StationBriefing();
+            }
+
+            return StationBriefingBuilder.Build(_currentStation, _runState.Difficulty);
+        }
 
         public void Initialize(RunState runState, StationData startingStation)
         {
@@ -60,9 +83,36 @@ namespace LastTrain.Battle
             _stationCompleteReported = false;
             _waitingForAbilityReward = false;
             _runCancelled = false;
+            _currentHandler = StationHandlerFactory.Create(station.StationType);
+            _handlerContext = new StationHandlerContext(
+                _runState,
+                station,
+                CompleteStation,
+                _nonCombatServices);
+            _currentHandler.OnStationEntered(_handlerContext);
             _runState.Station.SetCurrentStation(station.Id, station.StationIndex);
             _runState.Battle.SetPhase(RunPhase.Preparing);
             StationStarted?.Invoke(station);
+        }
+
+        /// <summary>Preparing 상태에서 역 유형에 맞는 진행(전투 시작 또는 비전투 처리)을 시도한다.</summary>
+        public bool TryActivateStation()
+        {
+            if (_runCancelled
+                || _waitingForAbilityReward
+                || IsWaitingForNonCombatInteraction
+                || _currentStation == null
+                || !_runState.Battle.IsRunActive)
+            {
+                return false;
+            }
+
+            if (_currentHandler != null && !_currentHandler.UsesWaveManager)
+            {
+                return _currentHandler.TryActivate(_handlerContext);
+            }
+
+            return TryStartNextWave();
         }
 
         /// <summary>Preparing 이후 첫 웨이브 또는 다음 웨이브를 시작한다.</summary>
@@ -71,7 +121,8 @@ namespace LastTrain.Battle
             if (_runCancelled
                 || _waitingForAbilityReward
                 || _currentStation == null
-                || !_runState.Battle.IsRunActive)
+                || !_runState.Battle.IsRunActive
+                || !UsesWaveManager)
             {
                 return false;
             }
@@ -86,6 +137,7 @@ namespace LastTrain.Battle
             _runState.Battle.SetPhase(RunPhase.WaveStarting);
             _runState.Station.SetWaveIndex(_currentWaveIndex);
             _waveManager.StartWave(_currentWaveIndex, wave);
+            GameAudio.PlaySfx(SfxId.WaveStart);
             _runState.Battle.SetPhase(RunPhase.Fighting);
             return true;
         }
@@ -96,7 +148,8 @@ namespace LastTrain.Battle
                 || _waitingForAbilityReward
                 || _runState == null
                 || !_runState.Battle.IsRunActive
-                || battleContext == null)
+                || battleContext == null
+                || !UsesWaveManager)
             {
                 return;
             }
@@ -180,9 +233,16 @@ namespace LastTrain.Battle
 
             _stationCompleteReported = true;
             _runState.Battle.SetPhase(RunPhase.StationCompleted);
-            int rewardCoins = _currentStation.RewardCoins;
+            int rewardCoins = DifficultyCalculator.ApplyStationReward(
+                _currentStation.RewardCoins,
+                _runState.Difficulty);
+            rewardCoins = UnityEngine.Mathf.RoundToInt(
+                rewardCoins * _runState.NextStationModifiers.ConsumeRewardCoinMultiplier());
+            rewardCoins += _runState.Relics.Modifiers.StationCompleteCoinBonus;
             _runState.Currency.AddCoins(rewardCoins);
             AbilityEffectApplier.ApplyStationCompleteHeal(_runState);
+            GameAudio.PlaySfx(SfxId.StationClear);
+            GameAudio.PlaySfx(SfxId.Coin);
             StationCompleted?.Invoke(_currentStation);
             StationRewardGranted?.Invoke(_currentStation, rewardCoins);
 

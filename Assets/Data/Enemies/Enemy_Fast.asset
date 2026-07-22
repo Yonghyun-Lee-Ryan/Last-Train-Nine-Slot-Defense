@@ -21,3 +21,7 @@ MonoBehaviour:
   enemyType: 1
   coinReward: 4
   abilityId: 
+  splitMinionId: 
+  bossPhaseThresholds:
+    doorOpenHealthRatio: 0
+    enrageHealthRatio: 0

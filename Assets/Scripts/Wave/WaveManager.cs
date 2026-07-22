@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using LastTrain.Data;
+using LastTrain.Difficulty;
 
 namespace LastTrain.Wave
 {
@@ -16,18 +17,24 @@ namespace LastTrain.Wave
         private WaveData _currentWave;
         private int _waveIndex = -1;
         private bool _waveCompleteReported;
+        private DifficultyRuntime _difficulty;
 
         public int CurrentWaveIndex => _waveIndex;
         public WaveData CurrentWave => _currentWave;
         public int SpawnedCount => _scheduler.SpawnedCount;
         public int RemainingScheduled => _scheduler.RemainingScheduled;
 
+        public void SetDifficulty(DifficultyRuntime difficulty)
+        {
+            _difficulty = difficulty;
+        }
+
         public void StartWave(int waveIndex, WaveData wave)
         {
             _waveIndex = waveIndex;
             _currentWave = wave;
             _waveCompleteReported = false;
-            _scheduler.Reset(wave);
+            _scheduler.Reset(wave, _difficulty);
             WaveStarted?.Invoke(waveIndex);
         }
 
@@ -57,7 +64,7 @@ namespace LastTrain.Wave
             }
 
             if (!WaveCompletionService.IsWaveComplete(
-                    _currentWave.GetTotalEnemyCount(),
+                    _scheduler.TotalPlanned,
                     _scheduler.SpawnedCount,
                     _scheduler.RemainingScheduled,
                     getAliveEnemyCount()))

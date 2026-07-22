@@ -162,6 +162,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Core.AppRoot
   autoLoadMainMenu: 1
+  adUnitConfig: {fileID: 11400000, guid: c5a9b3d27e1f4a806294b7c3d5e6f708, type: 2}
+  remoteConfigDefaults: {fileID: 11400000, guid: d6bac4e38f2a5b917305c8d4e6f71982, type: 2}
 --- !u!4 &1531957583
 Transform:
   m_ObjectHideFlags: 0

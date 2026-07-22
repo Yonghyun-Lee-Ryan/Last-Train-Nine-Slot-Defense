@@ -20,7 +20,9 @@ namespace LastTrain.Passenger.Skills
             Vector2 trainTarget,
             ITemporaryTurretSpawner turretSpawner,
             RandomService random,
-            SynergyModifiers synergyModifiers = null)
+            SynergyModifiers synergyModifiers = null,
+            float relicCritChancePercent = 0f,
+            float relicTurretDurationPercent = 0f)
         {
             Runtime = runtime;
             AttackerPosition = attackerPosition;
@@ -33,6 +35,8 @@ namespace LastTrain.Passenger.Skills
             TurretSpawner = turretSpawner;
             Random = random;
             SynergyModifiers = synergyModifiers ?? SynergyModifiers.Empty;
+            RelicCritChancePercent = relicCritChancePercent;
+            RelicTurretDurationPercent = relicTurretDurationPercent;
         }
 
         public PassengerRuntime Runtime { get; }
@@ -46,6 +50,8 @@ namespace LastTrain.Passenger.Skills
         public Vector2 TrainTarget { get; }
         public ITemporaryTurretSpawner TurretSpawner { get; }
         public RandomService Random { get; }
+        public float RelicCritChancePercent { get; }
+        public float RelicTurretDurationPercent { get; }
 
         public float SkillValueMultiplier =>
             Runtime != null ? Runtime.GetEffectiveSkillMultiplier() : 1f;

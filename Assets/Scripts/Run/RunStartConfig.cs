@@ -11,6 +11,7 @@ namespace LastTrain.Run
         public int InitialCoins { get; set; } = 50;
         public int InitialStationIndex { get; set; } = 1;
         public string LineId { get; set; } = "line1";
+        public string DifficultyId { get; set; } = Difficulty.DifficultyIds.Normal;
 
         public static RunStartConfig CreateDefault()
         {

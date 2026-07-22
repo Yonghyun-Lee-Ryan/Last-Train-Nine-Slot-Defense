@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using LastTrain.Ability;
 using LastTrain.Data;
+using LastTrain.Difficulty;
 using LastTrain.Run;
+using LastTrain.Shop;
 
 namespace LastTrain.Save
 {
@@ -25,6 +27,7 @@ namespace LastTrain.Save
 
             config.InitialStationIndex = data.stationIndex >= 1 ? data.stationIndex : config.InitialStationIndex;
             config.LineId = string.IsNullOrWhiteSpace(data.lineId) ? config.LineId : data.lineId;
+            config.DifficultyId = DifficultyService.ResolveSavedDifficultyId(data.difficultyId);
 
             return config;
         }
@@ -60,7 +63,8 @@ namespace LastTrain.Save
                 highestPassengerStar = runState.History?.HighestPassengerStar ?? 1,
                 abilityCardsSelected = runState.History?.AbilityCardsSelected ?? 0,
 
-                lineId = runState.LineId ?? string.Empty
+                lineId = runState.LineId ?? string.Empty,
+                difficultyId = runState.DifficultyId ?? DifficultyIds.Normal,
             };
 
             data.slots = new RunSaveData.SlotSave[RunState.GridSlotCount];
@@ -97,7 +101,76 @@ namespace LastTrain.Save
                 data.selectedAbilityIdsExpanded = Array.Empty<string>();
             }
 
+            data.relicIds = runState.Relics.ToIdArray();
+            data.emergencyAutoHealUsed = runState.Relics.EmergencyAutoHealUsed;
+            data.freeSummonCharges = runState.ShopTokens.FreeSummonCharges;
+            data.summonCostReductionStacks = runState.ShopTokens.SummonCostReductionStacks;
+            data.nextEnemyHealthMultiplier = runState.NextStationModifiers.EnemyHealthMultiplier;
+            data.nextRewardCoinMultiplier = runState.NextStationModifiers.RewardCoinMultiplier;
+
+            data.shopActive = runState.Shop.IsActive;
+            data.shopResolved = runState.Shop.IsResolved;
+            data.shopStationId = runState.Shop.StationId;
+            data.shopStationIndex = runState.Shop.StationIndex;
+            data.shopOffers = ToShopOfferSave(runState.Shop.Offers);
+
+            data.eventActive = runState.Events.IsActive;
+            data.eventResolved = runState.Events.IsResolved;
+            data.eventStationId = runState.Events.StationId;
+            data.eventId = runState.Events.EventId;
+            data.eventChoiceIndex = runState.Events.SelectedChoiceIndex;
+
             return data;
+        }
+
+        private static ShopOfferSave[] ToShopOfferSave(IReadOnlyList<ShopOffer> offers)
+        {
+            if (offers == null || offers.Count == 0)
+            {
+                return Array.Empty<ShopOfferSave>();
+            }
+
+            var saves = new ShopOfferSave[offers.Count];
+            for (int i = 0; i < offers.Count; i++)
+            {
+                ShopOffer offer = offers[i];
+                saves[i] = new ShopOfferSave
+                {
+                    offerId = offer.offerId,
+                    itemType = (int)offer.itemType,
+                    price = offer.price,
+                    payloadId = offer.payloadId,
+                    payloadValue = offer.payloadValue,
+                    purchased = offer.purchased,
+                };
+            }
+
+            return saves;
+        }
+
+        private static ShopOffer[] FromShopOfferSave(ShopOfferSave[] saves)
+        {
+            if (saves == null || saves.Length == 0)
+            {
+                return Array.Empty<ShopOffer>();
+            }
+
+            var offers = new ShopOffer[saves.Length];
+            for (int i = 0; i < saves.Length; i++)
+            {
+                ShopOfferSave save = saves[i];
+                offers[i] = new ShopOffer
+                {
+                    offerId = save.offerId,
+                    itemType = (ShopItemType)save.itemType,
+                    price = save.price,
+                    payloadId = save.payloadId,
+                    payloadValue = save.payloadValue,
+                    purchased = save.purchased,
+                };
+            }
+
+            return offers;
         }
 
         public static bool ApplyToRunState(
@@ -105,10 +178,12 @@ namespace LastTrain.Save
             RunSaveData data,
             GameDatabase gameDatabase)
         {
-            if (runState == null || data == null || gameDatabase == null)
+            if (runState == null || data == null)
             {
                 return false;
             }
+
+            runState.RestoreDifficulty(data.difficultyId);
 
             // 1) Station / Currency / History
             runState.Station.RestoreFromSave(
@@ -129,6 +204,12 @@ namespace LastTrain.Save
                 data.passengersSold,
                 data.highestPassengerStar,
                 data.abilityCardsSelected);
+
+            if (gameDatabase == null)
+            {
+                runState.Battle.SetPhase(RunPhase.Preparing);
+                return true;
+            }
 
             // 2) Passengers
             if (data.slots != null)
@@ -185,6 +266,36 @@ namespace LastTrain.Save
 
             // 4) Ensure battle is at Preparing
             runState.Battle.SetPhase(RunPhase.Preparing);
+
+            runState.Relics.Restore(data.relicIds, data.emergencyAutoHealUsed, gameDatabase);
+            runState.ShopTokens.Restore(data.freeSummonCharges, data.summonCostReductionStacks);
+            runState.NextStationModifiers.Restore(
+                data.nextEnemyHealthMultiplier,
+                data.nextRewardCoinMultiplier);
+            runState.Shop.Restore(
+                data.shopStationId,
+                data.shopStationIndex,
+                data.shopActive,
+                data.shopResolved,
+                FromShopOfferSave(data.shopOffers));
+            runState.Events.Restore(
+                data.eventStationId,
+                data.eventId,
+                data.eventActive,
+                data.eventResolved,
+                data.eventChoiceIndex);
+
+            if (data.shopActive && !data.shopResolved)
+            {
+                runState.Battle.SetPhase(RunPhase.ShopOpen);
+            }
+            else if (data.eventActive && !data.eventResolved)
+            {
+                runState.Battle.SetPhase(RunPhase.EventOpen);
+            }
+
+            var relicManager = new Relic.RelicManager(runState, gameDatabase);
+            relicManager.ApplyPersistentEffects();
             return true;
         }
     }

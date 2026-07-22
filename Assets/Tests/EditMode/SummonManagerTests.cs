@@ -99,6 +99,40 @@ namespace LastTrain.Tests.EditMode
             Assert.AreEqual(35, _runState.Currency.CurrentCoins);
         }
 
+        [Test]
+        public void CancelOffers_ThenBeginAgain_RestoresSameOffers()
+        {
+            var passengers = new List<PassengerData>
+            {
+                _passenger,
+                CreatePassenger("delivery"),
+                CreatePassenger("nurse"),
+                CreatePassenger("trainer"),
+            };
+
+            var offerService = new PassengerOfferService(passengers, new RandomService(42), offerCount: 3);
+            var manager = new SummonManager(_runState, _config, offerService);
+
+            Assert.AreEqual(SummonRequestResult.Success, manager.TryBeginSummon());
+            var first = new List<PassengerData>(manager.CurrentOffers);
+            Assert.AreEqual(3, first.Count);
+
+            manager.CancelOffers();
+            Assert.IsFalse(manager.HasActiveOffers);
+
+            Assert.AreEqual(SummonRequestResult.Success, manager.TryBeginSummon());
+            Assert.AreEqual(3, manager.CurrentOffers.Count);
+            for (int i = 0; i < first.Count; i++)
+            {
+                Assert.AreSame(first[i], manager.CurrentOffers[i]);
+            }
+
+            for (int i = 1; i < passengers.Count; i++)
+            {
+                Object.DestroyImmediate(passengers[i]);
+            }
+        }
+
         private SummonManager CreateManager()
         {
             var offerService = new PassengerOfferService(

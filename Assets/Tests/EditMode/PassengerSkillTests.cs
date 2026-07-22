@@ -40,12 +40,20 @@ namespace LastTrain.Tests.EditMode
             IPassengerSkill heal = PassengerSkillResolver.Create(PassengerSkillIds.TrainHeal);
             IPassengerSkill turret = PassengerSkillResolver.Create(PassengerSkillIds.TemporaryTurret);
             IPassengerSkill crit = PassengerSkillResolver.Create(PassengerSkillIds.CriticalAreaDamage);
+            IPassengerSkill paper = PassengerSkillResolver.Create(PassengerSkillIds.PaperThrow);
+            IPassengerSkill lowHp = PassengerSkillResolver.Create(PassengerSkillIds.LowHpBonus);
+            IPassengerSkill interrupt = PassengerSkillResolver.Create(PassengerSkillIds.BossInterrupt);
+            IPassengerSkill lucky = PassengerSkillResolver.Create(PassengerSkillIds.LuckyCrit);
             IPassengerSkill unknown = PassengerSkillResolver.Create("unknown_skill");
 
             Assert.IsInstanceOf<KnockbackSkill>(knockback);
             Assert.IsInstanceOf<TrainHealSkill>(heal);
             Assert.IsInstanceOf<TemporaryTurretSkill>(turret);
             Assert.IsInstanceOf<CriticalAreaDamageSkill>(crit);
+            Assert.IsInstanceOf<PaperThrowSkill>(paper);
+            Assert.IsInstanceOf<LowHpBonusSkill>(lowHp);
+            Assert.IsInstanceOf<BossInterruptSkill>(interrupt);
+            Assert.IsInstanceOf<LuckyCritSkill>(lucky);
             Assert.AreSame(NullPassengerSkill.Instance, unknown);
         }
 
@@ -136,6 +144,34 @@ namespace LastTrain.Tests.EditMode
         }
 
         [Test]
+        public void BossInterrupt_PausesBossAbilities()
+        {
+            var runtime = PlaceOnGrid(_passengerData);
+            var bossData = CreateEnemy(EnemyType.Boss);
+            var boss = new EnemyRuntime(bossData, 100f, Vector2.zero);
+            var skill = new BossInterruptSkill();
+
+            skill.Tick(0f, BuildContext(runtime, enemies: new[] { boss }));
+            Assert.IsTrue(boss.AreAbilitiesPaused);
+            Object.DestroyImmediate(bossData);
+        }
+
+        [Test]
+        public void LowHpBonus_TargetsWoundedEnemyInRange()
+        {
+            var wounded = new EnemyRuntime(_enemyData, 100f, Vector2.zero, "wounded");
+            wounded.ApplyDamage(70f);
+            var healthy = new EnemyRuntime(_enemyData, 100f, new Vector2(5f, 0f), "healthy");
+
+            EnemyRuntime target = LowHpBonusSkill.FindLowHealthTarget(
+                new[] { healthy, wounded },
+                Vector2.zero,
+                300f);
+
+            Assert.AreSame(wounded, target);
+        }
+
+        [Test]
         public void SkillValueMultiplier_ScalesWithStarLevel()
         {
             var runtime = PassengerRuntime.Create(_passengerData, starLevel: 1);
@@ -214,11 +250,12 @@ namespace LastTrain.Tests.EditMode
             element.FindPropertyRelative("skillValueMultiplier").floatValue = skillMul;
         }
 
-        private static EnemyData CreateEnemy()
+        private static EnemyData CreateEnemy(EnemyType type = EnemyType.Normal)
         {
             var data = ScriptableObject.CreateInstance<EnemyData>();
             var so = new SerializedObject(data);
             so.FindProperty("id").stringValue = "skill_test_enemy";
+            so.FindProperty("enemyType").enumValueIndex = (int)type;
             so.FindProperty("moveSpeed").floatValue = 2f;
             so.FindProperty("defense").floatValue = 0f;
             so.ApplyModifiedPropertiesWithoutUndo();

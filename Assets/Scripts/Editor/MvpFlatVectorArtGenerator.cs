@@ -73,6 +73,16 @@ namespace LastTrain.EditorTools
             FlatVectorDrawUtility.SavePng(bg, "Assets/Art/Sprites/Environment/subway_background.png");
             Object.DestroyImmediate(bg);
 
+            // 메인 메뉴: 빈 좌석 슬롯 없이 형광 스트립만
+            var menuBg = FlatVectorDrawUtility.Create(540, 960);
+            FlatVectorDrawUtility.FillRect(menuBg, new RectInt(0, 0, 540, 960), VisualThemePalette.CarNavy);
+            FlatVectorDrawUtility.FillRect(menuBg, new RectInt(0, 680, 540, 280), VisualThemePalette.CarNavyLight);
+            FlatVectorDrawUtility.FillRect(menuBg, new RectInt(0, 900, 540, 20), VisualThemePalette.FluorescentTealDim);
+            FlatVectorDrawUtility.FillRect(menuBg, new RectInt(40, 760, 460, 10), VisualThemePalette.WithAlpha(VisualThemePalette.FluorescentTeal, 0.5f));
+            FlatVectorDrawUtility.FillRect(menuBg, new RectInt(120, 40, 300, 18), VisualThemePalette.WithAlpha(VisualThemePalette.FluorescentTealDim, 0.65f));
+            FlatVectorDrawUtility.SavePng(menuBg, "Assets/Art/Sprites/Environment/main_menu_background.png");
+            Object.DestroyImmediate(menuBg);
+
             var lane = FlatVectorDrawUtility.Create(540, 220);
             FlatVectorDrawUtility.FillRoundedRect(
                 lane,
@@ -147,7 +157,9 @@ namespace LastTrain.EditorTools
                 ("passenger_trainer", 2, new Color(0.88f, 0.72f, 0.58f), VisualThemePalette.PassengerAccent[2]),
                 ("passenger_nurse", 3, new Color(0.96f, 0.84f, 0.74f), VisualThemePalette.PassengerAccent[3]),
                 ("passenger_developer", 4, new Color(0.9f, 0.8f, 0.66f), VisualThemePalette.PassengerAccent[4]),
-                ("passenger_graduate", 5, new Color(0.93f, 0.8f, 0.7f), VisualThemePalette.PassengerAccent[5])
+                ("passenger_graduate", 5, new Color(0.93f, 0.8f, 0.7f), VisualThemePalette.PassengerAccent[5]),
+                ("passenger_police", 6, new Color(0.9f, 0.78f, 0.65f), VisualThemePalette.PassengerAccent[6]),
+                ("passenger_cat", 7, new Color(0.98f, 0.9f, 0.75f), VisualThemePalette.PassengerAccent[7])
             };
 
             for (int i = 0; i < defs.Length; i++)
@@ -167,6 +179,11 @@ namespace LastTrain.EditorTools
             SaveEnemy("enemy_fast", VisualThemePalette.EnemyAccent[1], false);
             SaveEnemy("enemy_tank", VisualThemePalette.EnemyAccent[2], false);
             SaveEnemy("enemy_boss_drunk_manager", VisualThemePalette.EnemyAccent[3], true);
+            SaveEnemy("enemy_split_passenger", VisualThemePalette.EnemyAccent[4], false);
+            SaveEnemy("enemy_split_minion", VisualThemePalette.EnemyAccent[5], false);
+            SaveEnemy("enemy_aura_watcher", VisualThemePalette.EnemyAccent[6], false);
+            SaveEnemy("enemy_seat_blocker", VisualThemePalette.EnemyAccent[7], false);
+            SaveEnemy("enemy_boss_final_conductor", VisualThemePalette.EnemyAccent[8], true);
         }
 
         private static void GenerateProjectiles()
@@ -178,6 +195,8 @@ namespace LastTrain.EditorTools
             SaveProjectile("projectile_nurse", VisualThemePalette.PassengerAccent[3], 26);
             SaveProjectile("projectile_developer", VisualThemePalette.PassengerAccent[4], 24);
             SaveProjectile("projectile_graduate", VisualThemePalette.PassengerAccent[5], 36);
+            SaveProjectile("projectile_police", VisualThemePalette.PassengerAccent[6], 30);
+            SaveProjectile("projectile_cat", VisualThemePalette.PassengerAccent[7], 28);
             SaveProjectile("projectile_turret", VisualThemePalette.FluorescentTeal, 22);
         }
 

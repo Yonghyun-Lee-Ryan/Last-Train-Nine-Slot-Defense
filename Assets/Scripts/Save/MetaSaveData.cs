@@ -1,4 +1,5 @@
 using System;
+using LastTrain.Difficulty;
 
 namespace LastTrain.Save
 {
@@ -33,6 +34,10 @@ namespace LastTrain.Save
 
         public MetaPassengerMasteryEntry[] passengerMasteries = Array.Empty<MetaPassengerMasteryEntry>();
 
+        public string[] unlockedDifficultyIds = Array.Empty<string>();
+        public MetaDifficultyRecord[] difficultyRecords = Array.Empty<MetaDifficultyRecord>();
+        public string[] pendingUnlockedDifficultyIds = Array.Empty<string>();
+
         public void EnsureDefaults()
         {
             if (version <= 0)
@@ -55,12 +60,54 @@ namespace LastTrain.Save
             rewardedRunIds ??= Array.Empty<string>();
             pendingNewDiscoveryIds ??= Array.Empty<string>();
             passengerMasteries ??= Array.Empty<MetaPassengerMasteryEntry>();
+            unlockedDifficultyIds ??= Array.Empty<string>();
+            difficultyRecords ??= Array.Empty<MetaDifficultyRecord>();
+            pendingUnlockedDifficultyIds ??= Array.Empty<string>();
             dummy ??= string.Empty;
 
             if (unlockedPassengerIds.Length == 0)
             {
                 unlockedPassengerIds = (string[])MetaProgressionDefaults.DefaultUnlockedPassengerIds.Clone();
             }
+
+            if (!ContainsDifficultyId(unlockedDifficultyIds, DifficultyIds.Normal))
+            {
+                unlockedDifficultyIds = AppendDifficultyId(unlockedDifficultyIds, DifficultyIds.Normal);
+            }
+        }
+
+        private static bool ContainsDifficultyId(string[] ids, string id)
+        {
+            if (ids == null || string.IsNullOrWhiteSpace(id))
+            {
+                return false;
+            }
+
+            for (int i = 0; i < ids.Length; i++)
+            {
+                if (string.Equals(ids[i], id, System.StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static string[] AppendDifficultyId(string[] ids, string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                return ids ?? System.Array.Empty<string>();
+            }
+
+            var list = new System.Collections.Generic.List<string>(ids ?? System.Array.Empty<string>());
+            if (!ContainsDifficultyId(list.ToArray(), id))
+            {
+                list.Add(id);
+            }
+
+            return list.ToArray();
         }
     }
 

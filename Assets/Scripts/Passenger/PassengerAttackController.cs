@@ -13,6 +13,8 @@ namespace LastTrain.Passenger
     /// </summary>
     public sealed class PassengerAttackController
     {
+        public const float LawEnforcementBossEliteDamagePercent = 25f;
+
         /// <summary>
         /// 한 프레임 공격 처리. Grid에 배치된 승객만 공격한다.
         /// </summary>
@@ -33,6 +35,7 @@ namespace LastTrain.Passenger
             }
 
             runtime.TickAttackCooldown(deltaTime);
+            runtime.TickAttackBlock(deltaTime);
             if (!runtime.IsAttackReady)
             {
                 return false;
@@ -60,10 +63,23 @@ namespace LastTrain.Passenger
                 damage *= 1f + bossDamagePercent / 100f;
             }
 
+            if ((runtime.Data.Tags & PassengerTag.LawEnforcement) != 0 && IsBossOrElite(target))
+            {
+                damage *= 1f + LawEnforcementBossEliteDamagePercent / 100f;
+            }
+
             launcher.Launch(attackerPosition, target, damage, runtime.Data.Id);
             runtime.SetAttackCooldownRemaining(runtime.GetEffectiveAttackInterval());
             CombatVisualEvents.RaisePassengerAttacked(runtime.InstanceId);
             return true;
+        }
+
+        private static bool IsBossOrElite(EnemyRuntime enemy)
+        {
+            return enemy != null
+                   && (enemy.EnemyType == EnemyType.Boss
+                       || enemy.EnemyType == EnemyType.Elite
+                       || enemy.IsElitePromoted);
         }
     }
 }

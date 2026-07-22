@@ -1,5 +1,7 @@
 using LastTrain.Ads;
 using LastTrain.Core;
+using LastTrain.Data;
+using LastTrain.Difficulty;
 using LastTrain.Run;
 using LastTrain.Save;
 using UnityEngine;
@@ -27,8 +29,9 @@ namespace LastTrain.UI
 
         private void Awake()
         {
-            RefreshResultUi();
             EnsureDoubleRewardButton();
+            ResultUiLayout.EnsureButtonGroup(retryButton, doubleRewardAdButton, mainMenuButton);
+            RefreshResultUi();
 
             if (retryButton != null)
             {
@@ -80,7 +83,10 @@ namespace LastTrain.UI
             AppRoot appRoot = AppRoot.Instance;
             if (appRoot != null)
             {
-                appRoot.GameSession.StartNewRun();
+                var config = RunStartConfig.CreateDefault();
+                config.DifficultyId = appRoot.GameSession.LastResult?.DifficultyId
+                    ?? DifficultySelectionState.SelectedDifficultyId;
+                appRoot.GameSession.StartNewRun(config);
             }
 
             SceneFlow.Load(SceneNames.Game);
@@ -160,35 +166,26 @@ namespace LastTrain.UI
                 return;
             }
 
-            if (mainMenuButton == null)
+            if (retryButton == null)
             {
                 return;
             }
 
-            Transform parent = mainMenuButton.transform.parent;
-            GameObject go = new GameObject("DoubleRewardAdButton", typeof(RectTransform), typeof(Image), typeof(Button));
-            go.transform.SetParent(parent, false);
-            RectTransform rect = go.GetComponent<RectTransform>();
-            rect.sizeDelta = new Vector2(600, 120);
-            rect.anchoredPosition = new Vector2(0, -400);
-
-            Image image = go.GetComponent<Image>();
-            image.color = new Color(0.25f, 0.55f, 0.35f, 1f);
+            Button template = retryButton;
+            GameObject go = Instantiate(template.gameObject, template.transform.parent);
+            go.name = "DoubleRewardAdButton";
             doubleRewardAdButton = go.GetComponent<Button>();
+            doubleRewardAdButton.onClick.RemoveAllListeners();
 
-            var textGo = new GameObject("Text", typeof(RectTransform));
-            textGo.transform.SetParent(go.transform, false);
-            RectTransform textRect = textGo.GetComponent<RectTransform>();
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = Vector2.zero;
-            textRect.offsetMax = Vector2.zero;
-            Text text = textGo.AddComponent<Text>();
-            text.text = "광고로 보상 2배";
-            text.alignment = TextAnchor.MiddleCenter;
-            text.fontSize = 36;
-            text.color = Color.white;
-            text.font = GameFontProvider.Get();
+            Text label = go.GetComponentInChildren<Text>();
+            if (label != null)
+            {
+                label.text = "광고로 보상 2배";
+            }
+
+            UiButtonStyler.ApplyStandardTheme(doubleRewardAdButton);
+            UiButtonStyler.EnsureAdIcon(doubleRewardAdButton);
+            UiButtonStyler.OffsetButtonLabel(doubleRewardAdButton);
         }
 
         private void RefreshResultUi()

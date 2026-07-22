@@ -8,6 +8,7 @@ namespace LastTrain.Data
     {
         [Header("Environment")]
         [SerializeField] private Sprite subwayBackground;
+        [SerializeField] private Sprite mainMenuBackground;
         [SerializeField] private Sprite spawnLane;
         [SerializeField] private Sprite trainTarget;
         [SerializeField] private Sprite seatFrame;
@@ -49,6 +50,7 @@ namespace LastTrain.Data
         [SerializeField] private Sprite starFrame3;
 
         public Sprite SubwayBackground => subwayBackground;
+        public Sprite MainMenuBackground => mainMenuBackground != null ? mainMenuBackground : subwayBackground;
         public Sprite SpawnLane => spawnLane;
         public Sprite TrainTarget => trainTarget;
         public Sprite SeatFrame => seatFrame;

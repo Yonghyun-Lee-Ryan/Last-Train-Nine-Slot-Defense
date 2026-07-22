@@ -10,6 +10,8 @@ namespace LastTrain.Run
         WaveCompleted = 4,
         StationCompleted = 5,
         RewardSelecting = 6,
-        RunEnded = 7
+        RunEnded = 7,
+        ShopOpen = 8,
+        EventOpen = 9
     }
 }

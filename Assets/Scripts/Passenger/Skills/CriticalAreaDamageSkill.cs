@@ -33,7 +33,8 @@ namespace LastTrain.Passenger.Skills
             float chance = Mathf.Clamp01(
                 BaseProcChance
                 + context.Modifiers.CatCritChancePercent / 100f
-                + context.SynergyModifiers.CritChancePercent / 100f);
+                + context.SynergyModifiers.CritChancePercent / 100f
+                + context.RelicCritChancePercent / 100f);
             float roll = context.Random != null ? context.Random.NextFloat() : 0f;
             if (roll > chance)
             {
@@ -85,7 +86,7 @@ namespace LastTrain.Passenger.Skills
                 }
 
                 hitIds.Add(enemy.InstanceId);
-                DamageService.ApplyDamage(enemy, rawDamage);
+                DamageService.ApplyDamage(enemy, rawDamage, isCrit: true);
                 hitCount++;
             }
 

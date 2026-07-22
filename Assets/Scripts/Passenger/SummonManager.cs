@@ -53,6 +53,7 @@ namespace LastTrain.Passenger
 
         private int _pendingCost;
         private bool _costReserved;
+        private readonly List<PassengerData> _deferredOffers = new();
 
         public SummonManager(
             RunState runState,
@@ -107,18 +108,21 @@ namespace LastTrain.Passenger
             }
 
             int cost = CurrentSummonCost;
-            if (!_currencyService.CanAfford(cost))
+            bool firstSummonFree = cost > 0
+                                   && _runState.Relics.Modifiers.FirstSummonFree
+                                   && _runState.Summon.PaidSummonCount == 0;
+            if (!firstSummonFree && !_currencyService.CanAfford(cost))
             {
                 return FailRequest(SummonRequestResult.NotEnoughCoins, $"코인이 부족합니다. (필요 {cost})");
             }
 
-            List<PassengerData> offers = _offerService.GenerateOffers();
+            List<PassengerData> offers = TakeDeferredOffersOrGenerate();
             if (offers.Count == 0)
             {
                 return FailRequest(SummonRequestResult.NoUnlockedPassengers, "후보를 생성할 수 없습니다.");
             }
 
-            _pendingCost = cost;
+            _pendingCost = firstSummonFree ? 0 : cost;
             _costReserved = true;
             _runState.Summon.SetOffers(offers);
             SummonRequested?.Invoke(SummonRequestResult.Success);
@@ -127,6 +131,20 @@ namespace LastTrain.Passenger
 
         public void CancelOffers()
         {
+            // 패널만 닫고 후보는 유지. 다음 소환 시 동일 선택지를 복원한다.
+            if (_runState.Summon.HasActiveOffers)
+            {
+                _deferredOffers.Clear();
+                IReadOnlyList<PassengerData> current = _runState.Summon.CurrentOffers;
+                for (int i = 0; i < current.Count; i++)
+                {
+                    if (current[i] != null)
+                    {
+                        _deferredOffers.Add(current[i]);
+                    }
+                }
+            }
+
             _pendingCost = 0;
             _costReserved = false;
             _runState.Summon.ClearOffers();
@@ -155,12 +173,26 @@ namespace LastTrain.Passenger
             }
 
             // 원자적 처리: 코인 차감 성공 시에만 배치
-            if (!_currencyService.TrySpend(_pendingCost))
+            int cost = _pendingCost;
+            if (cost > 0
+                && _runState.Relics.Modifiers.FirstSummonFree
+                && _runState.Summon.PaidSummonCount == 0)
             {
-                StatusMessage?.Invoke("코인이 부족합니다.");
-                CancelOffers();
-                return SelectOfferResult.InvalidState;
+                cost = 0;
             }
+
+            if (cost > 0)
+            {
+                if (!_runState.ShopTokens.TryConsumeFreeSummon()
+                    && !_currencyService.TrySpend(cost))
+                {
+                    StatusMessage?.Invoke("코인이 부족합니다.");
+                    CancelOffers();
+                    return SelectOfferResult.InvalidState;
+                }
+            }
+
+            _pendingCost = cost;
 
             placed = PassengerRuntime.Create(data, starLevel: 1);
             if (!_runState.TryPlacePassenger(emptySlot, placed))
@@ -175,6 +207,7 @@ namespace LastTrain.Passenger
             _runState.Summon.RecordPaidSummon();
             _pendingCost = 0;
             _costReserved = false;
+            ClearDeferredOffers();
             _runState.Summon.ClearOffers();
             Ability.AbilityEffectApplier.RefreshPassengerBuffs(_runState);
             Synergy.SynergyEffectApplier.Refresh(_runState);
@@ -199,6 +232,7 @@ namespace LastTrain.Passenger
             List<PassengerData> offers = _offerService.GenerateOffers();
             _runState.Summon.RecordFreeReroll();
             _runState.Summon.SetOffers(offers);
+            ClearDeferredOffers();
             return RerollResult.Success;
         }
 
@@ -248,8 +282,26 @@ namespace LastTrain.Passenger
             }
 
             _runState.Summon.SetOffers(offers);
+            ClearDeferredOffers();
             StatusMessage?.Invoke("광고 리롤 성공");
             return RerollResult.Success;
+        }
+
+        private List<PassengerData> TakeDeferredOffersOrGenerate()
+        {
+            if (_deferredOffers.Count > 0)
+            {
+                var restored = new List<PassengerData>(_deferredOffers);
+                ClearDeferredOffers();
+                return restored;
+            }
+
+            return _offerService.GenerateOffers();
+        }
+
+        private void ClearDeferredOffers()
+        {
+            _deferredOffers.Clear();
         }
 
         private SummonRequestResult FailRequest(SummonRequestResult result, string message)

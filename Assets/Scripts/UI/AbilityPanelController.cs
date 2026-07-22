@@ -2,6 +2,7 @@ using System;
 using System.Text;
 using LastTrain.Ability;
 using LastTrain.Ads;
+using LastTrain.Audio;
 using LastTrain.Core;
 using LastTrain.Data;
 using LastTrain.Run;
@@ -35,6 +36,7 @@ namespace LastTrain.UI
 
         private AbilityManager _abilityManager;
         private RunState _runState;
+        private AdCoordinator _adsSubscription;
 
         public AbilityManager AbilityManager => _abilityManager;
 
@@ -117,6 +119,8 @@ namespace LastTrain.UI
 
             AppRoot.Instance?.AnalyticsRunBinder?.BindAbility(null);
 
+            UnsubscribeAds();
+
             if (_runState?.Abilities != null)
             {
                 _runState.Abilities.OffersChanged -= RefreshOfferPanel;
@@ -136,7 +140,9 @@ namespace LastTrain.UI
             AbilityOfferResult result = _abilityManager.TryBeginRewardSelection();
             if (result == AbilityOfferResult.Success)
             {
+                GameAudio.PlaySfx(SfxId.Reward);
                 ShowPanel();
+                SubscribeAds();
                 RefreshOfferPanel();
                 SetStatus("능력 카드 3장 중 하나를 선택하세요.");
             }
@@ -228,6 +234,7 @@ namespace LastTrain.UI
 
             if (_abilityManager.TrySelectOffer(index) == AbilitySelectResult.Success)
             {
+                GameAudio.PlaySfx(SfxId.UiConfirm);
                 HidePanel();
                 RefreshOwnedList();
             }
@@ -235,8 +242,14 @@ namespace LastTrain.UI
 
         private void OnFreeRerollClicked()
         {
-            _abilityManager?.TryRerollFree();
-            RefreshOfferPanel();
+            if (_abilityManager?.TryRerollFree() == AbilityRerollResult.Success)
+            {
+                GameAudio.PlaySfx(SfxId.Switch);
+                SetStatus($"무료 리롤 사용 (남은 {_abilityManager.RemainingFreeRerolls}회)");
+            }
+
+            RefreshRerollButtons();
+            RefreshOfferCards();
         }
 
         private void OnAdRerollClicked()
@@ -256,7 +269,7 @@ namespace LastTrain.UI
 
             if (!_abilityManager.HasActiveOffers
                 || _abilityManager.RemainingAdRerolls <= 0
-                || !ads.IsReady(RewardedAdPlacement.AbilityReroll))
+                || !ads.CanOfferReroll(RewardedAdPlacement.AbilityReroll))
             {
                 return;
             }
@@ -264,17 +277,72 @@ namespace LastTrain.UI
             UiInputGuard.SetInteractable(adRerollButton, false);
             ads.ShowRewarded(
                 RewardedAdPlacement.AbilityReroll,
-                () => _abilityManager.ApplyAdReroll(recordUsage: true),
-                _ => RefreshOfferPanel());
+                () =>
+                {
+                    if (_abilityManager.ApplyAdReroll(recordUsage: true) == AbilityRerollResult.Success)
+                    {
+                        GameAudio.PlaySfx(SfxId.Switch);
+                        SetStatus($"광고 리롤 사용 (남은 {_abilityManager.RemainingAdRerolls}회)");
+                    }
+
+                    RefreshRerollButtons();
+                    RefreshOfferCards();
+                },
+                result =>
+                {
+                    if (result != AdResult.Completed)
+                    {
+                        SetStatus($"광고 {(result == AdResult.Cancelled ? "취소" : "실패")} — 보상 없음");
+                    }
+
+                    RefreshRerollButtons();
+                    RefreshOfferCards();
+                });
         }
 
         private void HandleRewardFinished()
         {
+            UnsubscribeAds();
             battleBootstrap?.StationManager?.ContinueAfterAbilityReward();
             HidePanel();
         }
 
+        private void SubscribeAds()
+        {
+            UnsubscribeAds();
+            _adsSubscription = AppRoot.Instance?.Ads;
+            if (_adsSubscription != null)
+            {
+                _adsSubscription.RewardedShowFinished += HandleRewardedShowFinished;
+            }
+        }
+
+        private void UnsubscribeAds()
+        {
+            if (_adsSubscription != null)
+            {
+                _adsSubscription.RewardedShowFinished -= HandleRewardedShowFinished;
+                _adsSubscription = null;
+            }
+        }
+
+        private void HandleRewardedShowFinished(AdResult _)
+        {
+            if (root == null || !root.activeInHierarchy)
+            {
+                return;
+            }
+
+            RefreshRerollButtons();
+        }
+
         private void RefreshOfferPanel()
+        {
+            RefreshOfferCards();
+            RefreshRerollButtons();
+        }
+
+        private void RefreshOfferCards()
         {
             if (_runState?.Abilities == null)
             {
@@ -306,7 +374,10 @@ namespace LastTrain.UI
                     offerDetailLabels[i].text = ability.Description;
                 }
             }
+        }
 
+        private void RefreshRerollButtons()
+        {
             if (freeRerollButton != null)
             {
                 freeRerollButton.interactable = _abilityManager != null && _abilityManager.RemainingFreeRerolls > 0;
@@ -317,7 +388,7 @@ namespace LastTrain.UI
                 AdCoordinator ads = AppRoot.Instance?.Ads;
                 adRerollButton.interactable = _abilityManager != null
                     && _abilityManager.RemainingAdRerolls > 0
-                    && (ads == null || ads.IsReady(RewardedAdPlacement.AbilityReroll));
+                    && (ads == null || ads.CanOfferReroll(RewardedAdPlacement.AbilityReroll));
             }
         }
 
@@ -400,6 +471,7 @@ namespace LastTrain.UI
 
         private void HidePanel()
         {
+            UnsubscribeAds();
             if (root != null)
             {
                 root.SetActive(false);

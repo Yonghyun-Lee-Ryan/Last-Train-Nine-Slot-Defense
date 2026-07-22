@@ -25,6 +25,10 @@ namespace LastTrain.Data
         [SerializeField] private int rewardCoins = 15;
         [SerializeField] private bool grantsAbilityChoice;
 
+        [Header("Briefing")]
+        [TextArea(2, 4)]
+        [SerializeField] private string bossPatternHint;
+
         public string Id => id;
         public string DisplayName => displayName;
         public StationType StationType => stationType;
@@ -33,6 +37,9 @@ namespace LastTrain.Data
         public IReadOnlyList<WaveData> Waves => waves;
         public int RewardCoins => rewardCoins;
         public bool GrantsAbilityChoice => grantsAbilityChoice;
+        public string BossPatternHint => bossPatternHint ?? string.Empty;
+
+        public bool RequiresWaves => StationTypeRules.RequiresWaves(stationType);
 
         public int WaveCount => waves != null ? waves.Length : 0;
 
@@ -53,9 +60,19 @@ namespace LastTrain.Data
                 Debug.LogWarning($"[StationData] '{id}' difficultyMultiplier는 0보다 커야 합니다.", this);
             }
 
-            if (waves == null || waves.Length == 0)
+            if (RequiresWaves && (waves == null || waves.Length == 0))
             {
-                Debug.LogWarning($"[StationData] '{id}' waves가 비어 있습니다.", this);
+                // CreateInstance 테스트 인스턴스는 웨이브 없이 역 메타만 검증하는 경우가 많다.
+                if (DataValidationUtility.IsPersistedProjectAsset(this))
+                {
+                    Debug.LogWarning($"[StationData] '{id}' waves가 비어 있습니다.", this);
+                }
+
+                return;
+            }
+
+            if (waves == null)
+            {
                 return;
             }
 

@@ -12,6 +12,7 @@ namespace LastTrain.EditorTools
         private const string DatabasePath = "Assets/Data/Visual/VisualDatabase.asset";
         private const string ThemePath = "Assets/Data/Visual/VisualTheme.asset";
         private const string ResourcesDatabasePath = "Assets/Resources/VisualDatabase.asset";
+        private const string ResourcesThemePath = "Assets/Resources/VisualTheme.asset";
 
         [MenuItem("Tools/막차 생존/MVP Visual/3. Build Visual ScriptableObjects")]
         public static void BuildAll()
@@ -34,12 +35,19 @@ namespace LastTrain.EditorTools
             CreatePassengerVisual(passengers, "passenger_nurse", 3);
             CreatePassengerVisual(passengers, "passenger_developer", 4);
             CreatePassengerVisual(passengers, "passenger_graduate", 5);
+            CreatePassengerVisual(passengers, "passenger_police", 6);
+            CreatePassengerVisual(passengers, "passenger_cat", 7);
 
             var enemies = new List<EnemyVisualSet>();
             CreateEnemyVisual(enemies, "enemy_normal", 128, 0);
             CreateEnemyVisual(enemies, "enemy_fast", 128, 1);
             CreateEnemyVisual(enemies, "enemy_tank", 160, 2);
             CreateBossVisual(enemies, "enemy_boss_drunk_manager", 3);
+            CreateEnemyVisual(enemies, "enemy_split_passenger", 140, 4);
+            CreateEnemyVisual(enemies, "enemy_split_minion", 96, 5);
+            CreateEnemyVisual(enemies, "enemy_aura_watcher", 136, 6);
+            CreateEnemyVisual(enemies, "enemy_seat_blocker", 144, 7);
+            CreateBossVisual(enemies, "enemy_boss_final_conductor", 8);
 
             var projectiles = new List<ProjectileVisualSet>();
             CreateProjectile(projectiles, "projectile_default", "projectile_default");
@@ -49,6 +57,8 @@ namespace LastTrain.EditorTools
             CreateProjectile(projectiles, "projectile_nurse", "projectile_nurse");
             CreateProjectile(projectiles, "projectile_developer", "projectile_developer");
             CreateProjectile(projectiles, "projectile_graduate", "projectile_graduate");
+            CreateProjectile(projectiles, "projectile_police", "projectile_police");
+            CreateProjectile(projectiles, "projectile_cat", "projectile_cat");
             CreateProjectile(projectiles, "projectile_turret", "projectile_turret");
 
             var vfx = new List<VfxVisualSet>();
@@ -71,6 +81,7 @@ namespace LastTrain.EditorTools
             AssignDatabase(database, theme, passengers, enemies, projectiles, vfx);
 
             CopyDatabaseToResources(database);
+            CopyThemeToResources(theme);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             if (showDialog)
@@ -84,6 +95,7 @@ namespace LastTrain.EditorTools
         {
             SerializedObject so = new SerializedObject(theme);
             AssignSprite(so, "subwayBackground", "Assets/Art/Sprites/Environment/subway_background.png");
+            AssignSprite(so, "mainMenuBackground", "Assets/Art/Sprites/Environment/main_menu_background.png");
             AssignSprite(so, "spawnLane", "Assets/Art/Sprites/Environment/enemy_route_v.png");
             AssignSprite(so, "trainTarget", "Assets/Art/Sprites/Environment/train_target_car.png");
             AssignSprite(so, "seatFrame", "Assets/Art/Sprites/Environment/seat_frame.png");
@@ -217,6 +229,16 @@ namespace LastTrain.EditorTools
             }
 
             AssetDatabase.CopyAsset(DatabasePath, ResourcesDatabasePath);
+        }
+
+        private static void CopyThemeToResources(VisualTheme theme)
+        {
+            if (AssetDatabase.LoadAssetAtPath<VisualTheme>(ResourcesThemePath) != null)
+            {
+                AssetDatabase.DeleteAsset(ResourcesThemePath);
+            }
+
+            AssetDatabase.CopyAsset(AssetDatabase.GetAssetPath(theme), ResourcesThemePath);
         }
 
         private static void AssignClip(SerializedObject so, string propertyName, string sheetPath, int frameWidth, int frameHeight, bool loop)

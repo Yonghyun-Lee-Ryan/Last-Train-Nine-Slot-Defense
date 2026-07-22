@@ -31,7 +31,7 @@ namespace LastTrain.Wave
         public int SpawnedCount { get; private set; }
         public int RemainingScheduled => _entries.Count - _nextIndex;
 
-        public void Reset(WaveData wave)
+        public void Reset(WaveData wave, Difficulty.DifficultyRuntime difficulty = null)
         {
             _entries.Clear();
             _nextIndex = 0;
@@ -56,9 +56,12 @@ namespace LastTrain.Wave
                 }
 
                 float groupStart = waveDelay + Math.Max(0f, group.spawnDelay);
-                float interval = Math.Max(0f, group.spawnInterval);
+                float interval = Difficulty.DifficultyCalculator.ScaleSpawnInterval(
+                    Math.Max(0f, group.spawnInterval),
+                    difficulty);
+                int spawnCount = Difficulty.DifficultyCalculator.ScaleEnemyCount(group.count, difficulty);
 
-                for (int i = 0; i < group.count; i++)
+                for (int i = 0; i < spawnCount; i++)
                 {
                     float atTime = groupStart + interval * i;
                     _entries.Add(new SpawnEntry(atTime, group.enemy));
@@ -67,6 +70,12 @@ namespace LastTrain.Wave
 
             _entries.Sort((a, b) => a.AtTime.CompareTo(b.AtTime));
             TotalPlanned = _entries.Count;
+        }
+
+        /// <summary>난이도 미적용 리셋.</summary>
+        public void Reset(WaveData wave)
+        {
+            Reset(wave, null);
         }
 
         /// <summary>

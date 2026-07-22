@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using LastTrain.Data;
+using LastTrain.Difficulty;
 using LastTrain.Enemy;
 
 namespace LastTrain.Run
@@ -17,6 +18,9 @@ namespace LastTrain.Run
 
         public string RunId { get; private set; } = string.Empty;
         public string LineId { get; private set; } = string.Empty;
+        public string DifficultyId { get; private set; } = DifficultyIds.Normal;
+        public DifficultyRuntime Difficulty { get; private set; } = DifficultyRuntime.Identity;
+        public DifficultyModifierState DifficultyModifiers { get; } = new DifficultyModifierState();
         public TrainState Train { get; private set; }
         public CurrencyState Currency { get; private set; }
         public BattleState Battle { get; private set; }
@@ -25,7 +29,13 @@ namespace LastTrain.Run
         public SummonProgress Summon { get; private set; }
         public AbilityProgress Abilities { get; private set; }
         public SynergyProgress Synergies { get; private set; }
+        public Shop.ShopProgress Shop { get; } = new();
+        public Event.EventProgress Events { get; } = new();
+        public Relic.RelicProgress Relics { get; } = new();
+        public ShopTokenState ShopTokens { get; } = new();
+        public NextStationModifiers NextStationModifiers { get; } = new();
         public int BaseTrainMaxHp { get; private set; }
+        public float RunElapsedSeconds { get; private set; }
 
         private readonly PassengerRuntime[] _gridSlots = new PassengerRuntime[GridSlotCount];
         private readonly List<PassengerRuntime> _allPassengers = new();
@@ -41,12 +51,20 @@ namespace LastTrain.Run
 
             RunId = Guid.NewGuid().ToString("N");
             LineId = config.LineId ?? "line1";
+            RunElapsedSeconds = 0f;
+            DifficultyId = DifficultyService.ResolveSavedDifficultyId(config.DifficultyId);
+            Difficulty = DifficultyService.CreateRuntime(DifficultyId);
+            DifficultyModifiers.Reset();
+
+            int trainMaxHp = DifficultyCalculator.ApplyStartingTrainHealth(config.InitialTrainMaxHp, Difficulty);
+            int trainCurrentHp = Math.Min(trainMaxHp, config.InitialTrainCurrentHp);
+            int initialCoins = DifficultyCalculator.ApplyStartingCoins(config.InitialCoins, Difficulty);
 
             ClearGridInternal();
 
-            BaseTrainMaxHp = config.InitialTrainMaxHp;
-            Train = new TrainState(config.InitialTrainMaxHp, config.InitialTrainCurrentHp);
-            Currency = new CurrencyState(config.InitialCoins);
+            BaseTrainMaxHp = trainMaxHp;
+            Train = new TrainState(trainMaxHp, trainCurrentHp);
+            Currency = new CurrencyState(initialCoins);
             Battle = new BattleState();
             Station = new StationProgress();
             History = new RunHistory();
@@ -56,10 +74,31 @@ namespace LastTrain.Run
             Abilities.Reset();
             Synergies = new SynergyProgress();
             Synergies.Reset();
+            Shop.Reset();
+            Events.Reset();
+            Relics.Reset();
+            ShopTokens.Reset();
+            NextStationModifiers.Reset();
 
             Station.Initialize(config.InitialStationIndex);
 
+            Train.TryPreventDestruction = () => Relics.TryTriggerEmergencyHeal(Train);
             Train.Destroyed += HandleTrainDestroyed;
+        }
+
+        public void TickElapsed(float deltaTime)
+        {
+            if (deltaTime > 0f)
+            {
+                RunElapsedSeconds += deltaTime;
+            }
+        }
+
+        public void RestoreDifficulty(string difficultyId)
+        {
+            DifficultyId = DifficultyService.ResolveSavedDifficultyId(difficultyId);
+            Difficulty = DifficultyService.CreateRuntime(DifficultyId);
+            DifficultyModifiers.Reset();
         }
 
         public PassengerRuntime GetPassengerAtSlot(int slotIndex)
@@ -287,7 +326,10 @@ namespace LastTrain.Run
                 History.DiscoveredPassengerIds,
                 History.DiscoveredEnemyIds,
                 History.DiscoveredBossIds,
-                History.PassengerMasteries);
+                History.PassengerMasteries,
+                DifficultyId,
+                Difficulty?.RewardMultiplier ?? 1f,
+                RunElapsedSeconds);
         }
 
         private void RecordBossKillParticipationFromGrid()

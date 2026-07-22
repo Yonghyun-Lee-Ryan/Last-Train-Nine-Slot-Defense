@@ -1,10 +1,16 @@
+using System;
 using LastTrain.Ability;
 using LastTrain.Ads;
 using LastTrain.Analytics;
+using LastTrain.Audio;
 using LastTrain.Battle;
 using LastTrain.Core;
 using LastTrain.Data;
+using LastTrain.Difficulty;
+using LastTrain.Event;
+using LastTrain.Relic;
 using LastTrain.Run;
+using LastTrain.Shop;
 using LastTrain.Synergy;
 using UnityEngine;
 
@@ -24,6 +30,9 @@ namespace LastTrain.UI
         [SerializeField] private bool autoStartFirstWave;
 
         private StationManager _stationManager;
+        private NonCombatStationServices _nonCombatServices;
+        private RouteData _currentRoute;
+        private DifficultyModifierRunner _difficultyModifiers;
         private GameSession _gameSession;
         private AbilityPanelController _abilityPanel;
         private SynergyManager _synergyManager;
@@ -31,6 +40,7 @@ namespace LastTrain.UI
         private bool _runEndHandled;
 
         public StationManager StationManager => _stationManager;
+        public NonCombatStationServices NonCombatServices => _nonCombatServices;
         public SynergyManager SynergyManager => _synergyManager;
         public GameDatabase GameDatabase => gameDatabase;
         public bool IsPaused => _paused;
@@ -74,10 +84,10 @@ namespace LastTrain.UI
                 return;
             }
 
-            if (!gameDatabase.TryGetStationByIndex(runState.Station.CurrentStationIndex, out StationData startingStation))
+            if (!TryResolveStartingStation(runState, out StationData startingStation))
             {
                 Debug.LogError(
-                    $"[GameBattleBootstrap] stationIndex={runState.Station.CurrentStationIndex} 역 데이터를 찾지 못했습니다.",
+                    $"[GameBattleBootstrap] lineId={runState.LineId}, stationIndex={runState.Station.CurrentStationIndex} 역 데이터를 찾지 못했습니다.",
                     this);
                 return;
             }
@@ -91,7 +101,18 @@ namespace LastTrain.UI
             _synergyManager = new SynergyManager(runState, gameDatabase.Synergies);
             _synergyManager.Recalculate();
 
-            _stationManager = new StationManager(ResolveStationByIndex);
+            int seed = unchecked(runState.RunId?.GetHashCode() ?? Environment.TickCount);
+            var random = new RandomService(seed);
+            var relicManager = new RelicManager(runState, gameDatabase);
+            _nonCombatServices = new NonCombatStationServices(
+                new ShopService(runState, gameDatabase, relicManager, random),
+                new EventService(runState, gameDatabase, relicManager, random),
+                relicManager);
+
+            _stationManager = new StationManager(ResolveStationByIndex, _nonCombatServices);
+            _stationManager.WaveManager.SetDifficulty(runState.Difficulty);
+            _difficultyModifiers = new DifficultyModifierRunner();
+            _difficultyModifiers.BeginRun(runState);
             _stationManager.StationStarted += HandleStationStarted;
             _stationManager.AbilityRewardRequested += HandleAbilityRewardRequested;
             _stationManager.RunVictoryRequested += HandleRunVictoryRequested;
@@ -106,14 +127,36 @@ namespace LastTrain.UI
             AnalyticsRunBinder binder = appRoot.AnalyticsRunBinder;
             binder?.BindBattle(_stationManager, battleManager, _synergyManager, gridManager);
 
+            AppRoot.Instance?.Analytics?.BindRun(runState, runState.DifficultyId);
+
             _gameSession.RunEnded += HandleRunEnded;
 
             _runEndHandled = false;
 
             if (autoStartFirstWave)
             {
-                _stationManager.TryStartNextWave();
+                _stationManager.TryActivateStation();
             }
+        }
+
+        private bool TryResolveStartingStation(RunState runState, out StationData startingStation)
+        {
+            startingStation = null;
+            string lineId = string.IsNullOrWhiteSpace(runState.LineId) ? RouteIds.Default : runState.LineId;
+            if (gameDatabase.TryGetRoute(lineId, out _currentRoute) && _currentRoute != null)
+            {
+                if (_currentRoute.TryGetStationByIndex(runState.Station.CurrentStationIndex, out startingStation)
+                    && startingStation != null)
+                {
+                    return true;
+                }
+
+                startingStation = _currentRoute.GetFirstStation();
+                return startingStation != null;
+            }
+
+            return gameDatabase.TryGetStationByIndex(runState.Station.CurrentStationIndex, out startingStation)
+                   && startingStation != null;
         }
 
         private void Update()
@@ -124,6 +167,7 @@ namespace LastTrain.UI
             }
 
             _stationManager.Tick(Time.deltaTime, battleManager);
+            _gameSession.RunState?.TickElapsed(Time.deltaTime);
         }
 
         private void OnDestroy()
@@ -155,6 +199,12 @@ namespace LastTrain.UI
                 return;
             }
 
+            // 능력 카드 선택 UI와 역 보상 2배 광고가 겹치면 광고 리롤 버튼이 잠시 비활성화된다.
+            if (station.GrantsAbilityChoice)
+            {
+                return;
+            }
+
             ads.Limits.NotifyStationChanged(station.StationIndex);
             if (!ads.IsReady(RewardedAdPlacement.StationRewardDouble))
             {
@@ -167,10 +217,14 @@ namespace LastTrain.UI
 
         private void HandleStationStarted(StationData station)
         {
-            if (station != null && battleManager != null)
+            if (station != null && battleManager != null && _gameSession?.RunState != null)
             {
-                battleManager.SetStationDifficulty(station.DifficultyMultiplier);
+                float enemyMult = _gameSession.RunState.NextStationModifiers.ConsumeEnemyHealthMultiplier();
+                battleManager.SetStationDifficulty(station.DifficultyMultiplier, enemyMult);
             }
+
+            _difficultyModifiers?.OnStationStarted(station);
+            AppRoot.Instance?.Analytics?.BindRun(_gameSession.RunState, _gameSession.RunState?.DifficultyId);
         }
 
         private void HandleAbilityRewardRequested(StationData _)
@@ -206,6 +260,18 @@ namespace LastTrain.UI
             _stationManager?.Cancel();
             battleManager?.ClearEnemies();
 
+            if (result != null)
+            {
+                if (result.IsVictory)
+                {
+                    GameAudio.PlaySfx(SfxId.Victory);
+                }
+                else if (result.EndReason == RunEndReason.Defeat)
+                {
+                    GameAudio.PlaySfx(SfxId.Defeat);
+                }
+            }
+
             // Result Scene 전환 (오버레이가 있으면 오버레이가 전환을 담당)
             GameEndOverlayController overlay = FindAnyObjectByType<GameEndOverlayController>();
             if (overlay != null)
@@ -222,6 +288,18 @@ namespace LastTrain.UI
             if (gameDatabase == null)
             {
                 return null;
+            }
+
+            string lineId = _gameSession?.RunState?.LineId;
+            if (!string.IsNullOrWhiteSpace(lineId)
+                && gameDatabase.TryGetStationByRouteIndex(lineId, stationIndex, out StationData routeStation))
+            {
+                return routeStation;
+            }
+
+            if (_currentRoute != null && _currentRoute.TryGetStationByIndex(stationIndex, out routeStation))
+            {
+                return routeStation;
             }
 
             gameDatabase.TryGetStationByIndex(stationIndex, out StationData station);

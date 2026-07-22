@@ -21,3 +21,4 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d3be6179887972c4fbe108f89dfd63e6, type: 2}
   rewardCoins: 15
   grantsAbilityChoice: 0
+  bossPatternHint: 

@@ -1,4 +1,5 @@
 using System;
+using LastTrain.Audio;
 using LastTrain.Passenger;
 using LastTrain.Run;
 using UnityEngine;
@@ -43,7 +44,7 @@ namespace LastTrain.UI
                 closeButton.onClick.AddListener(Close);
             }
 
-            Close();
+            Close(playSfx: false);
         }
 
         public void Show(int slotIndex)
@@ -94,14 +95,27 @@ namespace LastTrain.UI
             {
                 root.SetActive(true);
             }
+
+            GameAudio.PlaySfx(SfxId.UiOpen);
         }
 
         public void Close()
         {
+            Close(playSfx: true);
+        }
+
+        private void Close(bool playSfx)
+        {
+            bool wasOpen = IsOpen;
             _slotIndex = -1;
             if (root != null)
             {
                 root.SetActive(false);
+            }
+
+            if (playSfx && wasOpen)
+            {
+                GameAudio.PlaySfx(SfxId.UiClose);
             }
         }
 
@@ -115,10 +129,11 @@ namespace LastTrain.UI
             int slot = _slotIndex;
             if (!PassengerSellService.TrySell(_runState, slot, out int coins))
             {
+                GameAudio.PlaySfx(SfxId.UiError);
                 return;
             }
 
-            Close();
+            Close(playSfx: false);
             _onSold?.Invoke(coins);
         }
 

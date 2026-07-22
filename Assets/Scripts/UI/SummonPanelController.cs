@@ -1,5 +1,6 @@
 using System;
 using LastTrain.Ads;
+using LastTrain.Audio;
 using LastTrain.Core;
 using LastTrain.Data;
 using LastTrain.Grid;
@@ -259,7 +260,13 @@ namespace LastTrain.UI
             SummonRequestResult result = _summonManager.TryBeginSummon();
             if (result == SummonRequestResult.Success)
             {
+                GameAudio.PlaySfx(SfxId.SummonOpen);
                 RefreshOfferPanel();
+            }
+            else if (result == SummonRequestResult.NotEnoughCoins
+                     || result == SummonRequestResult.NoEmptySlot)
+            {
+                GameAudio.PlaySfx(SfxId.UiError);
             }
 
             RefreshHud();
@@ -275,6 +282,7 @@ namespace LastTrain.UI
             SelectOfferResult result = _summonManager.TrySelectOffer(index, out _);
             if (result == SelectOfferResult.Success)
             {
+                GameAudio.PlaySfx(SfxId.SummonSelect);
                 gridManager?.RefreshViews();
                 SetStatus("승객을 배치했습니다.");
             }
@@ -286,6 +294,7 @@ namespace LastTrain.UI
         private void OnCancelOfferClicked()
         {
             _summonManager?.CancelOffers();
+            GameAudio.PlaySfx(SfxId.UiCancel);
             RefreshOfferPanel();
             SetStatus("소환을 취소했습니다.");
         }
@@ -299,6 +308,7 @@ namespace LastTrain.UI
 
             if (_summonManager.TryRerollFree() == RerollResult.Success)
             {
+                GameAudio.PlaySfx(SfxId.Switch);
                 SetStatus($"무료 리롤 사용 (남은 {_summonManager.RemainingFreeRerolls}회)");
             }
 
@@ -318,6 +328,7 @@ namespace LastTrain.UI
             {
                 if (_summonManager.TryRerollWithAd() == RerollResult.Success)
                 {
+                    GameAudio.PlaySfx(SfxId.Switch);
                     SetStatus($"광고 리롤 사용 (남은 {_summonManager.RemainingAdRerolls}회)");
                 }
 
@@ -331,7 +342,7 @@ namespace LastTrain.UI
                 return;
             }
 
-            if (!ads.IsReady(RewardedAdPlacement.PassengerReroll)
+            if (!ads.CanOfferReroll(RewardedAdPlacement.PassengerReroll)
                 || _summonManager.RemainingAdRerolls <= 0)
             {
                 SetStatus("광고 리롤을 사용할 수 없습니다.");
@@ -345,8 +356,12 @@ namespace LastTrain.UI
                 {
                     if (_summonManager.ApplyAdReroll(recordUsage: true) == RerollResult.Success)
                     {
+                        GameAudio.PlaySfx(SfxId.Switch);
                         SetStatus($"광고 리롤 사용 (남은 {_summonManager.RemainingAdRerolls}회)");
                     }
+
+                    RefreshOfferPanel();
+                    RefreshHud();
                 },
                 result =>
                 {
@@ -397,7 +412,7 @@ namespace LastTrain.UI
             {
                 AdCoordinator ads = AppRoot.Instance?.Ads;
                 adRerollButton.interactable = _summonManager.RemainingAdRerolls > 0
-                    && (ads == null || ads.IsReady(RewardedAdPlacement.PassengerReroll));
+                    && (ads == null || ads.CanOfferReroll(RewardedAdPlacement.PassengerReroll));
             }
         }
 

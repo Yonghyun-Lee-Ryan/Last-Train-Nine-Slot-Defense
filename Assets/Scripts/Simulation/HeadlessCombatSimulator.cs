@@ -168,7 +168,11 @@ namespace LastTrain.Simulation
 
             try
             {
-                if (!database.TryGetStationByIndex(startConfig.InitialStationIndex, out StationData startStation)
+                if ((!database.TryGetStationByRouteIndex(
+                        runState.LineId,
+                        startConfig.InitialStationIndex,
+                        out StationData startStation)
+                    && !database.TryGetStationByIndex(startConfig.InitialStationIndex, out startStation))
                     || startStation == null)
                 {
                     result.RemainingTrainHp = runState.Train.CurrentHp;
@@ -178,6 +182,11 @@ namespace LastTrain.Simulation
 
                 var stationManager = new StationManager(index =>
                 {
+                    if (database.TryGetStationByRouteIndex(runState.LineId, index, out StationData routeStation))
+                    {
+                        return routeStation;
+                    }
+
                     database.TryGetStationByIndex(index, out StationData station);
                     return station;
                 });
@@ -191,7 +200,7 @@ namespace LastTrain.Simulation
                     }
                 };
                 stationManager.Initialize(runState, startStation);
-                stationManager.TryStartNextWave();
+                stationManager.TryActivateStation();
 
                 float elapsed = 0f;
                 float dt = Mathf.Max(0.01f, config.deltaTime);
@@ -215,7 +224,7 @@ namespace LastTrain.Simulation
                         && !victory
                         && runState.Battle.IsRunActive)
                     {
-                        stationManager.TryStartNextWave();
+                        stationManager.TryActivateStation();
                     }
 
                     elapsed += dt;
@@ -300,6 +309,7 @@ namespace LastTrain.Simulation
             float bossBonus = runState.Abilities?.Modifiers?.PoliceBossDamagePercent ?? 0f;
             AbilityModifiers modifiers = runState.Abilities?.Modifiers ?? AbilityModifiers.Empty;
             SynergyModifiers synergyModifiers = runState.Synergies?.Modifiers ?? SynergyModifiers.Empty;
+            Relic.RelicModifiers relicModifiers = runState.Relics?.Modifiers ?? Relic.RelicModifiers.Empty;
             var skillRandom = new RandomService(result.Seed ^ 0x5f3759df);
 
             for (int i = 0; i < passengers.Count; i++)
@@ -324,7 +334,9 @@ namespace LastTrain.Simulation
                     TrainPosition,
                     null,
                     skillRandom,
-                    synergyModifiers);
+                    synergyModifiers,
+                    relicModifiers.CritChancePercent,
+                    relicModifiers.DeveloperTurretDurationPercent);
 
                 bool attacked = controller.Tick(
                     deltaTime,
@@ -564,7 +576,11 @@ namespace LastTrain.Simulation
                 // 시드 기반 미세 스폰 오프셋으로 재현 가능한 분산
                 float ox = (_random.NextFloat() - 0.5f) * 20f;
                 Vector2 spawn = SpawnPosition + new Vector2(ox, 0f);
-                EnemyRuntime runtime = EnemyFactory.CreateRuntime(enemyData, spawn, _difficulty);
+                EnemyRuntime runtime = EnemyFactory.CreateRuntime(
+                    enemyData,
+                    spawn,
+                    _difficulty,
+                    _runState?.Difficulty);
                 runtime.SetRouteWaypointIndex(0);
                 runtime.SetTargetable(false);
                 runtime.Died += HandleKilled;

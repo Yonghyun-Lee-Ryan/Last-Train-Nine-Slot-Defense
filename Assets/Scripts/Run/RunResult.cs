@@ -1,3 +1,5 @@
+using System;
+
 namespace LastTrain.Run
 {
     /// <summary>
@@ -27,7 +29,10 @@ namespace LastTrain.Run
             string[] discoveredPassengerIds = null,
             string[] discoveredEnemyIds = null,
             string[] discoveredBossIds = null,
-            RunPassengerMasterySnapshot[] passengerMasteries = null)
+            RunPassengerMasterySnapshot[] passengerMasteries = null,
+            string difficultyId = null,
+            float difficultyRewardMultiplier = 1f,
+            float elapsedSeconds = 0f)
         {
             RunId = runId ?? string.Empty;
             LineId = lineId ?? string.Empty;
@@ -51,6 +56,11 @@ namespace LastTrain.Run
             DiscoveredEnemyIds = discoveredEnemyIds ?? System.Array.Empty<string>();
             DiscoveredBossIds = discoveredBossIds ?? System.Array.Empty<string>();
             PassengerMasteries = passengerMasteries ?? System.Array.Empty<RunPassengerMasterySnapshot>();
+            DifficultyId = string.IsNullOrWhiteSpace(difficultyId)
+                ? Difficulty.DifficultyIds.Normal
+                : difficultyId;
+            DifficultyRewardMultiplier = difficultyRewardMultiplier > 0f ? difficultyRewardMultiplier : 1f;
+            ElapsedSeconds = Math.Max(0f, elapsedSeconds);
         }
 
         public string RunId { get; }
@@ -75,5 +85,8 @@ namespace LastTrain.Run
         public string[] DiscoveredEnemyIds { get; }
         public string[] DiscoveredBossIds { get; }
         public RunPassengerMasterySnapshot[] PassengerMasteries { get; }
+        public string DifficultyId { get; }
+        public float DifficultyRewardMultiplier { get; }
+        public float ElapsedSeconds { get; }
     }
 }

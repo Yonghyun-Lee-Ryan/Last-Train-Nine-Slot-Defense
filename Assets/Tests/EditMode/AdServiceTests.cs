@@ -205,7 +205,32 @@ namespace LastTrain.Tests.EditMode
         }
 
         [Test]
-        public void Cooldown_BlocksImmediateSecondAd()
+        public void Cooldown_BlocksImmediateSecondNonRerollAd()
+        {
+            DateTime now = new DateTime(2026, 7, 22, 0, 0, 0, DateTimeKind.Utc);
+            var limits = new AdLimitService
+            {
+                Cooldown = TimeSpan.FromSeconds(2),
+                UtcNowProvider = () => now,
+            };
+            limits.BeginRun();
+            var rewards = new AdRewardService(limits);
+
+            Assert.IsTrue(rewards.TryGrant(
+                new AdRequest(RewardedAdPlacement.Revive, "a"),
+                AdResult.Completed,
+                () => { }));
+
+            Assert.IsTrue(limits.IsOnCooldown);
+            Assert.IsFalse(limits.CanUse(RewardedAdPlacement.DoubleResultReward));
+
+            now = now.AddSeconds(2.1);
+            Assert.IsFalse(limits.IsOnCooldown);
+            Assert.IsTrue(limits.CanUse(RewardedAdPlacement.DoubleResultReward));
+        }
+
+        [Test]
+        public void RerollPlacement_AllowsImmediateSecondUse()
         {
             DateTime now = new DateTime(2026, 7, 22, 0, 0, 0, DateTimeKind.Utc);
             var limits = new AdLimitService
@@ -221,12 +246,9 @@ namespace LastTrain.Tests.EditMode
                 AdResult.Completed,
                 () => { }));
 
-            Assert.IsTrue(limits.IsOnCooldown);
-            Assert.IsFalse(limits.CanUse(RewardedAdPlacement.AbilityReroll));
-
-            now = now.AddSeconds(2.1);
             Assert.IsFalse(limits.IsOnCooldown);
-            Assert.IsTrue(limits.CanUse(RewardedAdPlacement.AbilityReroll));
+            Assert.IsTrue(limits.CanUse(RewardedAdPlacement.PassengerReroll));
+            Assert.AreEqual(1, limits.GetRemaining(RewardedAdPlacement.PassengerReroll));
         }
     }
 }
