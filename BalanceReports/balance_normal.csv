@@ -1,0 +1,14 @@
+﻿metric_id,difficulty_id,subject_id,value,label
+win_rate,normal,,1,win_rate
+reach_station_5_rate,normal,,1,reach_station_5_rate
+avg_simulated_seconds,normal,,64.0121,avg_simulated_seconds
+avg_remaining_hp,normal,,75.625,avg_remaining_hp
+avg_remaining_coins,normal,,155.25,avg_remaining_coins
+passenger_pick_rate,normal,passenger_office_worker,1,passenger_office_worker
+passenger_pick_rate,normal,passenger_delivery,1,passenger_delivery
+passenger_pick_rate,normal,passenger_trainer,1,passenger_trainer
+passenger_avg_damage,normal,passenger_delivery,400.8,passenger_delivery
+passenger_avg_damage,normal,passenger_trainer,228.75,passenger_trainer
+passenger_avg_damage,normal,passenger_office_worker,404.7,passenger_office_worker
+enemy_train_reach_rate,normal,enemy_normal,4.75,enemy_normal
+enemy_train_reach_rate,normal,enemy_fast,0.125,enemy_fast
