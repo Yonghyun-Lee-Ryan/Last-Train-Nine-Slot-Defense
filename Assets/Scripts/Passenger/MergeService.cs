@@ -1,3 +1,4 @@
+using System;
 using LastTrain.Audio;
 using LastTrain.Run;
 
@@ -6,6 +7,8 @@ namespace LastTrain.Passenger
     /// <summary>합성 판정·실행 순수 로직. UI와 분리되어 EditMode 테스트 가능.</summary>
     public static class MergeService
     {
+        /// <summary>합성 성공 시 (resultingStar, passengerId).</summary>
+        public static event Action<int, string> Merged;
         /// <summary>
         /// 같은 Passenger ID, 같은 Star Level, 최대 등급 미만일 때만 합성 가능.
         /// </summary>
@@ -82,7 +85,9 @@ namespace LastTrain.Passenger
 
             // 합성 후 공격 쿨타임은 TryUpgradeStar에서 초기화된다.
             runState.RecordMerge(target.StarLevel, target.Data.Id);
+            runState.TryPlacePendingPassengers();
             GameAudio.PlaySfx(SfxId.Merge);
+            Merged?.Invoke(target.StarLevel, target.Data.Id);
 
             result = new MergeResult(
                 sourceSlot,

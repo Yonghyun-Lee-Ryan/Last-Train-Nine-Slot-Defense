@@ -112,13 +112,16 @@ namespace LastTrain.Event
                 return false;
             }
 
+            PassengerRuntime runtime = PassengerRuntime.Create(data, starLevel);
             int slot = runState.FindFirstEmptySlot();
-            if (slot < 0)
+            if (slot >= 0)
             {
-                return false;
+                return runState.TryPlacePassenger(slot, runtime);
             }
 
-            return runState.TryPlacePassenger(slot, PassengerRuntime.Create(data, starLevel));
+            // 칸이 가득 차면 대기열에 넣고, 판매 등으로 빈 칸이 생기면 배치한다.
+            runState.EnqueuePendingPassenger(runtime);
+            return true;
         }
 
         private static bool TryGrantAbility(RunState runState, GameDatabase database, string abilityId)

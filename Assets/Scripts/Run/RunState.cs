@@ -21,6 +21,10 @@ namespace LastTrain.Run
         public string DifficultyId { get; private set; } = DifficultyIds.Normal;
         public DifficultyRuntime Difficulty { get; private set; } = DifficultyRuntime.Identity;
         public DifficultyModifierState DifficultyModifiers { get; } = new DifficultyModifierState();
+        public int RandomSeed { get; private set; }
+        public bool IsDailyRun { get; private set; }
+        public bool IsEndlessRun { get; private set; }
+        public bool AdsUsedThisRun { get; private set; }
         public TrainState Train { get; private set; }
         public CurrencyState Currency { get; private set; }
         public BattleState Battle { get; private set; }
@@ -39,8 +43,12 @@ namespace LastTrain.Run
 
         private readonly PassengerRuntime[] _gridSlots = new PassengerRuntime[GridSlotCount];
         private readonly List<PassengerRuntime> _allPassengers = new();
+        private readonly List<PassengerRuntime> _pendingPassengers = new();
 
         public IReadOnlyList<PassengerRuntime> AllPassengers => _allPassengers;
+
+        /// <summary>슬롯이 가득 차 대기 중인 지급 승객(이벤트·상점 등).</summary>
+        public IReadOnlyList<PassengerRuntime> PendingPassengers => _pendingPassengers;
 
         public void Initialize(RunStartConfig config)
         {
@@ -52,8 +60,16 @@ namespace LastTrain.Run
             RunId = Guid.NewGuid().ToString("N");
             LineId = config.LineId ?? "line1";
             RunElapsedSeconds = 0f;
+            RandomSeed = config.RandomSeed;
+            IsDailyRun = config.IsDailyRun;
+            IsEndlessRun = config.IsEndlessRun;
+            AdsUsedThisRun = false;
             DifficultyId = DifficultyService.ResolveSavedDifficultyId(config.DifficultyId);
             Difficulty = DifficultyService.CreateRuntime(DifficultyId);
+            if (config.ExtraDifficultyModifiers != null && config.ExtraDifficultyModifiers.Length > 0)
+            {
+                Difficulty = Difficulty.WithAdditionalModifiers(config.ExtraDifficultyModifiers);
+            }
             DifficultyModifiers.Reset();
 
             int trainMaxHp = DifficultyCalculator.ApplyStartingTrainHealth(config.InitialTrainMaxHp, Difficulty);
@@ -92,6 +108,11 @@ namespace LastTrain.Run
             {
                 RunElapsedSeconds += deltaTime;
             }
+        }
+
+        public void MarkAdsUsed()
+        {
+            AdsUsedThisRun = true;
         }
 
         public void RestoreDifficulty(string difficultyId)
@@ -164,6 +185,45 @@ namespace LastTrain.Run
             }
 
             return true;
+        }
+
+        /// <summary>빈 칸이 생길 때까지 대기열에 승객을 넣는다.</summary>
+        public void EnqueuePendingPassenger(PassengerRuntime passenger)
+        {
+            if (passenger == null)
+            {
+                throw new ArgumentNullException(nameof(passenger));
+            }
+
+            passenger.GridSlotIndex = -1;
+            _pendingPassengers.Add(passenger);
+        }
+
+        /// <summary>빈 슬롯이 있으면 대기 승객을 앞에서부터 배치한다.</summary>
+        public int TryPlacePendingPassengers()
+        {
+            int placed = 0;
+            while (_pendingPassengers.Count > 0)
+            {
+                int slot = FindFirstEmptySlot();
+                if (slot < 0)
+                {
+                    break;
+                }
+
+                PassengerRuntime passenger = _pendingPassengers[0];
+                _pendingPassengers.RemoveAt(0);
+                if (TryPlacePassenger(slot, passenger))
+                {
+                    placed++;
+                    continue;
+                }
+
+                _pendingPassengers.Insert(0, passenger);
+                break;
+            }
+
+            return placed;
         }
 
         /// <summary>
@@ -329,7 +389,9 @@ namespace LastTrain.Run
                 History.PassengerMasteries,
                 DifficultyId,
                 Difficulty?.RewardMultiplier ?? 1f,
-                RunElapsedSeconds);
+                RunElapsedSeconds,
+                IsEndlessRun,
+                AdsUsedThisRun);
         }
 
         private void RecordBossKillParticipationFromGrid()
@@ -370,6 +432,7 @@ namespace LastTrain.Run
             }
 
             _allPassengers.Clear();
+            _pendingPassengers.Clear();
         }
 
         private static void ValidateSlotIndex(int slotIndex)

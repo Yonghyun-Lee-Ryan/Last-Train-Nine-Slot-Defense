@@ -75,6 +75,7 @@ namespace LastTrain.Passenger
 
             AbilityEffectApplier.RefreshPassengerBuffs(runState);
             Synergy.SynergyEffectApplier.Refresh(runState);
+            runState.TryPlacePendingPassengers();
             Sold?.Invoke(slotIndex, passengerId, coinsGained, starLevel);
             return true;
         }

@@ -257,13 +257,15 @@ namespace LastTrain.Shop
                 return false;
             }
 
+            PassengerRuntime runtime = PassengerRuntime.Create(data, starLevel);
             int slot = _runState.FindFirstEmptySlot();
-            if (slot < 0)
+            if (slot >= 0)
             {
-                return false;
+                return _runState.TryPlacePassenger(slot, runtime);
             }
 
-            return _runState.TryPlacePassenger(slot, PassengerRuntime.Create(data, starLevel));
+            _runState.EnqueuePendingPassenger(runtime);
+            return true;
         }
 
         private bool TryGrantAbility(string abilityId)

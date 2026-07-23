@@ -1,6 +1,7 @@
 using LastTrain.Core;
 using LastTrain.Data;
 using LastTrain.Event;
+using LastTrain.Passenger;
 using LastTrain.Relic;
 using LastTrain.Run;
 using NUnit.Framework;
@@ -63,6 +64,54 @@ namespace LastTrain.Tests.EditMode
 
             EventChoiceResult again = _eventService.TrySelectChoice(0);
             Assert.AreEqual(EventChoiceResult.AlreadyResolved, again);
+        }
+
+        [Test]
+        public void GrantPassenger_UsesFirstEmptySlot_WhenSlotZeroOccupied()
+        {
+            _runState.TryPlacePassenger(0, PassengerRuntime.Create(_passenger));
+            Assert.IsTrue(_eventService.TryOpenEvent(_station));
+            Assert.IsTrue(_eventService.IsChoiceVisible(_eventService.GetCurrentEvent().Choices[1]));
+
+            EventChoiceResult result = _eventService.TrySelectChoice(1);
+            Assert.AreEqual(EventChoiceResult.Success, result);
+            Assert.IsNotNull(_runState.GetPassengerAtSlot(1));
+            Assert.AreEqual("passenger_police", _runState.GetPassengerAtSlot(1).Data.Id);
+            Assert.AreEqual(0, _runState.PendingPassengers.Count);
+        }
+
+        [Test]
+        public void GrantPassenger_WhenGridFull_QueuesUntilSlotFreedBySell()
+        {
+            for (int i = 0; i < RunState.GridSlotCount; i++)
+            {
+                Assert.IsTrue(_runState.TryPlacePassenger(i, PassengerRuntime.Create(_passenger)));
+            }
+
+            Assert.IsTrue(_eventService.TryOpenEvent(_station));
+            EventChoiceResult result = _eventService.TrySelectChoice(1);
+            Assert.AreEqual(EventChoiceResult.Success, result);
+            Assert.AreEqual(1, _runState.PendingPassengers.Count);
+            Assert.AreEqual(RunState.GridSlotCount, CountOccupiedSlots(_runState));
+
+            Assert.IsTrue(PassengerSellService.TrySell(_runState, 3, out _));
+            Assert.AreEqual(0, _runState.PendingPassengers.Count);
+            Assert.IsNotNull(_runState.GetPassengerAtSlot(3));
+            Assert.AreEqual("passenger_police", _runState.GetPassengerAtSlot(3).Data.Id);
+        }
+
+        private static int CountOccupiedSlots(RunState runState)
+        {
+            int count = 0;
+            for (int i = 0; i < RunState.GridSlotCount; i++)
+            {
+                if (runState.GetPassengerAtSlot(i) != null)
+                {
+                    count++;
+                }
+            }
+
+            return count;
         }
 
         private static GameDatabase CreateDatabase(out PassengerData passenger, out EventData eventData)

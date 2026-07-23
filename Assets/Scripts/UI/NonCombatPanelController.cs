@@ -268,6 +268,8 @@ namespace LastTrain.UI
             if (result == ShopPurchaseResult.Success)
             {
                 GameAudio.PlaySfx(SfxId.ShopBuy);
+                battleBootstrap?.MissionBinder?.NotifyShopPurchased();
+                RefreshGridViews();
             }
             else
             {
@@ -295,6 +297,7 @@ namespace LastTrain.UI
             {
                 GameAudio.PlaySfx(SfxId.UiConfirm);
                 GameAudio.PlaySfx(SfxId.Reward);
+                RefreshGridViews();
                 _stationManager?.TryActivateStation();
                 Hide();
                 _lastRenderedPhase = RunPhase.None;
@@ -304,6 +307,11 @@ namespace LastTrain.UI
             {
                 GameAudio.PlaySfx(SfxId.UiError);
             }
+        }
+
+        private static void RefreshGridViews()
+        {
+            FindAnyObjectByType<Grid.GridManager>()?.RefreshViews();
         }
 
         private void Hide()

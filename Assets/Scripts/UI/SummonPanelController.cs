@@ -25,6 +25,7 @@ namespace LastTrain.UI
         [SerializeField] private GridManager gridManager;
         [SerializeField] private GameDatabase gameDatabase;
         [SerializeField] private SummonEconomyConfig economyConfig;
+        [SerializeField] private GameBattleBootstrap battleBootstrap;
         [SerializeField] private int randomSeed;
 
         [Header("HUD")]
@@ -32,6 +33,9 @@ namespace LastTrain.UI
         [SerializeField] private Text costLabel;
         [SerializeField] private Text statusLabel;
         [SerializeField] private Button summonButton;
+
+        /// <summary>좌하단 코인 라벨. 획득 연출 기준점으로 사용한다.</summary>
+        public Text CoinLabel => coinLabel;
 
         [Header("Offer Popup")]
         [SerializeField] private GameObject offerPanel;
@@ -72,7 +76,26 @@ namespace LastTrain.UI
                 gridManager = FindAnyObjectByType<GridManager>();
             }
 
-            int seed = randomSeed != 0 ? randomSeed : unchecked(Environment.TickCount);
+            int seed;
+            if (_runState != null && _runState.IsDailyRun && _runState.RandomSeed != 0)
+            {
+                seed = _runState.RandomSeed;
+            }
+            else
+            {
+                seed = randomSeed != 0
+                    ? randomSeed
+                    : (_runState != null && _runState.RandomSeed != 0
+                        ? _runState.RandomSeed
+                        : unchecked(Environment.TickCount));
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                if (_runState != null
+                    && LastTrain.DebugTools.DebugCombatSettings.FixedSeed.HasValue)
+                {
+                    seed = LastTrain.DebugTools.DebugCombatSettings.FixedSeed.Value;
+                }
+#endif
+            }
             var random = new RandomService(seed);
             var unlockedPassengers = MetaSaveSystem.FilterUnlockedPassengers(gameDatabase.Passengers);
             var offerService = new PassengerOfferService(
@@ -132,6 +155,11 @@ namespace LastTrain.UI
             if (gameDatabase == null)
             {
                 gameDatabase = Resources.Load<GameDatabase>("GameDatabase");
+            }
+
+            if (battleBootstrap == null)
+            {
+                battleBootstrap = FindAnyObjectByType<GameBattleBootstrap>();
             }
         }
 
@@ -257,16 +285,26 @@ namespace LastTrain.UI
                 return;
             }
 
+            if (Tutorial.TutorialDirector.Instance != null
+                && !Tutorial.TutorialDirector.Instance.Allows(Tutorial.TutorialInputMask.Summon))
+            {
+                GameAudio.PlaySfx(SfxId.UiError);
+                return;
+            }
+
             SummonRequestResult result = _summonManager.TryBeginSummon();
             if (result == SummonRequestResult.Success)
             {
                 GameAudio.PlaySfx(SfxId.SummonOpen);
+                Tutorial.TutorialDirector.Instance?.NotifySummonOpened();
                 RefreshOfferPanel();
             }
             else if (result == SummonRequestResult.NotEnoughCoins
-                     || result == SummonRequestResult.NoEmptySlot)
+                     || result == SummonRequestResult.NoEmptySlot
+                     || result == SummonRequestResult.OfferAlreadyOpen)
             {
                 GameAudio.PlaySfx(SfxId.UiError);
+                Ux.UxGuidanceService.ShowSummonResult(result);
             }
 
             RefreshHud();
@@ -285,6 +323,27 @@ namespace LastTrain.UI
                 GameAudio.PlaySfx(SfxId.SummonSelect);
                 gridManager?.RefreshViews();
                 SetStatus("승객을 배치했습니다.");
+                Tutorial.TutorialDirector.Instance?.NotifyPassengerPlaced();
+                battleBootstrap?.MissionBinder?.NotifySummoned();
+                if (_summonManager != null && _runState != null)
+                {
+                    // 방금 배치된 승객 ID는 그리드에서 찾는다
+                    for (int i = 0; i < RunState.GridSlotCount; i++)
+                    {
+                        PassengerRuntime p = _runState.GetPassengerAtSlot(i);
+                        if (p?.Data != null)
+                        {
+                            battleBootstrap?.MissionBinder?.NotifyPassengerPlaced(p.Data.Id);
+                        }
+                    }
+                }
+
+                Ux.MergeHighlightService.Refresh(gridManager, _runState);
+            }
+            else if (result == SelectOfferResult.NoEmptySlot)
+            {
+                GameAudio.PlaySfx(SfxId.UiError);
+                Ux.UxGuidanceService.Show("빈 슬롯이 없습니다.");
             }
 
             RefreshHud();
