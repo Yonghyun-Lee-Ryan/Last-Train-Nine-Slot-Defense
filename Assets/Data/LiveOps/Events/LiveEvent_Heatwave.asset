@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e340101a2b3c4d5e6f708192a3b4c502, type: 3}
+  m_Name: LiveEvent_Heatwave
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.LiveOps.LiveEventData
+  id: event_heatwave
+  displayName: "\uD3ED\uC5FC \uB9C9\uCC28"
+  themeId: heatwave
+  startUtc: 2026-08-01T00:00:00Z
+  endUtc: 2026-08-15T00:00:00Z
+  claimExpiryUtc: 
+  eventRoute: {fileID: 0}
+  eventDifficulty: {fileID: 0}
+  eventModifiers: []
+  boostedPassengerIds:
+  - passenger_office_worker
+  restrictedPassengerIds: []
+  boostedPassengerAttackMultiplier: 1.25
+  eventMissions: []
+  eventCurrency: {fileID: 11400000, guid: 41ffc6685f976584e8e5f96073693efd, type: 2}
+  rewardTrack: {fileID: 11400000, guid: 8747e2bb4ab219747bdf515bde29e2b4, type: 2}
+  dailyCurrencyCap: 200
+  endedRewardPolicy: 0

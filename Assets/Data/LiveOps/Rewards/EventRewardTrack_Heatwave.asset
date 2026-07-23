@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e340101a2b3c4d5e6f708192a3b4c504, type: 3}
+  m_Name: EventRewardTrack_Heatwave
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.LiveOps.EventRewardTrack
+  id: track_heatwave
+  steps:
+  - rewardId: reward_10
+    requiredCurrency: 10
+    ticketFragments: 5
+    accountXp: 0
+    unlockPassengerId: 
+  - rewardId: reward_50
+    requiredCurrency: 50
+    ticketFragments: 0
+    accountXp: 20
+    unlockPassengerId: 
