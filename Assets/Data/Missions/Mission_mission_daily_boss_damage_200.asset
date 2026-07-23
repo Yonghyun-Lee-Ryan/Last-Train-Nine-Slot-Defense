@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c600345def67890123456789cdef789, type: 3}
+  m_Name: Mission_mission_daily_boss_damage_200
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Mission.MissionData
+  id: mission_daily_boss_damage_200
+  displayName: "\uBCF4\uC2A4 \uD0C0\uACA9"
+  description: "\uBCF4\uC2A4\uC5D0\uAC8C \uCD1D 200 \uD53C\uD574\uB97C \uC785\uD78C\uB2E4."
+  period: 0
+  condition:
+    type: 4
+    targetValue: 200
+    targetId: 
+    targetParam: 0
+  rewardTicketFragments: 15
+  rewardAccountXp: 25
