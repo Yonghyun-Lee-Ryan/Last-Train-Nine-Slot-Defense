@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c31f0a1b2c3d4e5f6789012345678905, type: 3}
+  m_Name: AudioData
+  m_EditorClassIdentifier: 
+  mixer: {fileID: 24100000, guid: 94ff765357fa2da4e8ffe75588fe2708, type: 2}
+  masterVolumeParam: MasterVolume
+  bgmVolumeParam: BgmVolume
+  sfxVolumeParam: SfxVolume
+  defaultSfxMinInterval: 0
+  combatHitMinInterval: 0.04
+  combatCritMinInterval: 0.08
+  enemyDeathMinInterval: 0.06
+  coinMinInterval: 0.05

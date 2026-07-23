@@ -1,6 +1,7 @@
 using LastTrain.Core;
 using LastTrain.Release;
 using UnityEngine;
+using UnityEngine.Audio;
 using UnityEngine.SceneManagement;
 
 namespace LastTrain.Audio
@@ -15,16 +16,31 @@ namespace LastTrain.Audio
         private AudioSource _sfxSource;
         private AudioListener _listener;
         private GameSettingsService _settings;
+        private AudioData _audioData;
+        private AudioMixer _mixer;
+        private AudioMixerGroup _bgmGroup;
+        private AudioMixerGroup _sfxGroup;
         private BgmId _currentBgm = BgmId.None;
         private float _bgmVolume = 0.7f;
         private float _sfxVolume = 0.85f;
+        private float _masterVolume = 1f;
 
         public void Initialize(GameSettingsService settings)
         {
             _settings = settings;
             _library.Load();
+            BindAudioData(AudioData.LoadOrNull());
             EnsureRuntime();
             ApplySettings();
+        }
+
+        public void BindAudioData(AudioData data)
+        {
+            _audioData = data;
+            AudioService.Initialize(data);
+            _mixer = data != null ? data.Mixer : null;
+            ResolveMixerGroups();
+            AssignMixerGroupsToSources();
         }
 
         public void ApplySettings()
@@ -37,6 +53,7 @@ namespace LastTrain.Audio
             EnsureRuntime();
             ResolveVolumesFromSettings();
             ApplyVolumesToSources();
+            ApplyMixerVolumes();
             AudioListener.pause = false;
             AudioListener.volume = 1f;
         }
@@ -51,6 +68,7 @@ namespace LastTrain.Audio
                 && _bgmSource.clip != null)
             {
                 ApplyVolumesToSources();
+                ApplyMixerVolumes();
                 return;
             }
 
@@ -69,7 +87,8 @@ namespace LastTrain.Audio
             _bgmSource.clip = clip;
             _bgmSource.loop = true;
             ApplyVolumesToSources();
-            if (_bgmVolume > 0.001f)
+            ApplyMixerVolumes();
+            if (_bgmVolume > 0.001f && _masterVolume > 0.001f)
             {
                 _bgmSource.UnPause();
                 _bgmSource.Play();
@@ -91,11 +110,17 @@ namespace LastTrain.Audio
             }
         }
 
+        /// <summary>외부에서는 AudioService.PlaySfx를 사용한다. 스로틀은 AudioService가 담당.</summary>
         public void PlaySfx(SfxId id, float pitch = 1f)
+        {
+            AudioService.PlaySfx(id, pitch);
+        }
+
+        internal void PlaySfxInternal(SfxId id, float pitch = 1f)
         {
             EnsureRuntime();
             ResolveVolumesFromSettings();
-            if (_sfxVolume <= 0.001f)
+            if (_sfxVolume <= 0.001f || _masterVolume <= 0.001f)
             {
                 return;
             }
@@ -106,11 +131,14 @@ namespace LastTrain.Audio
                 return;
             }
 
-            // PlayOneShot의 volumeScale로 효과음 볼륨을 직접 적용한다.
+            float scale = _mixer != null
+                ? 1f
+                : Mathf.Clamp01(_sfxVolume * _masterVolume);
+
             _sfxSource.mute = false;
             _sfxSource.volume = 1f;
             _sfxSource.pitch = Mathf.Clamp(pitch, 0.5f, 1.5f);
-            _sfxSource.PlayOneShot(clip, Mathf.Clamp01(_sfxVolume));
+            _sfxSource.PlayOneShot(clip, scale);
             _sfxSource.pitch = 1f;
         }
 
@@ -121,6 +149,7 @@ namespace LastTrain.Audio
                 return;
             }
 
+            _masterVolume = 1f;
             _bgmVolume = _settings.BgmEnabled ? Mathf.Clamp01(_settings.BgmVolume) : 0f;
             _sfxVolume = _settings.SfxEnabled ? Mathf.Clamp01(_settings.SfxVolume) : 0f;
         }
@@ -129,9 +158,11 @@ namespace LastTrain.Audio
         {
             if (_bgmSource != null)
             {
-                _bgmSource.volume = Mathf.Clamp01(_bgmVolume);
-                _bgmSource.mute = _bgmVolume <= 0.001f;
+                // Mixer가 있으면 그룹 볼륨으로 제어하고, 없으면 소스 볼륨으로 폴백한다.
+                _bgmSource.volume = _mixer != null ? 1f : Mathf.Clamp01(_bgmVolume * _masterVolume);
+                _bgmSource.mute = _bgmVolume <= 0.001f || _masterVolume <= 0.001f;
                 if (_bgmVolume > 0.001f
+                    && _masterVolume > 0.001f
                     && _currentBgm != BgmId.None
                     && _bgmSource.clip != null
                     && !_bgmSource.isPlaying)
@@ -143,15 +174,75 @@ namespace LastTrain.Audio
 
             if (_sfxSource != null)
             {
-                // 실제 배율은 PlayOneShot volumeScale에서 적용
                 _sfxSource.volume = 1f;
-                _sfxSource.mute = _sfxVolume <= 0.001f;
+                _sfxSource.mute = _sfxVolume <= 0.001f || _masterVolume <= 0.001f;
+            }
+        }
+
+        private void ApplyMixerVolumes()
+        {
+            if (_mixer == null || _audioData == null)
+            {
+                return;
+            }
+
+            SetMixerVolumeDb(_audioData.MasterVolumeParam, _masterVolume);
+            SetMixerVolumeDb(_audioData.BgmVolumeParam, _bgmVolume);
+            SetMixerVolumeDb(_audioData.SfxVolumeParam, _sfxVolume);
+        }
+
+        private void SetMixerVolumeDb(string param, float linear01)
+        {
+            if (string.IsNullOrWhiteSpace(param))
+            {
+                return;
+            }
+
+            float clamped = Mathf.Clamp01(linear01);
+            float db = clamped <= 0.0001f ? -80f : Mathf.Log10(clamped) * 20f;
+            _mixer.SetFloat(param, db);
+        }
+
+        private void ResolveMixerGroups()
+        {
+            _bgmGroup = null;
+            _sfxGroup = null;
+            if (_mixer == null)
+            {
+                return;
+            }
+
+            AudioMixerGroup[] bgm = _mixer.FindMatchingGroups("BGM");
+            if (bgm != null && bgm.Length > 0)
+            {
+                _bgmGroup = bgm[0];
+            }
+
+            AudioMixerGroup[] sfx = _mixer.FindMatchingGroups("SFX");
+            if (sfx != null && sfx.Length > 0)
+            {
+                _sfxGroup = sfx[0];
+            }
+        }
+
+        private void AssignMixerGroupsToSources()
+        {
+            EnsureSources();
+            if (_bgmSource != null)
+            {
+                _bgmSource.outputAudioMixerGroup = _bgmGroup;
+            }
+
+            if (_sfxSource != null)
+            {
+                _sfxSource.outputAudioMixerGroup = _sfxGroup;
             }
         }
 
         private void EnsureRuntime()
         {
             EnsureSources();
+            AssignMixerGroupsToSources();
             EnsureListener();
             AudioListener.pause = false;
         }
@@ -283,27 +374,27 @@ namespace LastTrain.Audio
         }
     }
 
-    /// <summary>정적 진입점. AudioManager가 없어도 안전하게 no-op.</summary>
+    /// <summary>정적 진입점. AudioManager가 없어도 안전하게 no-op. SFX는 AudioService 스로틀을 탄다.</summary>
     public static class GameAudio
     {
         public static void PlaySfx(SfxId id, float pitch = 1f)
         {
-            AudioManager.Instance?.PlaySfx(id, pitch);
+            AudioService.PlaySfx(id, pitch);
         }
 
         public static void PlayBgm(BgmId id, bool restartIfSame = false)
         {
-            AudioManager.Instance?.PlayBgm(id, restartIfSame);
+            AudioService.PlayBgm(id, restartIfSame);
         }
 
         public static void StopBgm()
         {
-            AudioManager.Instance?.StopBgm();
+            AudioService.StopBgm();
         }
 
         public static void ApplySettings()
         {
-            AudioManager.Instance?.ApplySettings();
+            AudioService.ApplySettings();
         }
     }
 }

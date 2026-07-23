@@ -146,6 +146,7 @@ namespace LastTrain.Ads
                         if (result == AdResult.Completed)
                         {
                             finalResult = onCompletedGrant(request);
+                            AppRoot.Instance?.GameSession?.RunState?.MarkAdsUsed();
                         }
                     }
                     catch (Exception e)

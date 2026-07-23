@@ -1,3 +1,4 @@
+using LastTrain.Battle;
 using LastTrain.Enemy;
 using UnityEngine;
 
@@ -43,6 +44,7 @@ namespace LastTrain.Passenger.Skills
                 context.SpawnPoint,
                 context.TrainTarget,
                 distance);
+            CombatVisualEvents.RaiseKnockbackApplied(target.Position);
 
             _cooldownRemaining = BaseCooldownSeconds;
         }

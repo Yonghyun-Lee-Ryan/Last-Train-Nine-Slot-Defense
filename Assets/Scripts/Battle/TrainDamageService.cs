@@ -26,6 +26,7 @@ namespace LastTrain.Battle
             {
                 runState.Train.ApplyDamage(damage);
                 GameAudio.PlaySfx(SfxId.TrainDamage);
+                CombatVisualEvents.RaiseTrainDamaged(damage);
             }
 
             return true;

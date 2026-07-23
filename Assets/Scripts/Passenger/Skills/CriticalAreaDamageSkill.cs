@@ -47,7 +47,12 @@ namespace LastTrain.Passenger.Skills
                               * CritDamageMultiplier
                               * context.SkillValueMultiplier;
 
-            ApplyAreaDamageOnce(context.Enemies, context.AttackerPosition, radius, rawDamage);
+            int hits = ApplyAreaDamageOnce(context.Enemies, context.AttackerPosition, radius, rawDamage);
+            if (hits > 0)
+            {
+                CombatVisualEvents.RaiseAreaAttack(context.AttackerPosition);
+            }
+
             _cooldownRemaining = BaseCooldownSeconds;
         }
 

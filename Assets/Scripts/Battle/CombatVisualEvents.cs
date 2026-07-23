@@ -11,6 +11,9 @@ namespace LastTrain.Battle
         public static event Action<EnemyRuntime> EnemyKilled;
         public static event Action<string> PassengerAttacked;
         public static event Action<Vector2> TrainHealed;
+        public static event Action<Vector2> AreaAttack;
+        public static event Action<Vector2> KnockbackApplied;
+        public static event Action<float> TrainDamaged;
 
         public static void RaiseEnemyDamaged(EnemyRuntime enemy, float damage, bool isCrit = false)
         {
@@ -45,6 +48,26 @@ namespace LastTrain.Battle
         public static void RaiseTrainHealed(Vector2 worldPosition)
         {
             TrainHealed?.Invoke(worldPosition);
+        }
+
+        public static void RaiseAreaAttack(Vector2 worldPosition)
+        {
+            AreaAttack?.Invoke(worldPosition);
+        }
+
+        public static void RaiseKnockbackApplied(Vector2 worldPosition)
+        {
+            KnockbackApplied?.Invoke(worldPosition);
+        }
+
+        public static void RaiseTrainDamaged(float damage)
+        {
+            if (damage <= 0f)
+            {
+                return;
+            }
+
+            TrainDamaged?.Invoke(damage);
         }
     }
 }

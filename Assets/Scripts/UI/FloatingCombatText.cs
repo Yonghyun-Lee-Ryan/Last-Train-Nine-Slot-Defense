@@ -1,4 +1,5 @@
 using System.Collections;
+using LastTrain.Feedback;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -12,24 +13,59 @@ namespace LastTrain.UI
         [SerializeField] private float riseDistance = 80f;
 
         private RectTransform _rect;
+        private FloatingTextPool _pool;
+        private bool _useWorldSpace;
 
         public void Play(string message, Color color, Vector2 anchoredStart)
         {
+            Play(message, color, anchoredStart, null, useWorldSpace: false);
+        }
+
+        public void Play(string message, Color color, Vector2 anchoredStart, FloatingTextPool pool)
+        {
+            Play(message, color, anchoredStart, pool, useWorldSpace: false);
+        }
+
+        public void PlayAtWorld(string message, Color color, Vector2 worldPosition, FloatingTextPool pool)
+        {
+            Play(message, color, worldPosition, pool, useWorldSpace: true);
+        }
+
+        private void Play(
+            string message,
+            Color color,
+            Vector2 start,
+            FloatingTextPool pool,
+            bool useWorldSpace)
+        {
+            _pool = pool;
+            _useWorldSpace = useWorldSpace;
             if (label == null)
             {
                 label = GetComponentInChildren<Text>();
             }
 
             _rect = transform as RectTransform;
+            if (_rect != null)
+            {
+                _rect.anchorMin = new Vector2(0.5f, 0.5f);
+                _rect.anchorMax = new Vector2(0.5f, 0.5f);
+                _rect.pivot = new Vector2(0.5f, 0.5f);
+                if (_useWorldSpace)
+                {
+                    _rect.position = new Vector3(start.x, start.y, _rect.position.z);
+                }
+                else
+                {
+                    _rect.anchoredPosition = start;
+                }
+            }
+
             if (label != null)
             {
                 label.text = message;
                 label.color = color;
-            }
-
-            if (_rect != null)
-            {
-                _rect.anchoredPosition = anchoredStart;
+                label.raycastTarget = false;
             }
 
             StopAllCoroutines();
@@ -39,7 +75,8 @@ namespace LastTrain.UI
         private IEnumerator Animate()
         {
             float elapsed = 0f;
-            Vector2 start = _rect != null ? _rect.anchoredPosition : Vector2.zero;
+            Vector3 worldStart = _rect != null ? _rect.position : Vector3.zero;
+            Vector2 anchoredStart = _rect != null ? _rect.anchoredPosition : Vector2.zero;
             Color startColor = label != null ? label.color : Color.white;
 
             while (elapsed < lifetime)
@@ -48,7 +85,14 @@ namespace LastTrain.UI
                 float t = Mathf.Clamp01(elapsed / lifetime);
                 if (_rect != null)
                 {
-                    _rect.anchoredPosition = start + Vector2.up * (riseDistance * t);
+                    if (_useWorldSpace)
+                    {
+                        _rect.position = worldStart + Vector3.up * (riseDistance * t);
+                    }
+                    else
+                    {
+                        _rect.anchoredPosition = anchoredStart + Vector2.up * (riseDistance * t);
+                    }
                 }
 
                 if (label != null)
@@ -61,7 +105,14 @@ namespace LastTrain.UI
                 yield return null;
             }
 
-            Destroy(gameObject);
+            if (_pool != null)
+            {
+                _pool.Release(this);
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
         }
     }
 }

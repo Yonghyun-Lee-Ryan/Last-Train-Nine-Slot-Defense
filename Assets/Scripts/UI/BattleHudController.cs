@@ -3,7 +3,9 @@ using LastTrain.Audio;
 using LastTrain.Battle;
 using LastTrain.Core;
 using LastTrain.Data;
+using LastTrain.Feedback;
 using LastTrain.Grid;
+using LastTrain.Release;
 using LastTrain.Run;
 using LastTrain.Save;
 using UnityEngine;
@@ -46,6 +48,9 @@ namespace LastTrain.UI
         [SerializeField] private GameObject pauseOverlay;
         [SerializeField] private Button resumeButton;
         [SerializeField] private Button mainMenuFromPauseButton;
+        [SerializeField] private Button settingsFromPauseButton;
+
+        private SettingsPanelController _settingsPanel;
 
         private RunState _runState;
         private GameSession _session;
@@ -57,6 +62,7 @@ namespace LastTrain.UI
         private int _lastCoins = -1;
         private int _lastHp = -1;
         private int _totalStations = 5;
+        private SummonPanelController _summonPanel;
 
         private void Start()
         {
@@ -100,6 +106,8 @@ namespace LastTrain.UI
             EnsurePauseOverlayButtons();
             WireButtons();
             ApplyHudTheme();
+            HideTopCoinDisplay();
+            BindCameraShakeTarget();
             detailPopup?.Initialize(_runState, OnPassengerSold);
             if (pauseOverlay != null)
             {
@@ -130,7 +138,7 @@ namespace LastTrain.UI
             UiButtonStyler.ApplyStandardTheme(pauseButton);
             UiButtonStyler.ApplyStandardTheme(resumeButton);
 
-            AttachLabelIcon(coinLabel, theme.IconCoin);
+            // 우상단 코인은 숨김 — 좌하단 SummonPanel만 사용.
             AttachLabelIcon(stationLabel, theme.IconStation);
             AttachLabelIcon(waveLabel, theme.IconWave);
             AttachButtonIcon(readyButton, theme.IconReady);
@@ -359,6 +367,11 @@ namespace LastTrain.UI
             {
                 mainMenuFromPauseButton.onClick.AddListener(OnMainMenuFromPauseClicked);
             }
+
+            if (settingsFromPauseButton != null)
+            {
+                settingsFromPauseButton.onClick.AddListener(OnSettingsFromPauseClicked);
+            }
         }
 
         private void UnwireButtons()
@@ -387,12 +400,25 @@ namespace LastTrain.UI
             {
                 mainMenuFromPauseButton.onClick.RemoveListener(OnMainMenuFromPauseClicked);
             }
+
+            if (settingsFromPauseButton != null)
+            {
+                settingsFromPauseButton.onClick.RemoveListener(OnSettingsFromPauseClicked);
+            }
         }
 
         private void OnReadyClicked()
         {
             if (!_inputGuard.TryAcquire() || _paused)
             {
+                return;
+            }
+
+            if (Tutorial.TutorialDirector.Instance != null
+                && !Tutorial.TutorialDirector.Instance.Allows(Tutorial.TutorialInputMask.Ready))
+            {
+                GameAudio.PlaySfx(SfxId.UiError);
+                SetStatus("튜토리얼 안내를 먼저 확인하세요.");
                 return;
             }
 
@@ -507,6 +533,26 @@ namespace LastTrain.UI
             HideAbilityOwnedLabel(false);
         }
 
+        private void OnSettingsFromPauseClicked()
+        {
+            if (!_inputGuard.TryAcquire())
+            {
+                return;
+            }
+
+            if (_settingsPanel == null)
+            {
+                _settingsPanel = GetComponent<SettingsPanelController>();
+                if (_settingsPanel == null)
+                {
+                    _settingsPanel = gameObject.AddComponent<SettingsPanelController>();
+                }
+            }
+
+            GameAudio.PlaySfx(SfxId.UiOpen);
+            _settingsPanel.Show();
+        }
+
         private void OnMainMenuFromPauseClicked()
         {
             if (!_inputGuard.TryAcquire())
@@ -525,6 +571,9 @@ namespace LastTrain.UI
             AudioListener.pause = false;
             SceneFlow.Load(SceneNames.MainMenu);
         }
+
+        private const float PauseButtonWidth = 560f;
+        private const float PauseButtonHeight = 100f;
 
         private void EnsurePauseOverlayButtons()
         {
@@ -560,26 +609,81 @@ namespace LastTrain.UI
                     pauseOverlay.transform,
                     "MainMenuButton",
                     "메인 메뉴",
-                    new Vector2(0f, -160f));
+                    new Vector2(0f, -90f));
             }
 
-            if (resumeButton != null)
+            if (settingsFromPauseButton == null)
             {
-                RectTransform resumeRect = resumeButton.GetComponent<RectTransform>();
-                if (resumeRect != null)
+                Transform existingSettings = pauseOverlay.transform.Find("SettingsButton");
+                if (existingSettings != null)
                 {
-                    resumeRect.anchoredPosition = new Vector2(0f, -20f);
+                    settingsFromPauseButton = existingSettings.GetComponent<Button>();
                 }
-
-                UiButtonStyler.ApplyStandardTheme(resumeButton);
             }
 
-            UiButtonStyler.ApplyStandardTheme(mainMenuFromPauseButton);
+            if (settingsFromPauseButton == null)
+            {
+                settingsFromPauseButton = CreatePauseMenuButton(
+                    pauseOverlay.transform,
+                    "SettingsButton",
+                    "설정",
+                    new Vector2(0f, -220f));
+            }
+
+            ApplyPauseButtonLayout(resumeButton, new Vector2(0f, 80f), "계속하기");
+            ApplyPauseButtonLayout(settingsFromPauseButton, new Vector2(0f, -50f), "설정");
+            ApplyPauseButtonLayout(mainMenuFromPauseButton, new Vector2(0f, -180f), "메인 메뉴");
+
+            if (settingsFromPauseButton != null)
+            {
+                settingsFromPauseButton.onClick.RemoveListener(OnSettingsFromPauseClicked);
+                settingsFromPauseButton.onClick.AddListener(OnSettingsFromPauseClicked);
+            }
 
             Transform title = pauseOverlay.transform.Find("PauseTitle");
             if (title is RectTransform titleRect)
             {
-                titleRect.anchoredPosition = new Vector2(0f, 140f);
+                titleRect.anchoredPosition = new Vector2(0f, 200f);
+            }
+        }
+
+        private static void ApplyPauseButtonLayout(Button button, Vector2 anchoredPos, string label)
+        {
+            if (button == null)
+            {
+                return;
+            }
+
+            RectTransform rect = button.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = anchoredPos;
+            rect.sizeDelta = new Vector2(PauseButtonWidth, PauseButtonHeight);
+
+            UiButtonStyler.ApplyStandardTheme(button);
+
+            Text text = button.GetComponentInChildren<Text>();
+            if (text != null)
+            {
+                if (!string.IsNullOrWhiteSpace(label))
+                {
+                    text.text = label;
+                }
+
+                text.alignment = TextAnchor.MiddleCenter;
+                text.fontSize = 36;
+                text.color = Color.white;
+                if (text.font == null)
+                {
+                    text.font = GameFontProvider.Get();
+                }
+
+                RectTransform textRect = text.rectTransform;
+                textRect.anchorMin = Vector2.zero;
+                textRect.anchorMax = Vector2.one;
+                textRect.offsetMin = Vector2.zero;
+                textRect.offsetMax = Vector2.zero;
             }
         }
 
@@ -589,7 +693,7 @@ namespace LastTrain.UI
             RectTransform rect = go.GetComponent<RectTransform>();
             rect.SetParent(parent, false);
             rect.anchoredPosition = anchoredPos;
-            rect.sizeDelta = new Vector2(320f, 100f);
+            rect.sizeDelta = new Vector2(PauseButtonWidth, PauseButtonHeight);
 
             Button button = go.GetComponent<Button>();
             var textGo = new GameObject("Text", typeof(RectTransform), typeof(Text));
@@ -664,7 +768,7 @@ namespace LastTrain.UI
         {
             gridManager?.ClearSelection();
             gridManager?.RefreshViews();
-            SpawnFloatingText($"+{coins}", new Color(1f, 0.85f, 0.2f), new Vector2(0f, 120f));
+            SpawnCoinGainText(coins);
             SetStatus($"판매 완료 (+{coins})");
             RefreshAll();
         }
@@ -673,20 +777,79 @@ namespace LastTrain.UI
         {
             if (_lastCoins >= 0 && coins > _lastCoins)
             {
-                SpawnFloatingText($"+{coins - _lastCoins}", new Color(1f, 0.85f, 0.2f), new Vector2(180f, 200f));
+                SpawnCoinGainText(coins - _lastCoins);
             }
 
             _lastCoins = coins;
             RefreshCoins();
         }
 
-        private void HandleHpChanged(int current, int max)
+        private void HideTopCoinDisplay()
         {
-            if (_lastHp >= 0 && current < _lastHp)
+            if (coinLabel != null)
             {
-                SpawnFloatingText($"-{_lastHp - current}", new Color(1f, 0.35f, 0.35f), new Vector2(-180f, 200f));
+                coinLabel.gameObject.SetActive(false);
+            }
+        }
+
+        private void BindCameraShakeTarget()
+        {
+            Canvas canvas = gridManager != null ? gridManager.RootCanvas : null;
+            if (canvas == null)
+            {
+                canvas = FindAnyObjectByType<Canvas>();
             }
 
+            if (canvas == null)
+            {
+                return;
+            }
+
+            Transform root = canvas.rootCanvas != null ? canvas.rootCanvas.transform : canvas.transform;
+            Transform safeArea = root.Find("SafeArea");
+            // Canvas 루트는 CanvasScaler가 위치를 덮어쓰므로 SafeArea를 흔든다.
+            Ux.CameraShakeService.SetTarget(safeArea != null ? safeArea : root);
+        }
+
+        private void SpawnCoinGainText(int amount)
+        {
+            if (amount <= 0)
+            {
+                return;
+            }
+
+            GameSettingsService settings = AppRoot.Instance?.GameSettings;
+            if (settings != null && !settings.CoinNumbersEnabled)
+            {
+                return;
+            }
+
+            string message = $"+{amount}";
+            Color color = new Color(1f, 0.85f, 0.2f);
+            FloatingTextPool pool = ResolveFloatingTextPool();
+            Text bottomCoinLabel = ResolveBottomCoinLabel();
+            if (pool != null && bottomCoinLabel != null)
+            {
+                Vector3 world = bottomCoinLabel.rectTransform.position + Vector3.up * 42f;
+                pool.SpawnWorld(message, color, world, null, null, FloatingTextKind.Coin);
+                return;
+            }
+
+            SpawnFloatingText(message, color, new Vector2(-520f, -820f), FloatingTextKind.Coin);
+        }
+
+        private Text ResolveBottomCoinLabel()
+        {
+            if (_summonPanel == null)
+            {
+                _summonPanel = FindAnyObjectByType<SummonPanelController>();
+            }
+
+            return _summonPanel != null ? _summonPanel.CoinLabel : null;
+        }
+
+        private void HandleHpChanged(int current, int max)
+        {
             _lastHp = current;
             RefreshTrainHp();
         }
@@ -824,10 +987,7 @@ namespace LastTrain.UI
 
         private void RefreshCoins()
         {
-            if (coinLabel != null && _runState?.Currency != null)
-            {
-                coinLabel.text = $"코인 {_runState.Currency.CurrentCoins}";
-            }
+            // 우상단 코인 HUD는 숨김. 실제 수치는 SummonPanelController가 갱신한다.
         }
 
         private void RefreshStationWave()
@@ -892,8 +1052,38 @@ namespace LastTrain.UI
             readyButton.interactable = canReady && !_paused;
         }
 
-        private void SpawnFloatingText(string message, Color color, Vector2 anchoredPos)
+        private void SpawnFloatingText(
+            string message,
+            Color color,
+            Vector2 anchoredPos,
+            FloatingTextKind kind = FloatingTextKind.Damage)
         {
+            FloatingTextPool pool = ResolveFloatingTextPool();
+            if (pool != null)
+            {
+                pool.Spawn(message, color, anchoredPos, kind);
+                return;
+            }
+
+            GameSettingsService settings = AppRoot.Instance?.GameSettings;
+            if (settings != null)
+            {
+                if (kind == FloatingTextKind.Damage && !settings.DamageNumbersEnabled)
+                {
+                    return;
+                }
+
+                if (kind == FloatingTextKind.Coin && !settings.CoinNumbersEnabled)
+                {
+                    return;
+                }
+
+                if (settings.LowFxMode && UnityEngine.Random.value > 0.4f)
+                {
+                    return;
+                }
+            }
+
             if (floatingTextPrefab == null || floatingTextRoot == null)
             {
                 return;
@@ -901,6 +1091,17 @@ namespace LastTrain.UI
 
             FloatingCombatText instance = Instantiate(floatingTextPrefab, floatingTextRoot);
             instance.Play(message, color, anchoredPos);
+        }
+
+        private FloatingTextPool ResolveFloatingTextPool()
+        {
+            UiVfxInstaller installer = FindAnyObjectByType<UiVfxInstaller>();
+            return installer != null ? installer.FloatingTexts : null;
+        }
+
+        public void ShowStatusMessage(string message)
+        {
+            SetStatus(message);
         }
 
         private void SetStatus(string message)

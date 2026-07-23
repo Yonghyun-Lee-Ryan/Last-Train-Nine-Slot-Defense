@@ -47,8 +47,12 @@ namespace LastTrain.UI
             RectTransform rect = transform as RectTransform;
             if (rect != null)
             {
-                rect.position = worldPosition;
+                // stretch 앵커면 position 지정이 어긋나므로 중앙 고정 앵커로 맞춘다.
+                rect.anchorMin = new Vector2(0.5f, 0.5f);
+                rect.anchorMax = new Vector2(0.5f, 0.5f);
+                rect.pivot = new Vector2(0.5f, 0.5f);
                 rect.sizeDelta = new Vector2(visual.Size, visual.Size);
+                rect.position = new Vector3(worldPosition.x, worldPosition.y, rect.position.z);
             }
 
             image.color = visual.Tint;
@@ -67,8 +71,11 @@ namespace LastTrain.UI
             RectTransform rect = transform as RectTransform;
             if (rect != null)
             {
-                rect.position = worldPosition;
+                rect.anchorMin = new Vector2(0.5f, 0.5f);
+                rect.anchorMax = new Vector2(0.5f, 0.5f);
+                rect.pivot = new Vector2(0.5f, 0.5f);
                 rect.sizeDelta = new Vector2(size, size);
+                rect.position = new Vector3(worldPosition.x, worldPosition.y, rect.position.z);
             }
 
             image.color = tint;

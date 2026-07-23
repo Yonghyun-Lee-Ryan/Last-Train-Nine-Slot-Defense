@@ -48,11 +48,12 @@ namespace LastTrain.UI
                 return;
             }
 
-            _inUse.Remove(controller);
-            if (!_available.Contains(controller))
+            if (!_inUse.Remove(controller))
             {
-                _available.Enqueue(controller);
+                return;
             }
+
+            _available.Enqueue(controller);
         }
 
         private UiVfxController Get()
@@ -116,6 +117,10 @@ namespace LastTrain.UI
             var go = new GameObject("UiVfxTemplate", typeof(RectTransform), typeof(UnityEngine.UI.Image), typeof(UiVfxController));
             go.transform.SetParent(poolRoot, false);
             go.SetActive(false);
+            RectTransform rect = go.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
             prefab = go.GetComponent<UiVfxController>();
             prefab.Configure(this);
         }

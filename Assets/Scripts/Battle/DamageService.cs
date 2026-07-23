@@ -7,9 +7,6 @@ namespace LastTrain.Battle
     /// <summary>피해 계산 및 적용.</summary>
     public static class DamageService
     {
-        private static float _nextHitSfxTime;
-        private static float _nextCritSfxTime;
-
         /// <summary>
         /// 방어력을 적용한 최종 피해를 계산한다.
         /// defense는 0~1 비율 감소(예: 0.2 = 20% 감소).
@@ -36,19 +33,7 @@ namespace LastTrain.Battle
             enemy.ApplyDamage(finalDamage);
             CombatVisualEvents.RaiseEnemyDamaged(enemy, finalDamage, isCrit);
 
-            if (isCrit)
-            {
-                if (Time.unscaledTime >= _nextCritSfxTime)
-                {
-                    GameAudio.PlaySfx(SfxId.CombatCrit);
-                    _nextCritSfxTime = Time.unscaledTime + 0.08f;
-                }
-            }
-            else if (Time.unscaledTime >= _nextHitSfxTime)
-            {
-                GameAudio.PlaySfx(SfxId.CombatHit);
-                _nextHitSfxTime = Time.unscaledTime + 0.04f;
-            }
+            GameAudio.PlaySfx(isCrit ? SfxId.CombatCrit : SfxId.CombatHit);
 
             if (!enemy.IsAlive)
             {

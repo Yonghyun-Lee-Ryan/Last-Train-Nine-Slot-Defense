@@ -46,11 +46,12 @@ namespace LastTrain.Battle
                 return;
             }
 
-            _inUse.Remove(projectile);
-            if (!_available.Contains(projectile))
+            if (!_inUse.Remove(projectile))
             {
-                _available.Enqueue(projectile);
+                return;
             }
+
+            _available.Enqueue(projectile);
         }
 
         private ProjectileController Get()
