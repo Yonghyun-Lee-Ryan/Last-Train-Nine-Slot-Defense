@@ -81,6 +81,8 @@ namespace LastTrain.Simulation
             aggregate.AvgDamageByPassengerId = AverageMap(damageTotals, iterations);
             aggregate.AvgSkillTicksByPassengerId = AverageMap(skillTotals, iterations);
             aggregate.AvgTrainReachesByEnemyId = AverageMap(reachTotals, iterations);
+            aggregate.DifficultyId = config.difficultyId ?? string.Empty;
+            FillAggregateExtras(aggregate, config);
 
             if (aggregate.MinRemainingHp == float.MaxValue)
             {
@@ -234,8 +236,26 @@ namespace LastTrain.Simulation
                 result.SimulatedSeconds = elapsed;
                 result.RemainingTrainHp = runState.Train.CurrentHp;
                 result.TrainMaxHp = runState.Train.MaxHp;
+                result.RemainingCoins = runState.Currency.CurrentCoins;
+                result.ReachedStationIndex = runState.Station.CurrentStationIndex;
+                result.DifficultyId = config.difficultyId ?? string.Empty;
                 result.EnemiesKilled = runState.History.EnemiesKilled;
                 result.BossesKilled = runState.History.BossesKilled;
+
+                if (runState.Synergies?.Active != null)
+                {
+                    for (int s = 0; s < runState.Synergies.Active.Count; s++)
+                    {
+                        var synergy = runState.Synergies.Active[s];
+                        if (synergy == null || string.IsNullOrWhiteSpace(synergy.Id))
+                        {
+                            continue;
+                        }
+
+                        result.SynergyActivations[synergy.Id] = 1;
+                    }
+                }
+
                 return result;
             }
             finally
@@ -496,6 +516,112 @@ namespace LastTrain.Simulation
                 }
 
                 totals[pair.Key] = current + pair.Value;
+            }
+        }
+
+        private static void FillAggregateExtras(BattleSimulationAggregate aggregate, BattleSimulationConfig config)
+        {
+            if (aggregate?.Runs == null || aggregate.Runs.Count == 0)
+            {
+                return;
+            }
+
+            int n = aggregate.Runs.Count;
+            float coins = 0f;
+            int reach5 = 0;
+            var failCounts = new Dictionary<int, int>();
+            var reachCounts = new Dictionary<int, int>();
+            var passengerPicks = new Dictionary<string, int>(StringComparer.Ordinal);
+            var abilityPicks = new Dictionary<string, int>(StringComparer.Ordinal);
+            var synergyCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+
+            if (config?.slots != null)
+            {
+                for (int i = 0; i < config.slots.Length; i++)
+                {
+                    string id = config.slots[i]?.passengerId;
+                    if (string.IsNullOrWhiteSpace(id))
+                    {
+                        continue;
+                    }
+
+                    passengerPicks[id] = passengerPicks.TryGetValue(id, out int c) ? c + 1 : 1;
+                }
+            }
+
+            if (config?.abilityIds != null)
+            {
+                for (int i = 0; i < config.abilityIds.Length; i++)
+                {
+                    string id = config.abilityIds[i];
+                    if (string.IsNullOrWhiteSpace(id))
+                    {
+                        continue;
+                    }
+
+                    abilityPicks[id] = abilityPicks.TryGetValue(id, out int c) ? c + 1 : 1;
+                }
+            }
+
+            int maxStation = Math.Max(1, config != null ? config.maxStationIndex : 1);
+            for (int i = 0; i < n; i++)
+            {
+                BattleSimulationRunResult run = aggregate.Runs[i];
+                coins += run.RemainingCoins;
+                int reached = Math.Max(1, run.ReachedStationIndex);
+                if (reached >= 5 || run.IsVictory)
+                {
+                    reach5++;
+                }
+
+                if (!run.IsVictory)
+                {
+                    failCounts[reached] = failCounts.TryGetValue(reached, out int fc) ? fc + 1 : 1;
+                }
+
+                for (int s = 1; s <= maxStation; s++)
+                {
+                    if (reached >= s || run.IsVictory)
+                    {
+                        reachCounts[s] = reachCounts.TryGetValue(s, out int rc) ? rc + 1 : 1;
+                    }
+                }
+
+                foreach (KeyValuePair<string, int> pair in run.SynergyActivations)
+                {
+                    synergyCounts[pair.Key] = synergyCounts.TryGetValue(pair.Key, out int sc)
+                        ? sc + 1
+                        : 1;
+                }
+            }
+
+            aggregate.AvgRemainingCoins = coins / n;
+            aggregate.ReachStation5Rate = reach5 / (float)n;
+
+            foreach (KeyValuePair<int, int> pair in failCounts)
+            {
+                aggregate.FailRateByStationIndex[pair.Key] = pair.Value / (float)n;
+            }
+
+            for (int s = 1; s <= maxStation; s++)
+            {
+                float rate = reachCounts.TryGetValue(s, out int count) ? count / (float)n : 0f;
+                aggregate.SurvivalCurveByStation[s] = rate;
+            }
+
+            foreach (KeyValuePair<string, int> pair in passengerPicks)
+            {
+                aggregate.PassengerPickRate[pair.Key] = 1f; // 고정 슬롯 구성이면 픽률 100%
+            }
+
+            foreach (KeyValuePair<string, int> pair in abilityPicks)
+            {
+                aggregate.AbilityPickRate[pair.Key] = 1f;
+            }
+
+            foreach (KeyValuePair<string, int> pair in synergyCounts)
+            {
+                aggregate.SynergyActivationRate[pair.Key] = pair.Value / (float)n;
             }
         }
 

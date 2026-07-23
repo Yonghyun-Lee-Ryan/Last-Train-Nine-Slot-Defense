@@ -38,6 +38,9 @@ namespace LastTrain.Save
 
         public string lineId = string.Empty;
         public string difficultyId = DifficultyIds.Normal;
+        public bool isDailyRun;
+        public bool isEndlessRun;
+        public int randomSeed;
 
         public bool shopActive;
         public bool shopResolved;
@@ -57,6 +60,9 @@ namespace LastTrain.Save
         public int summonCostReductionStacks;
         public float nextEnemyHealthMultiplier = 1f;
         public float nextRewardCoinMultiplier = 1f;
+
+        /// <summary>슬롯이 가득 차 대기 중인 지급 승객.</summary>
+        public SlotSave[] pendingPassengers = Array.Empty<SlotSave>();
 
         [Serializable]
         public struct SlotSave

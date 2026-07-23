@@ -40,6 +40,11 @@ namespace LastTrain.Save
             }
 
             RunState runState = session.RunState;
+            if (runState.IsDailyRun)
+            {
+                return false;
+            }
+
             if (runState.Battle == null
                 || !runState.Battle.IsRunActive
                 || runState.Battle.CurrentPhase != RunPhase.Preparing)

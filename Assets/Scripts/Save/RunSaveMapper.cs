@@ -28,6 +28,24 @@ namespace LastTrain.Save
             config.InitialStationIndex = data.stationIndex >= 1 ? data.stationIndex : config.InitialStationIndex;
             config.LineId = string.IsNullOrWhiteSpace(data.lineId) ? config.LineId : data.lineId;
             config.DifficultyId = DifficultyService.ResolveSavedDifficultyId(data.difficultyId);
+            config.IsDailyRun = data.isDailyRun;
+            config.IsEndlessRun = data.isEndlessRun;
+            config.RandomSeed = data.randomSeed;
+            if (config.IsEndlessRun)
+            {
+                EndlessRouteData endless = GameDatabaseLocator.Load()?.EndlessRoute;
+                if (endless?.DepthModifiers != null && endless.DepthModifiers.Count > 0)
+                {
+                    var mods = new DifficultyModifierData[endless.DepthModifiers.Count];
+                    for (int i = 0; i < mods.Length; i++)
+                    {
+                        mods[i] = endless.DepthModifiers[i];
+                    }
+
+                    config.ExtraDifficultyModifiers = mods;
+                    config.LineId = RouteIds.Endless;
+                }
+            }
 
             return config;
         }
@@ -65,6 +83,9 @@ namespace LastTrain.Save
 
                 lineId = runState.LineId ?? string.Empty,
                 difficultyId = runState.DifficultyId ?? DifficultyIds.Normal,
+                isDailyRun = runState.IsDailyRun,
+                isEndlessRun = runState.IsEndlessRun,
+                randomSeed = runState.RandomSeed,
             };
 
             data.slots = new RunSaveData.SlotSave[RunState.GridSlotCount];
@@ -119,6 +140,25 @@ namespace LastTrain.Save
             data.eventStationId = runState.Events.StationId;
             data.eventId = runState.Events.EventId;
             data.eventChoiceIndex = runState.Events.SelectedChoiceIndex;
+
+            IReadOnlyList<PassengerRuntime> pending = runState.PendingPassengers;
+            if (pending != null && pending.Count > 0)
+            {
+                data.pendingPassengers = new RunSaveData.SlotSave[pending.Count];
+                for (int i = 0; i < pending.Count; i++)
+                {
+                    PassengerRuntime passenger = pending[i];
+                    data.pendingPassengers[i] = new RunSaveData.SlotSave
+                    {
+                        passengerId = passenger?.Data?.Id ?? string.Empty,
+                        starLevel = passenger?.StarLevel ?? 1
+                    };
+                }
+            }
+            else
+            {
+                data.pendingPassengers = Array.Empty<RunSaveData.SlotSave>();
+            }
 
             return data;
         }
@@ -233,6 +273,28 @@ namespace LastTrain.Save
 
                     runState.TryPlacePassengerFromSave(slot, passenger);
                 }
+            }
+
+            if (data.pendingPassengers != null)
+            {
+                for (int i = 0; i < data.pendingPassengers.Length; i++)
+                {
+                    RunSaveData.SlotSave pending = data.pendingPassengers[i];
+                    if (string.IsNullOrWhiteSpace(pending.passengerId))
+                    {
+                        continue;
+                    }
+
+                    if (!gameDatabase.TryGetPassenger(pending.passengerId, out PassengerData pendingData))
+                    {
+                        continue;
+                    }
+
+                    runState.EnqueuePendingPassenger(
+                        PassengerRuntime.Create(pendingData, starLevel: Math.Max(1, pending.starLevel)));
+                }
+
+                runState.TryPlacePendingPassengers();
             }
 
             // 3) Abilities (selected)

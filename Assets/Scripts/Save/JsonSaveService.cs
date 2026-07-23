@@ -1,73 +1,37 @@
 using System;
-using System.IO;
 using UnityEngine;
 
 namespace LastTrain.Save
 {
-    /// <summary>Application.persistentDataPath에 JSON으로 저장한다.</summary>
+    /// <summary>Application.persistentDataPath에 JSON으로 저장한다. 원자적 교체·백업 복원·버전 마이그레이션을 지원한다.</summary>
     public sealed class JsonSaveService : ISaveService
     {
         private readonly string _runSavePath;
         private readonly string _metaSavePath;
-
         private readonly string _runBackupPath;
+        private readonly string _metaBackupPath;
+        private readonly SaveMigrationPipeline _runMigrations;
+        private readonly SaveMigrationPipeline _metaMigrations;
 
         public JsonSaveService(string runSavePath, string metaSavePath)
         {
             _runSavePath = runSavePath ?? throw new ArgumentNullException(nameof(runSavePath));
             _metaSavePath = metaSavePath ?? throw new ArgumentNullException(nameof(metaSavePath));
             _runBackupPath = _runSavePath + ".bak";
+            _metaBackupPath = _metaSavePath + ".bak";
+            _runMigrations = SaveMigrationPipeline.ForRun();
+            _metaMigrations = SaveMigrationPipeline.ForMeta();
         }
 
         public bool TryLoadRun(out RunSaveData runSave)
         {
-            runSave = null;
-            if (string.IsNullOrWhiteSpace(_runSavePath) || !File.Exists(_runSavePath))
-            {
-                return false;
-            }
-
-            try
-            {
-                string json = File.ReadAllText(_runSavePath);
-                runSave = JsonUtility.FromJson<RunSaveData>(json);
-
-                if (runSave == null)
-                {
-                    return false;
-                }
-
-                if (runSave.version != RunSaveData.CurrentVersion)
-                {
-                    // 버전이 다르면 호환/마이그레이션을 아직 구현하지 않음: 안전하게 무시
-                    try
-                    {
-                        File.Delete(_runSavePath);
-                    }
-                    catch
-                    {
-                        // ignore
-                    }
-                    runSave = null;
-                    return false;
-                }
-
-                return true;
-            }
-            catch
-            {
-                // 손상 파일은 안전하게 무시하고 삭제 시도
-                runSave = null;
-                try
-                {
-                    File.Delete(_runSavePath);
-                }
-                catch
-                {
-                    // ignore
-                }
-                return false;
-            }
+            return TryLoad(
+                _runSavePath,
+                _runBackupPath,
+                _runMigrations,
+                "Run",
+                ParseRun,
+                out runSave);
         }
 
         public bool SaveRun(RunSaveData runSave)
@@ -77,105 +41,35 @@ namespace LastTrain.Save
                 return false;
             }
 
-            try
-            {
-                string json = JsonUtility.ToJson(runSave, prettyPrint: false);
-
-                string directory = Path.GetDirectoryName(_runSavePath);
-                if (!string.IsNullOrWhiteSpace(directory) && !Directory.Exists(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
-
-                string tempPath = _runSavePath + ".tmp";
-                File.WriteAllText(tempPath, json);
-
-                if (File.Exists(_runSavePath))
-                {
-                    File.Replace(tempPath, _runSavePath, _runBackupPath, ignoreMetadataErrors: true);
-                }
-                else
-                {
-                    File.Move(tempPath, _runSavePath);
-                }
-
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
+            runSave.version = RunSaveData.CurrentVersion;
+            string json = JsonUtility.ToJson(runSave, prettyPrint: false);
+            return AtomicSaveIO.TryWriteAtomic(_runSavePath, _runBackupPath, json, "Run");
         }
 
         public bool DeleteRunSave()
         {
-            try
-            {
-                if (File.Exists(_runSavePath))
-                {
-                    File.Delete(_runSavePath);
-                }
-
-                if (File.Exists(_runBackupPath))
-                {
-                    File.Delete(_runBackupPath);
-                }
-
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
+            AtomicSaveIO.TryDeleteQuiet(_runSavePath);
+            AtomicSaveIO.TryDeleteQuiet(_runBackupPath);
+            AtomicSaveIO.TryDeleteQuiet(_runSavePath + ".tmp");
+            return true;
         }
 
         public bool TryLoadMeta(out MetaSaveData metaSave)
         {
-            metaSave = null;
-            if (string.IsNullOrWhiteSpace(_metaSavePath) || !File.Exists(_metaSavePath))
+            bool loaded = TryLoad(
+                _metaSavePath,
+                _metaBackupPath,
+                _metaMigrations,
+                "Meta",
+                ParseMeta,
+                out metaSave);
+            if (loaded && metaSave != null)
             {
-                return false;
+                metaSave.EnsureDefaults();
+                metaSave.version = MetaSaveData.CurrentVersion;
             }
 
-            try
-            {
-                string json = File.ReadAllText(_metaSavePath);
-                metaSave = JsonUtility.FromJson<MetaSaveData>(json);
-
-                if (metaSave == null)
-                {
-                    return false;
-                }
-
-                if (metaSave.version != MetaSaveData.CurrentVersion)
-                {
-                    try
-                    {
-                        File.Delete(_metaSavePath);
-                    }
-                    catch
-                    {
-                        // ignore
-                    }
-                    metaSave = null;
-                    return false;
-                }
-
-                return true;
-            }
-            catch
-            {
-                metaSave = null;
-                try
-                {
-                    File.Delete(_metaSavePath);
-                }
-                catch
-                {
-                    // ignore
-                }
-                return false;
-            }
+            return loaded;
         }
 
         public bool SaveMeta(MetaSaveData metaSave)
@@ -185,49 +79,111 @@ namespace LastTrain.Save
                 return false;
             }
 
-            try
-            {
-                string json = JsonUtility.ToJson(metaSave, prettyPrint: false);
-
-                string directory = Path.GetDirectoryName(_metaSavePath);
-                if (!string.IsNullOrWhiteSpace(directory) && !Directory.Exists(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
-
-                string tempPath = _metaSavePath + ".tmp";
-                File.WriteAllText(tempPath, json);
-
-                if (File.Exists(_metaSavePath))
-                {
-                    File.Delete(_metaSavePath);
-                }
-
-                File.Move(tempPath, _metaSavePath);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
+            metaSave.EnsureDefaults();
+            metaSave.version = MetaSaveData.CurrentVersion;
+            string json = JsonUtility.ToJson(metaSave, prettyPrint: false);
+            return AtomicSaveIO.TryWriteAtomic(_metaSavePath, _metaBackupPath, json, "Meta");
         }
 
         public bool DeleteMetaSave()
         {
-            try
+            AtomicSaveIO.TryDeleteQuiet(_metaSavePath);
+            AtomicSaveIO.TryDeleteQuiet(_metaBackupPath);
+            AtomicSaveIO.TryDeleteQuiet(_metaSavePath + ".tmp");
+            return true;
+        }
+
+        private static bool TryLoad<T>(
+            string path,
+            string backupPath,
+            SaveMigrationPipeline pipeline,
+            string label,
+            Func<string, T> parse,
+            out T data)
+            where T : class
+        {
+            data = null;
+            if (TryLoadFromPath(path, backupPath, pipeline, label, parse, out data))
             {
-                if (File.Exists(_metaSavePath))
+                return data != null;
+            }
+
+            if (TryLoadFromPath(backupPath, null, pipeline, label + ".bak", parse, out data))
+            {
+                Debug.LogWarning($"[Save:{label}] 원본 손상/실패 → 백업에서 복원했습니다.");
+                // 성공한 백업을 원본으로 다시 기록 시도(실패해도 로드는 성공)
+                if (data != null)
                 {
-                    File.Delete(_metaSavePath);
+                    string json = JsonUtility.ToJson(data, prettyPrint: false);
+                    AtomicSaveIO.TryWriteAtomic(path, backupPath, json, label + ".restore");
                 }
 
-                return true;
+                return data != null;
             }
-            catch
+
+            return false;
+        }
+
+        private static bool TryLoadFromPath<T>(
+            string path,
+            string unusedBackup,
+            SaveMigrationPipeline pipeline,
+            string label,
+            Func<string, T> parse,
+            out T data)
+            where T : class
+        {
+            data = null;
+            _ = unusedBackup;
+            if (!AtomicSaveIO.TryReadText(path, out string json))
             {
                 return false;
             }
+
+            try
+            {
+                if (!pipeline.TryMigrateToCurrent(json, out string migrated, out int from, out int to))
+                {
+                    AtomicSaveIO.LogFail(label, $"마이그레이션 실패 (v{from}→current)");
+                    return false;
+                }
+
+                if (from != to)
+                {
+                    Debug.Log($"[Save:{label}] v{from} → v{to} 마이그레이션 완료");
+                }
+
+                data = parse(migrated);
+                return data != null;
+            }
+            catch (Exception ex)
+            {
+                AtomicSaveIO.LogFail(label, ex.Message);
+                data = null;
+                return false;
+            }
+        }
+
+        private static RunSaveData ParseRun(string json)
+        {
+            RunSaveData data = JsonUtility.FromJson<RunSaveData>(json);
+            if (data == null || data.version != RunSaveData.CurrentVersion)
+            {
+                return null;
+            }
+
+            return data;
+        }
+
+        private static MetaSaveData ParseMeta(string json)
+        {
+            MetaSaveData data = JsonUtility.FromJson<MetaSaveData>(json);
+            if (data == null || data.version != MetaSaveData.CurrentVersion)
+            {
+                return null;
+            }
+
+            return data;
         }
     }
 }
-

@@ -39,6 +39,10 @@ namespace LastTrain.Battle
         private readonly EnemyRegistry _enemyRegistry = new();
         private readonly Dictionary<string, PassengerController> _passengerControllers = new();
         private readonly Dictionary<string, EnemyController> _activeEnemies = new();
+        private readonly List<EnemyController> _enemyControllerScratch = new(64);
+        private readonly List<EnemyRuntime> _reachedEnemyScratch = new(32);
+        private readonly List<PassengerController> _passengerScratch = new(16);
+        private readonly List<Vector2> _routePointScratch = new(16);
         private readonly TemporaryTurretService _turretService = new();
         private readonly List<BossBrain> _bossBrains = new();
         private readonly System.Random _eliteRandom = new();
@@ -96,7 +100,8 @@ namespace LastTrain.Battle
             gridManager.PassengerDropped -= HandlePassengerDropped;
             gridManager.PassengerDropped += HandlePassengerDropped;
 
-            _skillRandom ??= new RandomService(runState.GetHashCode());
+            _skillRandom ??= new RandomService(
+                runState.RandomSeed != 0 ? runState.RandomSeed : runState.GetHashCode());
             SyncPassengerControllers();
             _initialized = true;
         }
@@ -140,10 +145,11 @@ namespace LastTrain.Battle
             Vector2 spawnPosition = spawnPositionOverride
                                     ?? (spawnPoint != null ? (Vector2)spawnPoint.position : Vector2.zero);
 
+            float healthBonus = _runState?.DifficultyModifiers?.EnemyHealthBonusMultiplier ?? 1f;
             EnemyRuntime runtime = EnemyFactory.CreateRuntime(
                 data,
                 spawnPosition,
-                stationDifficulty,
+                stationDifficulty * Mathf.Max(0.01f, healthBonus),
                 _difficulty);
             ApplyElitePromotion(runtime);
             runtime.SetRouteWaypointIndex(GetInitialRouteWaypointIndex(spawnPosition));
@@ -187,10 +193,18 @@ namespace LastTrain.Battle
 
         public void ClearEnemies()
         {
-            var controllers = new List<EnemyController>(_activeEnemies.Values);
-            for (int i = 0; i < controllers.Count; i++)
+            _enemyControllerScratch.Clear();
+            foreach (KeyValuePair<string, EnemyController> pair in _activeEnemies)
             {
-                EnemyController controller = controllers[i];
+                if (pair.Value != null)
+                {
+                    _enemyControllerScratch.Add(pair.Value);
+                }
+            }
+
+            for (int i = 0; i < _enemyControllerScratch.Count; i++)
+            {
+                EnemyController controller = _enemyControllerScratch[i];
                 if (controller?.Runtime != null)
                 {
                     UnsubscribeEnemyEvents(controller.Runtime);
@@ -292,12 +306,19 @@ namespace LastTrain.Battle
                 return;
             }
 
-            var controllers = new List<EnemyController>(_activeEnemies.Values);
-            var reachedEnemies = new List<EnemyRuntime>();
-
-            for (int i = 0; i < controllers.Count; i++)
+            _enemyControllerScratch.Clear();
+            _reachedEnemyScratch.Clear();
+            foreach (KeyValuePair<string, EnemyController> pair in _activeEnemies)
             {
-                EnemyController controller = controllers[i];
+                if (pair.Value != null)
+                {
+                    _enemyControllerScratch.Add(pair.Value);
+                }
+            }
+
+            for (int i = 0; i < _enemyControllerScratch.Count; i++)
+            {
+                EnemyController controller = _enemyControllerScratch[i];
                 EnemyRuntime runtime = controller?.Runtime;
                 if (controller == null || runtime == null || !runtime.IsAlive)
                 {
@@ -335,13 +356,13 @@ namespace LastTrain.Battle
                 }
                 else if (reachedCurrentTarget)
                 {
-                    reachedEnemies.Add(runtime);
+                    _reachedEnemyScratch.Add(runtime);
                 }
             }
 
-            for (int i = 0; i < reachedEnemies.Count; i++)
+            for (int i = 0; i < _reachedEnemyScratch.Count; i++)
             {
-                TrainDamageService.TryApplyTrainDamage(_runState, reachedEnemies[i]);
+                TrainDamageService.TryApplyTrainDamage(_runState, _reachedEnemyScratch[i]);
             }
         }
 
@@ -379,7 +400,8 @@ namespace LastTrain.Battle
                 return 0;
             }
 
-            var routePoints = new List<Vector2>(enemyWaypoints.Length + 2);
+            var routePoints = _routePointScratch;
+            routePoints.Clear();
             routePoints.Add(spawnPoint != null ? (Vector2)spawnPoint.position : position);
             for (int i = 0; i < enemyWaypoints.Length; i++)
             {
@@ -424,7 +446,15 @@ namespace LastTrain.Battle
             }
 
             IReadOnlyList<EnemyRuntime> enemies = _enemyRegistry.Enemies;
-            var passengers = new List<PassengerController>(_passengerControllers.Values);
+            _passengerScratch.Clear();
+            foreach (KeyValuePair<string, PassengerController> pair in _passengerControllers)
+            {
+                if (pair.Value != null)
+                {
+                    _passengerScratch.Add(pair.Value);
+                }
+            }
+
             AbilityModifiers modifiers = _runState.Abilities?.Modifiers ?? AbilityModifiers.Empty;
             SynergyModifiers synergyModifiers = _runState.Synergies?.Modifiers ?? SynergyModifiers.Empty;
             Relic.RelicModifiers relicModifiers = _runState.Relics?.Modifiers ?? Relic.RelicModifiers.Empty;
@@ -433,9 +463,9 @@ namespace LastTrain.Battle
             Vector2 spawnPos = spawnPoint != null ? (Vector2)spawnPoint.position : Vector2.zero;
             Vector2 trainPos = trainTarget != null ? (Vector2)trainTarget.position : Vector2.zero;
 
-            for (int i = 0; i < passengers.Count; i++)
+            for (int i = 0; i < _passengerScratch.Count; i++)
             {
-                PassengerController controller = passengers[i];
+                PassengerController controller = _passengerScratch[i];
                 PassengerRuntime runtime = controller.Runtime;
 
                 if (runtime.GridSlotIndex < 0)

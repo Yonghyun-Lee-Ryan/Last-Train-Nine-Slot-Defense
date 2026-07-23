@@ -44,11 +44,12 @@ namespace LastTrain.Enemy
                 return;
             }
 
-            _inUse.Remove(controller);
-            if (!_available.Contains(controller))
+            if (!_inUse.Remove(controller))
             {
-                _available.Enqueue(controller);
+                return;
             }
+
+            _available.Enqueue(controller);
         }
 
         public void ReleaseAll(IEnumerable<EnemyController> controllers)
