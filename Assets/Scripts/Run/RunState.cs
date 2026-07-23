@@ -24,6 +24,10 @@ namespace LastTrain.Run
         public int RandomSeed { get; private set; }
         public bool IsDailyRun { get; private set; }
         public bool IsEndlessRun { get; private set; }
+        public string LiveEventId { get; private set; } = string.Empty;
+        public string[] LiveEventBoostedPassengerIds { get; private set; } = System.Array.Empty<string>();
+        public string[] LiveEventRestrictedPassengerIds { get; private set; } = System.Array.Empty<string>();
+        public float LiveEventBoostAttackMultiplier { get; private set; } = 1f;
         public bool AdsUsedThisRun { get; private set; }
         public TrainState Train { get; private set; }
         public CurrencyState Currency { get; private set; }
@@ -63,6 +67,12 @@ namespace LastTrain.Run
             RandomSeed = config.RandomSeed;
             IsDailyRun = config.IsDailyRun;
             IsEndlessRun = config.IsEndlessRun;
+            LiveEventId = config.LiveEventId ?? string.Empty;
+            LiveEventBoostedPassengerIds = config.LiveEventBoostedPassengerIds ?? System.Array.Empty<string>();
+            LiveEventRestrictedPassengerIds = config.LiveEventRestrictedPassengerIds ?? System.Array.Empty<string>();
+            LiveEventBoostAttackMultiplier = config.LiveEventBoostAttackMultiplier > 0.01f
+                ? config.LiveEventBoostAttackMultiplier
+                : 1f;
             AdsUsedThisRun = false;
             DifficultyId = DifficultyService.ResolveSavedDifficultyId(config.DifficultyId);
             Difficulty = DifficultyService.CreateRuntime(DifficultyId);
@@ -150,6 +160,55 @@ namespace LastTrain.Run
         public bool HasEmptySlot()
         {
             return FindFirstEmptySlot() >= 0;
+        }
+
+        /// <summary>라이브 이벤트 제한 덱이면 허용 승객만 true.</summary>
+        public bool IsLiveEventPassengerAllowed(string passengerId)
+        {
+            if (string.IsNullOrWhiteSpace(LiveEventId)
+                || LiveEventRestrictedPassengerIds == null
+                || LiveEventRestrictedPassengerIds.Length == 0)
+            {
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(passengerId))
+            {
+                return false;
+            }
+
+            for (int i = 0; i < LiveEventRestrictedPassengerIds.Length; i++)
+            {
+                if (string.Equals(LiveEventRestrictedPassengerIds[i], passengerId, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>강화 대상 승객이면 (배율-1)*100 퍼센트 보너스를 반환한다.</summary>
+        public float GetLiveEventAttackPercentBonus(string passengerId)
+        {
+            if (string.IsNullOrWhiteSpace(LiveEventId)
+                || LiveEventBoostAttackMultiplier <= 1.001f
+                || LiveEventBoostedPassengerIds == null
+                || LiveEventBoostedPassengerIds.Length == 0
+                || string.IsNullOrWhiteSpace(passengerId))
+            {
+                return 0f;
+            }
+
+            for (int i = 0; i < LiveEventBoostedPassengerIds.Length; i++)
+            {
+                if (string.Equals(LiveEventBoostedPassengerIds[i], passengerId, StringComparison.Ordinal))
+                {
+                    return (LiveEventBoostAttackMultiplier - 1f) * 100f;
+                }
+            }
+
+            return 0f;
         }
 
         /// <summary>빈 슬롯에 승객을 배치한다.</summary>

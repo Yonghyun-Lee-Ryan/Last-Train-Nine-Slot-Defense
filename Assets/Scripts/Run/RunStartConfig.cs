@@ -22,6 +22,18 @@ namespace LastTrain.Run
         /// <summary>무한 모드. 역이 끝나지 않으며 로컬 랭킹 대상.</summary>
         public bool IsEndlessRun { get; set; }
 
+        /// <summary>라이브 이벤트 회차 ID. 비어 있으면 일반 회차.</summary>
+        public string LiveEventId { get; set; } = string.Empty;
+
+        /// <summary>이벤트 강화 승객 ID.</summary>
+        public string[] LiveEventBoostedPassengerIds { get; set; }
+
+        /// <summary>이벤트 제한 승객 ID(비어 있으면 제한 없음).</summary>
+        public string[] LiveEventRestrictedPassengerIds { get; set; }
+
+        /// <summary>강화 승객 공격력 배율.</summary>
+        public float LiveEventBoostAttackMultiplier { get; set; } = 1f;
+
         /// <summary>무한 모드 깊이 Modifier 등 추가 규칙.</summary>
         public Difficulty.DifficultyModifierData[] ExtraDifficultyModifiers { get; set; }
 
@@ -52,6 +64,37 @@ namespace LastTrain.Run
                     : difficultyId,
                 ExtraDifficultyModifiers = depthModifiers,
             };
+        }
+
+        public static RunStartConfig CreateLiveEventRun(LiveOps.LiveEventData liveEvent)
+        {
+            var config = CreateDefault();
+            if (liveEvent == null)
+            {
+                return config;
+            }
+
+            config.LiveEventId = liveEvent.Id ?? string.Empty;
+            if (liveEvent.EventRoute != null && !string.IsNullOrWhiteSpace(liveEvent.EventRoute.Id))
+            {
+                config.LineId = liveEvent.EventRoute.Id;
+            }
+
+            if (liveEvent.EventDifficulty != null && !string.IsNullOrWhiteSpace(liveEvent.EventDifficulty.Id))
+            {
+                config.DifficultyId = liveEvent.EventDifficulty.Id;
+            }
+
+            Difficulty.DifficultyModifierData[] mods = liveEvent.EventModifiers;
+            if (mods != null && mods.Length > 0)
+            {
+                config.ExtraDifficultyModifiers = mods;
+            }
+
+            config.LiveEventBoostedPassengerIds = liveEvent.BoostedPassengerIds;
+            config.LiveEventRestrictedPassengerIds = liveEvent.RestrictedPassengerIds;
+            config.LiveEventBoostAttackMultiplier = liveEvent.BoostedPassengerAttackMultiplier;
+            return config;
         }
     }
 }

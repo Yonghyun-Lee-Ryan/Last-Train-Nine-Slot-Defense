@@ -196,7 +196,29 @@ namespace LastTrain.UI
                 root = gameObject;
             }
 
+            EnsureOwnedListHudPlacement();
             WireButtons();
+        }
+
+        /// <summary>
+        /// 보유 능력은 전투 HUD로 상단에 두고, SelectionOverlay가 닫혀도 보이게 한다.
+        /// </summary>
+        private void EnsureOwnedListHudPlacement()
+        {
+            if (ownedListLabel == null)
+            {
+                return;
+            }
+
+            Transform owned = ownedListLabel.transform;
+            Transform hudParent = transform;
+            if (owned.parent != hudParent)
+            {
+                owned.SetParent(hudParent, worldPositionStays: false);
+            }
+
+            owned.gameObject.SetActive(true);
+            AbilityPanelUiBuilder.PlaceOwnedHudLabel(owned as RectTransform);
         }
 
         private void WireButtons()

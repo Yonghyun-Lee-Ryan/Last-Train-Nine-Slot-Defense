@@ -55,9 +55,23 @@ namespace LastTrain.LiveOps
 
         public static LocalLiveEventProvider FromResources()
         {
-            return new LocalLiveEventProvider(
-                Resources.LoadAll<SeasonData>("LiveOps/Seasons"),
-                Resources.LoadAll<LiveEventData>("LiveOps/Events"));
+            LiveOpsCatalog catalog = Resources.Load<LiveOpsCatalog>("LiveOps/LiveOpsCatalog");
+            if (catalog != null)
+            {
+                return new LocalLiveEventProvider(catalog.Seasons, catalog.Events);
+            }
+
+            SeasonData[] seasons = Resources.LoadAll<SeasonData>("LiveOps/Seasons")
+                                   ?? Array.Empty<SeasonData>();
+            LiveEventData[] events = Resources.LoadAll<LiveEventData>("LiveOps/Events")
+                                     ?? Array.Empty<LiveEventData>();
+            return new LocalLiveEventProvider(seasons, events);
+        }
+
+        /// <summary>테스트·에디터용. 명시 배열로 Provider를 만든다.</summary>
+        public static LocalLiveEventProvider FromCatalog(SeasonData[] seasons, LiveEventData[] events)
+        {
+            return new LocalLiveEventProvider(seasons, events);
         }
     }
 

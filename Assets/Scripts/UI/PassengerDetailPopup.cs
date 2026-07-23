@@ -27,14 +27,16 @@ namespace LastTrain.UI
         private RunState _runState;
         private int _slotIndex = -1;
         private Action<int> _onSold;
+        private Action _onClosed;
         private readonly UiInputGuard _inputGuard = new();
 
         public bool IsOpen => root != null && root.activeSelf;
 
-        public void Initialize(RunState runState, Action<int> onSold)
+        public void Initialize(RunState runState, Action<int> onSold, Action onClosed = null)
         {
             _runState = runState;
             _onSold = onSold;
+            _onClosed = onClosed;
 
             if (sellButton != null)
             {
@@ -125,7 +127,7 @@ namespace LastTrain.UI
             Close(playSfx: true);
         }
 
-        private void Close(bool playSfx)
+        public void Close(bool playSfx)
         {
             bool wasOpen = IsOpen;
             _slotIndex = -1;
@@ -137,6 +139,11 @@ namespace LastTrain.UI
             if (playSfx && wasOpen)
             {
                 GameAudio.PlaySfx(SfxId.UiClose);
+            }
+
+            if (wasOpen)
+            {
+                _onClosed?.Invoke();
             }
         }
 

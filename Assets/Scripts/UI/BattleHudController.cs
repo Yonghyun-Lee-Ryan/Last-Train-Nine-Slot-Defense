@@ -108,7 +108,7 @@ namespace LastTrain.UI
             ApplyHudTheme();
             HideTopCoinDisplay();
             BindCameraShakeTarget();
-            detailPopup?.Initialize(_runState, OnPassengerSold);
+            detailPopup?.Initialize(_runState, OnPassengerSold, OnDetailPopupClosed);
             if (pauseOverlay != null)
             {
                 pauseOverlay.SetActive(false);
@@ -185,27 +185,42 @@ namespace LastTrain.UI
 
         private static void AttachLabelIcon(Text label, Sprite sprite)
         {
-            if (label == null || sprite == null || label.transform.Find("ThemeIcon") != null)
+            if (label == null || sprite == null)
             {
                 return;
             }
 
-            var go = new GameObject("ThemeIcon", typeof(RectTransform), typeof(Image));
-            RectTransform rect = go.GetComponent<RectTransform>();
-            rect.SetParent(label.transform, false);
+            Transform existing = label.transform.Find("ThemeIcon");
+            RectTransform rect;
+            Image image;
+            if (existing != null)
+            {
+                rect = existing as RectTransform;
+                image = existing.GetComponent<Image>();
+            }
+            else
+            {
+                var go = new GameObject("ThemeIcon", typeof(RectTransform), typeof(Image));
+                rect = go.GetComponent<RectTransform>();
+                rect.SetParent(label.transform, false);
+                image = go.GetComponent<Image>();
+            }
+
+            if (rect == null || image == null)
+            {
+                return;
+            }
+
+            // 라벨 왼쪽 바깥에 배치해 가운데 정렬 텍스트를 가리지 않는다.
             rect.anchorMin = new Vector2(0f, 0.5f);
             rect.anchorMax = new Vector2(0f, 0.5f);
-            rect.pivot = new Vector2(0f, 0.5f);
+            rect.pivot = new Vector2(1f, 0.5f);
             rect.anchoredPosition = new Vector2(-8f, 0f);
             rect.sizeDelta = new Vector2(36f, 36f);
-            Image image = go.GetComponent<Image>();
             image.sprite = sprite;
             image.preserveAspect = true;
             image.raycastTarget = false;
             image.color = Color.white;
-
-            RectTransform labelRect = label.rectTransform;
-            labelRect.offsetMin = new Vector2(labelRect.offsetMin.x + 28f, labelRect.offsetMin.y);
         }
 
         private static void AttachButtonIcon(Button button, Sprite sprite)
@@ -510,8 +525,6 @@ namespace LastTrain.UI
                 pauseOverlay.transform.SetAsLastSibling();
                 pauseOverlay.SetActive(true);
             }
-
-            HideAbilityOwnedLabel(true);
         }
 
         private void OnResumeClicked()
@@ -529,8 +542,6 @@ namespace LastTrain.UI
             {
                 pauseOverlay.SetActive(false);
             }
-
-            HideAbilityOwnedLabel(false);
         }
 
         private void OnSettingsFromPauseClicked()
@@ -712,29 +723,27 @@ namespace LastTrain.UI
             return button;
         }
 
-        private static void HideAbilityOwnedLabel(bool hide)
-        {
-            AbilityPanelController panel = UnityEngine.Object.FindAnyObjectByType<AbilityPanelController>();
-            if (panel == null)
-            {
-                return;
-            }
-
-            Transform owned = panel.transform.Find("AbilityOwnedListLabel");
-            if (owned != null)
-            {
-                owned.gameObject.SetActive(!hide);
-            }
-        }
-
         private void HandlePassengerSelected(int slotIndex)
         {
             if (_paused || slotIndex < 0)
             {
+                if (slotIndex < 0)
+                {
+                    detailPopup?.Close(playSfx: false);
+                }
+
                 return;
             }
 
             detailPopup?.Show(slotIndex);
+        }
+
+        private void OnDetailPopupClosed()
+        {
+            if (gridManager != null && gridManager.SelectedSlotIndex >= 0)
+            {
+                gridManager.ClearSelection();
+            }
         }
 
         private void HandleRunEnded(RunResult _)

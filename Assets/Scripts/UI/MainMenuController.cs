@@ -6,6 +6,7 @@ using LastTrain.Core;
 using LastTrain.Data;
 using LastTrain.Difficulty;
 using LastTrain.Endless;
+using LastTrain.LiveOps;
 using LastTrain.Mission;
 using LastTrain.Run;
 using LastTrain.Save;
@@ -30,12 +31,14 @@ namespace LastTrain.UI
 
         private SettingsPanelController _settingsPanel;
         private MissionPanelController _missionPanel;
+        private LiveEventPanelController _liveEventPanel;
         private PrivacyConsentDialogController _privacyDialog;
         private DifficultySelectionController _difficultySelection;
         private DifficultyUnlockPopupController _difficultyUnlockPopup;
         private Button _missionButton;
         private Button _dailyRunButton;
         private Button _endlessRunButton;
+        private Button _liveEventButton;
 
         private void Awake()
         {
@@ -163,6 +166,13 @@ namespace LastTrain.UI
                 _missionPanel = gameObject.AddComponent<MissionPanelController>();
             }
 
+            _liveEventPanel = GetComponent<LiveEventPanelController>();
+            if (_liveEventPanel == null)
+            {
+                _liveEventPanel = gameObject.AddComponent<LiveEventPanelController>();
+            }
+
+            AppRoot.Instance?.RefreshLiveOpsOnMenu();
             EnsureMissionButtons();
             MetaSaveData meta = MetaSaveSystem.LoadOrCreate();
             MissionProgressService.EnsurePeriods(meta, GameDatabaseLocator.Load()?.Missions);
@@ -234,7 +244,46 @@ namespace LastTrain.UI
                 _endlessRunButton.onClick.AddListener(OnEndlessRunClicked);
             }
 
+            if (GameObject.Find("LiveEventButton") == null)
+            {
+                _liveEventButton = MenuOverlayUi.CreateButton(
+                    parent,
+                    "LiveEventButton",
+                    "시즌 이벤트",
+                    Vector2.zero,
+                    new Vector2(600f, 112f),
+                    () => _liveEventPanel?.Show());
+                ApplyContinueButtonThemeTo(_liveEventButton);
+            }
+            else
+            {
+                _liveEventButton = GameObject.Find("LiveEventButton").GetComponent<Button>();
+                _liveEventButton.onClick.RemoveAllListeners();
+                _liveEventButton.onClick.AddListener(() => _liveEventPanel?.Show());
+            }
+
             RefreshEndlessButton();
+            RefreshLiveEventButton();
+        }
+
+        private void RefreshLiveEventButton()
+        {
+            if (_liveEventButton == null)
+            {
+                return;
+            }
+
+            LiveEventService live = AppRoot.Instance?.LiveEvents;
+            bool active = live != null && live.HasActiveEvent;
+            _liveEventButton.gameObject.SetActive(active);
+            if (active && live.ActiveEvent != null)
+            {
+                Text label = _liveEventButton.GetComponentInChildren<Text>();
+                if (label != null)
+                {
+                    label.text = live.ActiveEvent.DisplayName;
+                }
+            }
         }
 
         private void RefreshEndlessButton()
@@ -444,6 +493,7 @@ namespace LastTrain.UI
 
             RefreshDifficultySelection();
             RefreshEndlessButton();
+            RefreshLiveEventButton();
         }
 
         private void EnsureContinueButton()

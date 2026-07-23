@@ -205,6 +205,16 @@ namespace LastTrain.LiveOps
                 return false;
             }
 
+            // 메타 보상을 먼저 반영한 뒤 클레임 표시 — 실패 시 중복 수령 방지 상태가 오염되지 않게 한다.
+            if (!MetaProgressionService.TryGrantLiveEventReward(
+                    meta,
+                    step.ticketFragments,
+                    step.accountXp,
+                    step.unlockPassengerId))
+            {
+                return false;
+            }
+
             progress.MarkClaimed(rewardId);
             return true;
         }

@@ -1,5 +1,6 @@
 using System;
 using LastTrain.LiveOps;
+using LastTrain.Run;
 using LastTrain.Save;
 using NUnit.Framework;
 using UnityEngine;
@@ -52,6 +53,8 @@ namespace LastTrain.Tests.EditMode
             {
                 rewardId = "r1",
                 requiredCurrency = 10,
+                ticketFragments = 5,
+                accountXp = 10,
             });
             SetEventTrack(data, track);
 
@@ -61,14 +64,50 @@ namespace LastTrain.Tests.EditMode
 
             var meta = new MetaSaveData();
             meta.EnsureDefaults();
+            int ticketsBefore = meta.ticketFragments;
+            int xpBefore = meta.accountXp;
             LiveEventProgress progress = service.GetOrCreateProgress(meta, data);
             progress.currencyBalance = 100;
 
             Assert.IsTrue(service.TryClaimReward(meta, data, "r1"));
+            Assert.Greater(meta.ticketFragments, ticketsBefore);
+            Assert.Greater(meta.accountXp, xpBefore);
             Assert.IsFalse(service.TryClaimReward(meta, data, "r1"));
 
             UnityEngine.Object.DestroyImmediate(track);
             UnityEngine.Object.DestroyImmediate(data);
+        }
+
+        [Test]
+        public void CreateLiveEventRun_AppliesRouteAndBoost()
+        {
+            LiveEventData data = CreateEvent(
+                "evt_run",
+                "2026-07-01T00:00:00Z",
+                "2026-07-10T00:00:00Z");
+            SetBoost(data, "passenger_office_worker", 1.5f);
+
+            RunStartConfig config = RunStartConfig.CreateLiveEventRun(data);
+            Assert.AreEqual("evt_run", config.LiveEventId);
+            Assert.AreEqual(1.5f, config.LiveEventBoostAttackMultiplier, 0.001f);
+            Assert.AreEqual(1, config.LiveEventBoostedPassengerIds.Length);
+
+            var run = new RunState();
+            run.Initialize(config);
+            Assert.AreEqual("evt_run", run.LiveEventId);
+            Assert.AreEqual(50f, run.GetLiveEventAttackPercentBonus("passenger_office_worker"), 0.01f);
+            Assert.AreEqual(0f, run.GetLiveEventAttackPercentBonus("passenger_nurse"));
+
+            run.Dispose();
+            UnityEngine.Object.DestroyImmediate(data);
+        }
+
+        [Test]
+        public void FromResourcesCatalog_DoesNotThrow()
+        {
+            var provider = LocalLiveEventProvider.FromResources();
+            var service = new LiveEventService(provider, new LocalLiveEventClock());
+            Assert.DoesNotThrow(() => service.RefreshCatalog());
         }
 
         [Test]
@@ -129,6 +168,16 @@ namespace LastTrain.Tests.EditMode
             UnityEngine.Object.DestroyImmediate(data);
         }
 
+        private static void SetBoost(LiveEventData data, string passengerId, float multiplier)
+        {
+            var so = new UnityEditor.SerializedObject(data);
+            so.FindProperty("boostedPassengerAttackMultiplier").floatValue = multiplier;
+            var boosted = so.FindProperty("boostedPassengerIds");
+            boosted.arraySize = 1;
+            boosted.GetArrayElementAtIndex(0).stringValue = passengerId;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         private static LiveEventData CreateEvent(string id, string start, string end)
         {
             var data = ScriptableObject.CreateInstance<LiveEventData>();
@@ -150,6 +199,10 @@ namespace LastTrain.Tests.EditMode
             steps.arraySize = 1;
             steps.GetArrayElementAtIndex(0).FindPropertyRelative("rewardId").stringValue = step.rewardId;
             steps.GetArrayElementAtIndex(0).FindPropertyRelative("requiredCurrency").intValue = step.requiredCurrency;
+            steps.GetArrayElementAtIndex(0).FindPropertyRelative("ticketFragments").intValue = step.ticketFragments;
+            steps.GetArrayElementAtIndex(0).FindPropertyRelative("accountXp").intValue = step.accountXp;
+            steps.GetArrayElementAtIndex(0).FindPropertyRelative("unlockPassengerId").stringValue =
+                step.unlockPassengerId ?? string.Empty;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

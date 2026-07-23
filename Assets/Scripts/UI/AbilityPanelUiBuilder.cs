@@ -16,12 +16,16 @@ namespace LastTrain.UI
             panelRect.SetParent(parent, false);
             StretchFull(panelRect);
 
-            Text owned = CreateText(panelRoot.transform, "AbilityOwnedListLabel", "보유 능력: 없음", 22, Vector2.zero, new Vector2(1000f, 40f));
-            var ownedRect = owned.GetComponent<RectTransform>();
-            ownedRect.anchorMin = new Vector2(0.5f, 0f);
-            ownedRect.anchorMax = new Vector2(0.5f, 0f);
-            ownedRect.pivot = new Vector2(0.5f, 0f);
-            ownedRect.anchoredPosition = new Vector2(0f, 300f);
+            // 전투 중에도 보이도록 SelectionOverlay 밖에 두고, 유닛 팝업과 겹치지 않게 상단 배치.
+            Text owned = CreateText(
+                panelRoot.transform,
+                "AbilityOwnedListLabel",
+                "보유 능력: 없음",
+                22,
+                Vector2.zero,
+                new Vector2(1000f, 40f));
+            owned.raycastTarget = false;
+            PlaceOwnedHudLabel(owned.rectTransform);
 
             var selectionOverlay = new GameObject("SelectionOverlay", typeof(RectTransform), typeof(Image));
             var overlayRect = selectionOverlay.GetComponent<RectTransform>();
@@ -96,6 +100,21 @@ namespace LastTrain.UI
             rect.anchorMax = Vector2.one;
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
+        }
+
+        internal static void PlaceOwnedHudLabel(RectTransform rect)
+        {
+            if (rect == null)
+            {
+                return;
+            }
+
+            // 시너지 라벨 아래, 유닛 그리드/팝업 위쪽 — 전투 HUD로 항상 표시.
+            rect.anchorMin = new Vector2(0.5f, 1f);
+            rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.anchoredPosition = new Vector2(0f, -250f);
+            rect.sizeDelta = new Vector2(1000f, 40f);
         }
 
         private static Button CreateCardButton(Transform parent, string name, string label, Vector2 pos, Vector2 size, VisualTheme theme)

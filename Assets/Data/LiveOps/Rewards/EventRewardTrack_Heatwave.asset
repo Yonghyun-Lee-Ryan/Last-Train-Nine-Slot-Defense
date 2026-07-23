@@ -23,4 +23,4 @@ MonoBehaviour:
     requiredCurrency: 50
     ticketFragments: 0
     accountXp: 20
-    unlockPassengerId: 
+    unlockPassengerId: passenger_cat 

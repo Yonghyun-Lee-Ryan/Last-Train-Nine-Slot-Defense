@@ -15,17 +15,18 @@ MonoBehaviour:
   id: event_heatwave
   displayName: "\uD3ED\uC5FC \uB9C9\uCC28"
   themeId: heatwave
-  startUtc: 2026-08-01T00:00:00Z
-  endUtc: 2026-08-15T00:00:00Z
+  startUtc: 2026-07-01T00:00:00Z
+  endUtc: 2026-12-31T23:59:59Z
   claimExpiryUtc: 
-  eventRoute: {fileID: 0}
+  eventRoute: {fileID: 11400000, guid: 4052d41ee2d7d8b4881134fc0122b7bf, type: 2}
   eventDifficulty: {fileID: 0}
   eventModifiers: []
   boostedPassengerIds:
   - passenger_office_worker
   restrictedPassengerIds: []
   boostedPassengerAttackMultiplier: 1.25
-  eventMissions: []
+  eventMissions:
+  - {fileID: 11400000, guid: 4711c456789012345678901b78901230, type: 2}
   eventCurrency: {fileID: 11400000, guid: 41ffc6685f976584e8e5f96073693efd, type: 2}
   rewardTrack: {fileID: 11400000, guid: 8747e2bb4ab219747bdf515bde29e2b4, type: 2}
   dailyCurrencyCap: 200

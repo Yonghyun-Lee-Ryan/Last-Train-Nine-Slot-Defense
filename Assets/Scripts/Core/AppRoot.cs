@@ -2,6 +2,7 @@ using LastTrain.Ads;
 using LastTrain.Analytics;
 using LastTrain.Audio;
 using LastTrain.Integrations;
+using LastTrain.LiveOps;
 using LastTrain.Release;
 using LastTrain.Run;
 using LastTrain.Save;
@@ -36,6 +37,7 @@ namespace LastTrain.Core
         private AnalyticsCoordinator _analytics;
         private AnalyticsRunBinder _analyticsRunBinder;
         private readonly GameSettingsService _gameSettings = new GameSettingsService();
+        private LiveEventService _liveEvents;
         private bool _subscribedRunEnded;
         private bool _subscribedRunStarted;
         private bool _subscribedRevive;
@@ -63,6 +65,16 @@ namespace LastTrain.Core
 
         /// <summary>사운드·진동·알림 설정.</summary>
         public GameSettingsService GameSettings => _gameSettings;
+
+        /// <summary>시즌/라이브 이벤트. 데이터 없으면 비활성(기본 게임).</summary>
+        public LiveEventService LiveEvents
+        {
+            get
+            {
+                EnsureLiveOps();
+                return _liveEvents;
+            }
+        }
 
         private void Awake()
         {
@@ -112,8 +124,47 @@ namespace LastTrain.Core
             EnsureIntegrations();
             EnsureAnalytics();
             EnsureAds();
+            EnsureLiveOps();
             _analytics.Track(AnalyticsEventNames.AppStarted);
             Debug.Log("[AppRoot] 초기화 완료.");
+        }
+
+        private void EnsureLiveOps()
+        {
+            if (_liveEvents != null)
+            {
+                return;
+            }
+
+            try
+            {
+                _liveEvents = new LiveEventService(LocalLiveEventProvider.FromResources());
+                _liveEvents.RefreshCatalog();
+                MetaSaveData meta = MetaSaveSystem.LoadOrCreate();
+                _liveEvents.FinalizeEndedEvents(meta);
+                MetaSaveSystem.Save(meta);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[AppRoot] LiveOps 초기화 실패 → 기본 게임: {ex.Message}");
+                _liveEvents = new LiveEventService(new LocalLiveEventProvider());
+                _liveEvents.RefreshCatalog();
+            }
+        }
+
+        /// <summary>메인 메뉴 진입 시 종료 이벤트 finalize를 다시 수행한다.</summary>
+        public void RefreshLiveOpsOnMenu()
+        {
+            EnsureLiveOps();
+            if (_liveEvents == null)
+            {
+                return;
+            }
+
+            _liveEvents.RefreshCatalog();
+            MetaSaveData meta = MetaSaveSystem.LoadOrCreate();
+            _liveEvents.FinalizeEndedEvents(meta);
+            MetaSaveSystem.Save(meta);
         }
 
         private void EnsureIntegrations()

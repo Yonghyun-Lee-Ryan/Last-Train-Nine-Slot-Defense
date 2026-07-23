@@ -56,6 +56,7 @@ namespace LastTrain.UI
             PlaceIfExists(root, safeArea, "StartButton", ActionHeight, ref index);
             PlaceIfExists(root, safeArea, "DailyRunButton", ActionHeight, ref index);
             PlaceIfExists(root, safeArea, "EndlessRunButton", ActionHeight, ref index);
+            PlaceIfExists(root, safeArea, "LiveEventButton", ActionHeight, ref index);
             PlaceIfExists(root, safeArea, "MissionButton", ActionHeight, ref index);
             PlaceIfExists(root, safeArea, "ContinueButton", ActionHeight, ref index);
             EnsureSpacer(root, "SpacerBottom", ref index, flexible: 0.5f);
@@ -66,6 +67,7 @@ namespace LastTrain.UI
             ConfigureActionButton(root.Find("StartButton") as RectTransform, ActionHeight);
             ConfigureActionButton(root.Find("DailyRunButton") as RectTransform, ActionHeight);
             ConfigureActionButton(root.Find("EndlessRunButton") as RectTransform, ActionHeight);
+            ConfigureActionButton(root.Find("LiveEventButton") as RectTransform, ActionHeight);
             ConfigureActionButton(root.Find("MissionButton") as RectTransform, ActionHeight);
             ConfigureActionButton(root.Find("ContinueButton") as RectTransform, ActionHeight);
 

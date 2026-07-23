@@ -204,6 +204,43 @@ namespace LastTrain.Save
             return ContainsId(meta.unlockedPassengerIds, passengerId);
         }
 
+        /// <summary>라이브 이벤트 보상 트랙 지급. 티켓·XP·승객 해금.</summary>
+        public static bool TryGrantLiveEventReward(
+            MetaSaveData meta,
+            int ticketFragments,
+            int accountXp,
+            string unlockPassengerId)
+        {
+            if (meta == null)
+            {
+                return false;
+            }
+
+            meta.EnsureDefaults();
+            int tickets = Math.Max(0, ticketFragments);
+            int xp = Math.Max(0, accountXp);
+            meta.ticketFragments = SaturatingAdd(meta.ticketFragments, tickets);
+            if (xp > 0)
+            {
+                meta.accountXp = SaturatingAdd(meta.accountXp, xp);
+            }
+            else if (tickets > 0)
+            {
+                meta.accountXp = SaturatingAdd(
+                    meta.accountXp,
+                    tickets * MetaProgressionDefaults.AccountXpPerTicketFragment);
+            }
+
+            meta.accountLevel = CalculateAccountLevel(meta.accountXp);
+
+            if (!string.IsNullOrWhiteSpace(unlockPassengerId))
+            {
+                TryUnlockPassenger(meta, unlockPassengerId);
+            }
+
+            return true;
+        }
+
         private static void ApplyLevelPassengerUnlocks(MetaSaveData meta, List<string> newlyUnlocked)
         {
             if (meta.accountLevel >= MetaProgressionDefaults.DeveloperUnlockAccountLevel)

@@ -92,6 +92,8 @@ namespace LastTrain.Ability
                     attackPercent += modifiers.DiversePassengerDamagePercent;
                 }
 
+                attackPercent += runState.GetLiveEventAttackPercentBonus(passenger.Data.Id);
+
                 if (attackPercent == 0f && speedPercent == 0f)
                 {
                     continue;

@@ -111,7 +111,6 @@ namespace LastTrain.EditorTools
                 BattleConstants.EnemyLaneRightAnchoredPosition,
                 BattleConstants.EnemyLaneRightSize);
             PlaceTop(safeArea, "SynergyListLabel", new Vector2(0f, -210f), new Vector2(1000f, 40f));
-            PlaceBottom(safeArea, "AbilityOwnedListLabel", new Vector2(0f, 1010f), new Vector2(1000f, 40f));
 
             foreach (Transform child in safeArea)
             {

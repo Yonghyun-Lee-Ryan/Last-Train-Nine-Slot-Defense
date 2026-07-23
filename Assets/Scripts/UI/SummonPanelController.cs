@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using LastTrain.Ads;
 using LastTrain.Audio;
 using LastTrain.Core;
@@ -21,6 +22,8 @@ namespace LastTrain.UI
     [DefaultExecutionOrder(50)]
     public class SummonPanelController : MonoBehaviour
     {
+        private const float EphemeralStatusSeconds = 2.5f;
+
         [Header("References")]
         [SerializeField] private GridManager gridManager;
         [SerializeField] private GameDatabase gameDatabase;
@@ -49,6 +52,8 @@ namespace LastTrain.UI
         private RunState _runState;
         private GameSession _session;
         private readonly UiInputGuard _adInputGuard = new(0.2f);
+        private Coroutine _statusClearRoutine;
+        private string _ephemeralStatusToken;
 
         private void Start()
         {
@@ -98,6 +103,11 @@ namespace LastTrain.UI
             }
             var random = new RandomService(seed);
             var unlockedPassengers = MetaSaveSystem.FilterUnlockedPassengers(gameDatabase.Passengers);
+            if (_runState != null && !string.IsNullOrWhiteSpace(_runState.LiveEventId))
+            {
+                unlockedPassengers = FilterLiveEventPassengers(unlockedPassengers, _runState);
+            }
+
             var offerService = new PassengerOfferService(
                 unlockedPassengers,
                 random,
@@ -128,7 +138,7 @@ namespace LastTrain.UI
             }
 
             RefreshHud();
-            SetStatus("소환 준비 완료");
+            SetStatus("소환 준비 완료", ephemeral: true);
         }
 
         private void EnsureReferences()
@@ -322,7 +332,7 @@ namespace LastTrain.UI
             {
                 GameAudio.PlaySfx(SfxId.SummonSelect);
                 gridManager?.RefreshViews();
-                SetStatus("승객을 배치했습니다.");
+                SetStatus("승객을 배치했습니다.", ephemeral: true);
                 Tutorial.TutorialDirector.Instance?.NotifyPassengerPlaced();
                 battleBootstrap?.MissionBinder?.NotifySummoned();
                 if (_summonManager != null && _runState != null)
@@ -355,7 +365,7 @@ namespace LastTrain.UI
             _summonManager?.CancelOffers();
             GameAudio.PlaySfx(SfxId.UiCancel);
             RefreshOfferPanel();
-            SetStatus("소환을 취소했습니다.");
+            SetStatus("소환을 취소했습니다.", ephemeral: true);
         }
 
         private void OnFreeRerollClicked()
@@ -368,7 +378,7 @@ namespace LastTrain.UI
             if (_summonManager.TryRerollFree() == RerollResult.Success)
             {
                 GameAudio.PlaySfx(SfxId.Switch);
-                SetStatus($"무료 리롤 사용 (남은 {_summonManager.RemainingFreeRerolls}회)");
+                SetStatus($"무료 리롤 사용 (남은 {_summonManager.RemainingFreeRerolls}회)", ephemeral: true);
             }
 
             RefreshOfferPanel();
@@ -388,7 +398,7 @@ namespace LastTrain.UI
                 if (_summonManager.TryRerollWithAd() == RerollResult.Success)
                 {
                     GameAudio.PlaySfx(SfxId.Switch);
-                    SetStatus($"광고 리롤 사용 (남은 {_summonManager.RemainingAdRerolls}회)");
+                    SetStatus($"광고 리롤 사용 (남은 {_summonManager.RemainingAdRerolls}회)", ephemeral: true);
                 }
 
                 RefreshOfferPanel();
@@ -404,7 +414,7 @@ namespace LastTrain.UI
             if (!ads.CanOfferReroll(RewardedAdPlacement.PassengerReroll)
                 || _summonManager.RemainingAdRerolls <= 0)
             {
-                SetStatus("광고 리롤을 사용할 수 없습니다.");
+                SetStatus("광고 리롤을 사용할 수 없습니다.", ephemeral: true);
                 return;
             }
 
@@ -416,7 +426,7 @@ namespace LastTrain.UI
                     if (_summonManager.ApplyAdReroll(recordUsage: true) == RerollResult.Success)
                     {
                         GameAudio.PlaySfx(SfxId.Switch);
-                        SetStatus($"광고 리롤 사용 (남은 {_summonManager.RemainingAdRerolls}회)");
+                        SetStatus($"광고 리롤 사용 (남은 {_summonManager.RemainingAdRerolls}회)", ephemeral: true);
                     }
 
                     RefreshOfferPanel();
@@ -426,7 +436,7 @@ namespace LastTrain.UI
                 {
                     if (result != AdResult.Completed)
                     {
-                        SetStatus($"광고 {(result == AdResult.Cancelled ? "취소" : "실패")} — 보상 없음");
+                        SetStatus($"광고 {(result == AdResult.Cancelled ? "취소" : "실패")} — 보상 없음", ephemeral: true);
                     }
 
                     RefreshOfferPanel();
@@ -502,7 +512,7 @@ namespace LastTrain.UI
         {
             if (slotIndex < 0 || slotIndex >= RunState.GridSlotCount)
             {
-                SetStatus("선택 해제");
+                ClearStatus();
                 return;
             }
 
@@ -510,7 +520,9 @@ namespace LastTrain.UI
             if (passenger != null)
             {
                 int price = PassengerSellService.GetSellPrice(passenger, _runState);
-                SetStatus($"선택: {passenger.Data.DisplayName} {passenger.StarLevel}★ (판매 {price})");
+                SetStatus(
+                    $"선택: {passenger.Data.DisplayName} {passenger.StarLevel}★ (판매 {price})",
+                    ephemeral: true);
             }
         }
 
@@ -521,15 +533,85 @@ namespace LastTrain.UI
 
         private void HandleStatusMessage(string message)
         {
-            SetStatus(message);
+            SetStatus(message, ephemeral: true);
         }
 
-        private void SetStatus(string message)
+        private static System.Collections.Generic.List<PassengerData> FilterLiveEventPassengers(
+            System.Collections.Generic.List<PassengerData> source,
+            RunState runState)
         {
+            var filtered = new System.Collections.Generic.List<PassengerData>();
+            if (source == null || runState == null)
+            {
+                return filtered;
+            }
+
+            for (int i = 0; i < source.Count; i++)
+            {
+                PassengerData passenger = source[i];
+                if (passenger == null)
+                {
+                    continue;
+                }
+
+                if (runState.IsLiveEventPassengerAllowed(passenger.Id))
+                {
+                    filtered.Add(passenger);
+                }
+            }
+
+            return filtered.Count > 0 ? filtered : source;
+        }
+
+        private void SetStatus(string message, bool ephemeral = false)
+        {
+            CancelStatusClear();
             if (statusLabel != null)
             {
                 statusLabel.text = message ?? string.Empty;
             }
+
+            if (!ephemeral || string.IsNullOrWhiteSpace(message) || !isActiveAndEnabled)
+            {
+                return;
+            }
+
+            _ephemeralStatusToken = message;
+            _statusClearRoutine = StartCoroutine(ClearStatusAfterDelay(message, EphemeralStatusSeconds));
+        }
+
+        private void ClearStatus()
+        {
+            CancelStatusClear();
+            if (statusLabel != null)
+            {
+                statusLabel.text = string.Empty;
+            }
+        }
+
+        private void CancelStatusClear()
+        {
+            if (_statusClearRoutine != null)
+            {
+                StopCoroutine(_statusClearRoutine);
+                _statusClearRoutine = null;
+            }
+
+            _ephemeralStatusToken = null;
+        }
+
+        private IEnumerator ClearStatusAfterDelay(string expected, float seconds)
+        {
+            yield return new WaitForSecondsRealtime(seconds);
+            _statusClearRoutine = null;
+            if (statusLabel != null
+                && string.Equals(statusLabel.text, expected, StringComparison.Ordinal)
+                && string.Equals(_ephemeralStatusToken, expected, StringComparison.Ordinal))
+            {
+                statusLabel.text = string.Empty;
+            }
+
+            _ephemeralStatusToken = null;
         }
     }
 }

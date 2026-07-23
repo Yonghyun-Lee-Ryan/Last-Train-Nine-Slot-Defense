@@ -48,6 +48,8 @@ namespace LastTrain.Save
                 {
                     Mission.MissionProgressService.ApplyRunResult(meta, database.Missions, result);
                 }
+
+                ApplyLiveEventCurrency(meta, result);
             }
 
             if (result != null && result.IsEndlessRun)
@@ -69,6 +71,26 @@ namespace LastTrain.Save
 
             LastApplyResult = applyResult;
             return applyResult;
+        }
+
+        private static void ApplyLiveEventCurrency(MetaSaveData meta, RunResult result)
+        {
+            if (meta == null || result == null || result.CompletedStationCount <= 0)
+            {
+                return;
+            }
+
+            LiveOps.LiveEventService live = AppRoot.Instance?.LiveEvents;
+            if (live == null || !live.HasActiveEvent)
+            {
+                return;
+            }
+
+            const int currencyPerCompletedStation = 10;
+            live.TryEarnCurrency(
+                meta,
+                live.ActiveEvent,
+                result.CompletedStationCount * currencyPerCompletedStation);
         }
 
         public static MetaProgressSnapshot GetSnapshot()
