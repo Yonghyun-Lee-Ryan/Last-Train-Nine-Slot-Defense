@@ -418,22 +418,25 @@ namespace LastTrain.EditorTools
         private static void SetDefaultStarLevels(SerializedProperty starLevels)
         {
             starLevels.arraySize = 3;
-            WriteStar(starLevels.GetArrayElementAtIndex(0), 1, 1f, 1f, 1f);
-            WriteStar(starLevels.GetArrayElementAtIndex(1), 2, 2.2f, 1.05f, 1.2f);
-            WriteStar(starLevels.GetArrayElementAtIndex(2), 3, 4.8f, 1.1f, 1.5f);
+            WriteStar(starLevels.GetArrayElementAtIndex(0), 1, "일반", 1f, 1f, 0f, 1f);
+            WriteStar(starLevels.GetArrayElementAtIndex(1), 2, "숙련", 2.2f, 1.05f, 0f, 1.2f);
+            WriteStar(starLevels.GetArrayElementAtIndex(2), 3, "전문", 4.8f, 1.1f, 0f, 1.5f);
         }
 
         private static void WriteStar(
             SerializedProperty element,
             int star,
+            string nameOverride,
             float attackMul,
             float speedMul,
+            float rangeBonus,
             float skillMul)
         {
             element.FindPropertyRelative("starLevel").intValue = star;
+            element.FindPropertyRelative("displayNameOverride").stringValue = nameOverride;
             element.FindPropertyRelative("attackMultiplier").floatValue = attackMul;
             element.FindPropertyRelative("attackSpeedMultiplier").floatValue = speedMul;
-            element.FindPropertyRelative("rangeBonus").floatValue = 0f;
+            element.FindPropertyRelative("rangeBonus").floatValue = rangeBonus;
             element.FindPropertyRelative("skillValueMultiplier").floatValue = skillMul;
         }
 

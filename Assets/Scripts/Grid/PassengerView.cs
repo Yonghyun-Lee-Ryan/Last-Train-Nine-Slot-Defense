@@ -59,9 +59,11 @@ namespace LastTrain.Grid
                 return;
             }
 
+            EnsureLabelLayout();
+
             if (nameLabel != null)
             {
-                nameLabel.text = _passenger.Data.GetDisplayNameAtStar(_passenger.StarLevel);
+                nameLabel.text = _passenger.Data.GetSlotLabel(_passenger.StarLevel);
             }
 
             if (starLabel != null)
@@ -70,6 +72,55 @@ namespace LastTrain.Grid
             }
 
             ApplyVisuals();
+        }
+
+        private void EnsureLabelLayout()
+        {
+            // 초상화 크기·위치는 프리팹/기존 연출 그대로 유지한다.
+
+            if (starLabel != null)
+            {
+                RectTransform starRect = starLabel.rectTransform;
+                starRect.anchorMin = new Vector2(0.5f, 1f);
+                starRect.anchorMax = new Vector2(0.5f, 1f);
+                starRect.pivot = new Vector2(0.5f, 1f);
+                starRect.anchoredPosition = new Vector2(0f, -2f);
+                starRect.sizeDelta = new Vector2(200f, 36f);
+                starLabel.fontSize = 26;
+                starLabel.alignment = TextAnchor.MiddleCenter;
+                starLabel.horizontalOverflow = HorizontalWrapMode.Overflow;
+                starLabel.verticalOverflow = VerticalWrapMode.Truncate;
+                starLabel.raycastTarget = false;
+            }
+
+            if (nameLabel != null)
+            {
+                RectTransform nameRect = nameLabel.rectTransform;
+                // 하단 앵커로 칸 안에 고정. 글자 크기(20)·두 줄 표기는 유지하고 영역만 클램프.
+                nameRect.anchorMin = new Vector2(0.5f, 0f);
+                nameRect.anchorMax = new Vector2(0.5f, 0f);
+                nameRect.pivot = new Vector2(0.5f, 0f);
+                nameRect.anchoredPosition = new Vector2(0f, 4f);
+                nameRect.sizeDelta = new Vector2(200f, 52f);
+                nameLabel.fontSize = 20;
+                nameLabel.alignment = TextAnchor.LowerCenter;
+                nameLabel.horizontalOverflow = HorizontalWrapMode.Wrap;
+                nameLabel.verticalOverflow = VerticalWrapMode.Truncate;
+                nameLabel.resizeTextForBestFit = false;
+                nameLabel.lineSpacing = 0.9f;
+                nameLabel.raycastTarget = false;
+            }
+
+            EnsureSlotClip();
+        }
+
+        private void EnsureSlotClip()
+        {
+            // 칸(Content) 밖으로 삐져나온 텍스트/스프라이트를 잘라 낸다.
+            if (GetComponent<RectMask2D>() == null)
+            {
+                gameObject.AddComponent<RectMask2D>();
+            }
         }
 
         public void PlayAttackAnimation()

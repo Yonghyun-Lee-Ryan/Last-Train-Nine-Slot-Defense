@@ -25,19 +25,19 @@ MonoBehaviour:
   skillId: skill_boss_interrupt
   starLevels:
   - starLevel: 1
-    displayNameOverride: 
+    displayNameOverride: "\uC77C\uBC18"
     attackMultiplier: 1
     attackSpeedMultiplier: 1
     rangeBonus: 0
     skillValueMultiplier: 1
   - starLevel: 2
-    displayNameOverride: 
+    displayNameOverride: "\uC219\uB828"
     attackMultiplier: 2.2
     attackSpeedMultiplier: 1.05
     rangeBonus: 0
     skillValueMultiplier: 1.2
   - starLevel: 3
-    displayNameOverride: 
+    displayNameOverride: "\uC804\uBB38"
     attackMultiplier: 4.8
     attackSpeedMultiplier: 1.1
     rangeBonus: 0

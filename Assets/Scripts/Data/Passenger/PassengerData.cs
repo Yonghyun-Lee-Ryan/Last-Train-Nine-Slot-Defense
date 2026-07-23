@@ -62,16 +62,48 @@ namespace LastTrain.Data
         public int MaxStarLevel => starLevels != null && starLevels.Length > 0 ? starLevels.Length : 1;
         public bool StartsUnlocked => startsUnlocked;
 
-        /// <summary>등급별 표시 이름. override가 없으면 기본 이름을 반환한다.</summary>
-        public string GetDisplayNameAtStar(int starLevel)
+        /// <summary>등급 타이틀(일반/숙련/전문). 에셋 override가 비어 있으면 기본 등급명을 쓴다.</summary>
+        public string GetStarTitle(int starLevel)
         {
             if (TryGetStarData(starLevel, out PassengerStarData starData)
                 && !string.IsNullOrWhiteSpace(starData.displayNameOverride))
             {
-                return starData.displayNameOverride;
+                return starData.displayNameOverride.Trim();
             }
 
-            return displayName;
+            return GetDefaultStarTitle(starLevel);
+        }
+
+        /// <summary>1~3성 공통 등급 표기.</summary>
+        public static string GetDefaultStarTitle(int starLevel)
+        {
+            return starLevel switch
+            {
+                1 => "일반",
+                2 => "숙련",
+                3 => "전문",
+                _ => string.Empty,
+            };
+        }
+
+        /// <summary>슬롯용: 캐릭터명 + 등급명(두 줄). 사진과 동일한 나열 순서.</summary>
+        public string GetSlotLabel(int starLevel)
+        {
+            string baseName = string.IsNullOrWhiteSpace(displayName) ? id : displayName;
+            string grade = GetStarTitle(starLevel);
+            if (string.IsNullOrWhiteSpace(grade) || string.Equals(grade, baseName, StringComparison.Ordinal))
+            {
+                return baseName;
+            }
+
+            return $"{baseName}\n{grade}";
+        }
+
+        /// <summary>등급별 표시 이름. override가 없으면 기본 이름을 반환한다.</summary>
+        public string GetDisplayNameAtStar(int starLevel)
+        {
+            string grade = GetStarTitle(starLevel);
+            return string.IsNullOrWhiteSpace(grade) ? displayName : grade;
         }
 
         public bool TryGetStarData(int starLevel, out PassengerStarData starData)
