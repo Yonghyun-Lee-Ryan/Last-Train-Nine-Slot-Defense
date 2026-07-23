@@ -9,14 +9,17 @@ namespace LastTrain.Difficulty
     {
         private float _sellPriceMultiplier = 1f;
         private float _preparationTimeSeconds = -1f;
+        private float _enemyHealthBonusMultiplier = 1f;
 
         public float SellPriceMultiplier => _sellPriceMultiplier;
         public float PreparationTimeSeconds => _preparationTimeSeconds;
+        public float EnemyHealthBonusMultiplier => _enemyHealthBonusMultiplier;
 
         public void Reset()
         {
             _sellPriceMultiplier = 1f;
             _preparationTimeSeconds = -1f;
+            _enemyHealthBonusMultiplier = 1f;
         }
 
         public void SetSellPriceMultiplier(float multiplier)
@@ -27,6 +30,11 @@ namespace LastTrain.Difficulty
         public void SetPreparationTimeSeconds(float seconds)
         {
             _preparationTimeSeconds = seconds >= 0f ? seconds : -1f;
+        }
+
+        public void SetEnemyHealthBonusMultiplier(float multiplier)
+        {
+            _enemyHealthBonusMultiplier = multiplier > 0f ? multiplier : 1f;
         }
 
         public float ResolvePreparationTime(DifficultyRuntime difficulty)
@@ -53,6 +61,7 @@ namespace LastTrain.Difficulty
                 return;
             }
 
+            runState.DifficultyModifiers.Reset();
             _context = new DifficultyModifierContext(runState, runState.Difficulty);
             List<IDifficultyModifier> modifiers = DifficultyModifierFactory.CreateActiveModifiers(
                 runState.Difficulty,
@@ -72,6 +81,7 @@ namespace LastTrain.Difficulty
                 return;
             }
 
+            _context.RunState.DifficultyModifiers.Reset();
             List<IDifficultyModifier> modifiers = DifficultyModifierFactory.CreateActiveModifiers(
                 _context.Difficulty,
                 station.StationIndex);

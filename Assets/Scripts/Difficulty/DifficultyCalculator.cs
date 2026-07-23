@@ -18,9 +18,21 @@ namespace LastTrain.Difficulty
             return station * line;
         }
 
-        public static float GetBossLineDifficulty(float stationDifficulty, DifficultyRuntime difficulty)
+        public static float CombineLineDifficulty(
+            float stationDifficulty,
+            DifficultyRuntime difficulty,
+            float enemyHealthBonusMultiplier)
         {
-            float combined = CombineLineDifficulty(stationDifficulty, difficulty);
+            float bonus = enemyHealthBonusMultiplier > 0f ? enemyHealthBonusMultiplier : 1f;
+            return CombineLineDifficulty(stationDifficulty, difficulty) * bonus;
+        }
+
+        public static float GetBossLineDifficulty(
+            float stationDifficulty,
+            DifficultyRuntime difficulty,
+            float enemyHealthBonusMultiplier = 1f)
+        {
+            float combined = CombineLineDifficulty(stationDifficulty, difficulty, enemyHealthBonusMultiplier);
             float boss = difficulty?.BossHealthMultiplier ?? 1f;
             return combined * boss;
         }

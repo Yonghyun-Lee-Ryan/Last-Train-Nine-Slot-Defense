@@ -67,6 +67,43 @@ namespace LastTrain.Difficulty
             Modifiers = modifiers ?? Array.Empty<DifficultyModifierData>();
         }
 
+        public DifficultyRuntime WithAdditionalModifiers(IReadOnlyList<DifficultyModifierData> extra)
+        {
+            if (extra == null || extra.Count == 0)
+            {
+                return this;
+            }
+
+            var merged = new List<DifficultyModifierData>(Modifiers.Count + extra.Count);
+            merged.AddRange(Modifiers);
+            for (int i = 0; i < extra.Count; i++)
+            {
+                if (extra[i] != null)
+                {
+                    merged.Add(extra[i]);
+                }
+            }
+
+            return new DifficultyRuntime(
+                Id,
+                DisplayName,
+                EnemyHealthMultiplier,
+                EnemyMoveSpeedMultiplier,
+                EnemyTrainDamageMultiplier,
+                EnemyCountMultiplier,
+                SpawnIntervalMultiplier,
+                EliteSpawnRate,
+                BossHealthMultiplier,
+                BossAbilityCount,
+                StartingCoins,
+                StartingTrainHealth,
+                SummonCostMultiplier,
+                ShopPriceMultiplier,
+                RewardMultiplier,
+                PreparationTimeSeconds,
+                merged);
+        }
+
         public static DifficultyRuntime FromData(DifficultyData data)
         {
             if (data == null)

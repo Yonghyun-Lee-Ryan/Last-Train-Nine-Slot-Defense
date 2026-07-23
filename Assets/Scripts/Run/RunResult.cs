@@ -32,7 +32,9 @@ namespace LastTrain.Run
             RunPassengerMasterySnapshot[] passengerMasteries = null,
             string difficultyId = null,
             float difficultyRewardMultiplier = 1f,
-            float elapsedSeconds = 0f)
+            float elapsedSeconds = 0f,
+            bool isEndlessRun = false,
+            bool adsUsed = false)
         {
             RunId = runId ?? string.Empty;
             LineId = lineId ?? string.Empty;
@@ -61,6 +63,8 @@ namespace LastTrain.Run
                 : difficultyId;
             DifficultyRewardMultiplier = difficultyRewardMultiplier > 0f ? difficultyRewardMultiplier : 1f;
             ElapsedSeconds = Math.Max(0f, elapsedSeconds);
+            IsEndlessRun = isEndlessRun;
+            AdsUsed = adsUsed;
         }
 
         public string RunId { get; }
@@ -88,5 +92,7 @@ namespace LastTrain.Run
         public string DifficultyId { get; }
         public float DifficultyRewardMultiplier { get; }
         public float ElapsedSeconds { get; }
+        public bool IsEndlessRun { get; }
+        public bool AdsUsed { get; }
     }
 }

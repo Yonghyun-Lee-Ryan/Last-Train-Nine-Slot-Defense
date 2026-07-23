@@ -16,6 +16,7 @@ namespace LastTrain.Difficulty
             {
                 DifficultyModifierKind.ReducedSellPrice => new ReducedSellPriceModifier(data),
                 DifficultyModifierKind.ReducedPreparationTime => new ReducedPreparationTimeModifier(data),
+                DifficultyModifierKind.EscalatingEnemies => new Modifiers.EscalatingEnemiesModifier(data),
                 _ => new NoOpDifficultyModifier(data.Id),
             };
         }
