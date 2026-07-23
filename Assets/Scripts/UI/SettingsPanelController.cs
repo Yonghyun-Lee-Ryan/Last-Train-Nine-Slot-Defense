@@ -3,6 +3,7 @@ using LastTrain.Core;
 using LastTrain.Data;
 using LastTrain.Integrations;
 using LastTrain.Release;
+using LastTrain.Save;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -118,11 +119,45 @@ namespace LastTrain.UI
                     _settings.SetVibrationEnabled(enabled);
                     _settings.Persist();
                 });
+                AddToggleRow(content, "화면 흔들림", _settings.ScreenShakeEnabled, enabled =>
+                {
+                    _settings.SetScreenShakeEnabled(enabled);
+                    _settings.Persist();
+                });
+                AddToggleRow(content, "피해 숫자", _settings.DamageNumbersEnabled, enabled =>
+                {
+                    _settings.SetDamageNumbersEnabled(enabled);
+                    _settings.Persist();
+                });
+                AddToggleRow(content, "코인 숫자", _settings.CoinNumbersEnabled, enabled =>
+                {
+                    _settings.SetCoinNumbersEnabled(enabled);
+                    _settings.Persist();
+                });
+                AddToggleRow(content, "저사양 이펙트", _settings.LowFxMode, enabled =>
+                {
+                    _settings.SetLowFxMode(enabled);
+                    _settings.Persist();
+                });
                 AddToggleRow(content, "알림", _settings.NotificationsEnabled, enabled =>
                 {
                     _settings.SetNotificationsEnabled(enabled);
                     _settings.Persist();
                 });
+
+                MetaSaveData meta = MetaSaveSystem.LoadOrCreate();
+                if (Tutorial.TutorialProgressService.CanRestart(meta)
+                    || Tutorial.TutorialProgressService.ShouldOfferTutorial(meta))
+                {
+                    MenuOverlayUi.CreateLayoutButton(content, "RestartTutorial", "튜토리얼 다시 보기", 72f, () =>
+                    {
+                        Tutorial.TutorialProgressService.ResetProgress(meta);
+                        MetaSaveSystem.Save(meta);
+                        GameAudio.PlaySfx(SfxId.UiConfirm);
+                        Hide();
+                    }, fontSize: 26);
+                }
+
                 RefreshVolumeLabels();
             }
 

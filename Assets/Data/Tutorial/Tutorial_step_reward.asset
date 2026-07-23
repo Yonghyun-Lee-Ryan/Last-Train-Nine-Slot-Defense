@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e8f901234567890abcdef0123456789, type: 3}
+  m_Name: Tutorial_step_reward
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Tutorial.TutorialStepData
+  id: step_reward
+  stepKind: 5
+  title: "\uC5ED \uC644\uB8CC \uBCF4\uC0C1"
+  body: "\uC5ED\uC744 \uD074\uB9AC\uC5B4\uD558\uBA74 \uBCF4\uC0C1\uC744 \uBC1B\uACE0
+    \uB2E4\uC74C \uC5ED\uC73C\uB85C \uC9C4\uD589\uD569\uB2C8\uB2E4."
+  waitEvent: 6
+  uiTargetId: ReadyButton
+  allowedInputs: 15
+  showSkipButton: 1

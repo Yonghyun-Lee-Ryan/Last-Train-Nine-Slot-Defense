@@ -11,6 +11,10 @@ namespace LastTrain.Release
         private const string SfxVolumeKey = "lasttrain.settings.sfxVolume";
         private const string VibrationKey = "lasttrain.settings.vibration";
         private const string NotificationKey = "lasttrain.settings.notification";
+        private const string ScreenShakeKey = "lasttrain.settings.screenShake";
+        private const string DamageNumbersKey = "lasttrain.settings.damageNumbers";
+        private const string CoinNumbersKey = "lasttrain.settings.coinNumbers";
+        private const string LowFxKey = "lasttrain.settings.lowFx";
 
         public bool BgmEnabled { get; private set; } = true;
         public bool SfxEnabled { get; private set; } = true;
@@ -18,6 +22,10 @@ namespace LastTrain.Release
         public float SfxVolume { get; private set; } = 0.85f;
         public bool VibrationEnabled { get; private set; } = true;
         public bool NotificationsEnabled { get; private set; } = true;
+        public bool ScreenShakeEnabled { get; private set; } = true;
+        public bool DamageNumbersEnabled { get; private set; } = true;
+        public bool CoinNumbersEnabled { get; private set; } = true;
+        public bool LowFxMode { get; private set; }
 
         public void Load()
         {
@@ -27,6 +35,10 @@ namespace LastTrain.Release
             SfxVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(SfxVolumeKey, 0.85f));
             VibrationEnabled = PlayerPrefs.GetInt(VibrationKey, 1) == 1;
             NotificationsEnabled = PlayerPrefs.GetInt(NotificationKey, 1) == 1;
+            ScreenShakeEnabled = PlayerPrefs.GetInt(ScreenShakeKey, 1) == 1;
+            DamageNumbersEnabled = PlayerPrefs.GetInt(DamageNumbersKey, 1) == 1;
+            CoinNumbersEnabled = PlayerPrefs.GetInt(CoinNumbersKey, 1) == 1;
+            LowFxMode = PlayerPrefs.GetInt(LowFxKey, 0) == 1;
             ApplyAudio();
         }
 
@@ -80,6 +92,34 @@ namespace LastTrain.Release
             PlayerPrefs.Save();
         }
 
+        public void SetScreenShakeEnabled(bool enabled)
+        {
+            ScreenShakeEnabled = enabled;
+            PlayerPrefs.SetInt(ScreenShakeKey, enabled ? 1 : 0);
+            PlayerPrefs.Save();
+        }
+
+        public void SetDamageNumbersEnabled(bool enabled)
+        {
+            DamageNumbersEnabled = enabled;
+            PlayerPrefs.SetInt(DamageNumbersKey, enabled ? 1 : 0);
+            PlayerPrefs.Save();
+        }
+
+        public void SetCoinNumbersEnabled(bool enabled)
+        {
+            CoinNumbersEnabled = enabled;
+            PlayerPrefs.SetInt(CoinNumbersKey, enabled ? 1 : 0);
+            PlayerPrefs.Save();
+        }
+
+        public void SetLowFxMode(bool enabled)
+        {
+            LowFxMode = enabled;
+            PlayerPrefs.SetInt(LowFxKey, enabled ? 1 : 0);
+            PlayerPrefs.Save();
+        }
+
         public void ResetToDefaults()
         {
             BgmEnabled = true;
@@ -88,12 +128,20 @@ namespace LastTrain.Release
             SfxVolume = 0.85f;
             VibrationEnabled = true;
             NotificationsEnabled = true;
+            ScreenShakeEnabled = true;
+            DamageNumbersEnabled = true;
+            CoinNumbersEnabled = true;
+            LowFxMode = false;
             PlayerPrefs.DeleteKey(BgmKey);
             PlayerPrefs.DeleteKey(SfxKey);
             PlayerPrefs.DeleteKey(BgmVolumeKey);
             PlayerPrefs.DeleteKey(SfxVolumeKey);
             PlayerPrefs.DeleteKey(VibrationKey);
             PlayerPrefs.DeleteKey(NotificationKey);
+            PlayerPrefs.DeleteKey(ScreenShakeKey);
+            PlayerPrefs.DeleteKey(DamageNumbersKey);
+            PlayerPrefs.DeleteKey(CoinNumbersKey);
+            PlayerPrefs.DeleteKey(LowFxKey);
             PlayerPrefs.Save();
             ApplyAudio();
         }
