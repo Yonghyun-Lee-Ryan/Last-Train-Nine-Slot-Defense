@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LastTrain.Core;
 using LastTrain.Data;
 using LastTrain.Run;
 
@@ -41,6 +42,27 @@ namespace LastTrain.Save
             MetaSaveData meta = LoadOrCreate();
             MetaApplyResult applyResult = MetaProgressionService.TryApplyRunResult(meta, result);
             if (applyResult.Applied)
+            {
+                GameDatabase database = GameDatabaseLocator.Load();
+                if (database?.Missions != null)
+                {
+                    Mission.MissionProgressService.ApplyRunResult(meta, database.Missions, result);
+                }
+            }
+
+            if (result != null && result.IsEndlessRun)
+            {
+                var mock = new Leaderboard.MockLeaderboardService();
+                Endless.EndlessProgressService.TrySubmitRun(
+                    meta,
+                    result,
+                    AppRoot.Instance?.GameSession?.RunState,
+                    mock,
+                    out _,
+                    out _);
+            }
+
+            if (applyResult.Applied || (result != null && result.IsEndlessRun))
             {
                 Save(meta);
             }

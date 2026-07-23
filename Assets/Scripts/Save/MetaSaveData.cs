@@ -3,11 +3,11 @@ using LastTrain.Difficulty;
 
 namespace LastTrain.Save
 {
-    /// <summary>영구 메타 진행 저장. Unit 16 호환을 위해 version=1을 유지하고 필드를 확장한다.</summary>
+    /// <summary>영구 메타 진행 저장. 필드 확장 시 CurrentVersion을 올리고 ISaveMigration을 추가한다.</summary>
     [Serializable]
     public sealed class MetaSaveData
     {
-        public const int CurrentVersion = 1;
+        public const int CurrentVersion = 2;
 
         public int version = CurrentVersion;
 
@@ -38,6 +38,27 @@ namespace LastTrain.Save
         public MetaDifficultyRecord[] difficultyRecords = Array.Empty<MetaDifficultyRecord>();
         public string[] pendingUnlockedDifficultyIds = Array.Empty<string>();
 
+        // Unit 28: 일일·주간 미션
+        public string missionDailyKey = string.Empty;
+        public string missionWeeklyKey = string.Empty;
+        public string missionLastTrustedUtc = string.Empty;
+        public Mission.MissionProgressSave[] missionProgresses = Array.Empty<Mission.MissionProgressSave>();
+
+        // Unit 29: 무한 모드·로컬 랭킹
+        public string anonymousUserId = string.Empty;
+        public int endlessBestScore;
+        public int endlessBestStationReached;
+        public string endlessBestRunId = string.Empty;
+        public string[] endlessSubmittedRunIds = Array.Empty<string>();
+
+        // Unit 30: 튜토리얼
+        public bool tutorialCompleted;
+        public bool tutorialSkipped;
+        public int tutorialStepIndex;
+
+        // Unit 34: 시즌·라이브 이벤트 진행 (기본 진행과 분리)
+        public LiveOps.LiveEventProgress[] liveEventProgresses = Array.Empty<LiveOps.LiveEventProgress>();
+
         public void EnsureDefaults()
         {
             if (version <= 0)
@@ -63,6 +84,24 @@ namespace LastTrain.Save
             unlockedDifficultyIds ??= Array.Empty<string>();
             difficultyRecords ??= Array.Empty<MetaDifficultyRecord>();
             pendingUnlockedDifficultyIds ??= Array.Empty<string>();
+            missionDailyKey ??= string.Empty;
+            missionWeeklyKey ??= string.Empty;
+            missionLastTrustedUtc ??= string.Empty;
+            missionProgresses ??= Array.Empty<Mission.MissionProgressSave>();
+            anonymousUserId ??= string.Empty;
+            endlessBestRunId ??= string.Empty;
+            endlessSubmittedRunIds ??= Array.Empty<string>();
+            liveEventProgresses ??= Array.Empty<LiveOps.LiveEventProgress>();
+            if (tutorialStepIndex < 0)
+            {
+                tutorialStepIndex = 0;
+            }
+
+            for (int i = 0; i < liveEventProgresses.Length; i++)
+            {
+                liveEventProgresses[i]?.EnsureDefaults();
+            }
+
             dummy ??= string.Empty;
 
             if (unlockedPassengerIds.Length == 0)

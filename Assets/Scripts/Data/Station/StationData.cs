@@ -43,6 +43,36 @@ namespace LastTrain.Data
 
         public int WaveCount => waves != null ? waves.Length : 0;
 
+        /// <summary>무한 모드 등에서 템플릿을 복제해 역 번호·난이도만 덮어쓴다. 원본 에셋은 수정하지 않는다.</summary>
+        public static StationData CreateRuntimeClone(
+            StationData template,
+            int runtimeStationIndex,
+            float runtimeDifficultyMultiplier,
+            StationType runtimeType,
+            string runtimeDisplayName)
+        {
+            if (template == null)
+            {
+                return null;
+            }
+
+            StationData clone = CreateInstance<StationData>();
+            clone.hideFlags = HideFlags.HideAndDontSave;
+            clone.id = $"{template.id}_r{runtimeStationIndex}";
+            clone.displayName = string.IsNullOrWhiteSpace(runtimeDisplayName)
+                ? $"{runtimeStationIndex}번째 역"
+                : runtimeDisplayName;
+            clone.stationType = runtimeType;
+            clone.stationIndex = Mathf.Max(1, runtimeStationIndex);
+            clone.difficultyMultiplier = runtimeDifficultyMultiplier > 0f ? runtimeDifficultyMultiplier : 1f;
+            clone.waves = template.waves;
+            clone.rewardCoins = template.rewardCoins;
+            clone.grantsAbilityChoice = template.grantsAbilityChoice
+                || runtimeType == StationType.Boss;
+            clone.bossPatternHint = template.bossPatternHint;
+            return clone;
+        }
+
         private void OnValidate()
         {
             if (!DataValidationUtility.IsValidId(id))

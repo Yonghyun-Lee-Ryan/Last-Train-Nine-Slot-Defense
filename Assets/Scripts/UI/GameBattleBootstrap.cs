@@ -36,12 +36,14 @@ namespace LastTrain.UI
         private GameSession _gameSession;
         private AbilityPanelController _abilityPanel;
         private SynergyManager _synergyManager;
+        private Mission.MissionRunBinder _missionBinder;
         private bool _paused;
         private bool _runEndHandled;
 
         public StationManager StationManager => _stationManager;
         public NonCombatStationServices NonCombatServices => _nonCombatServices;
         public SynergyManager SynergyManager => _synergyManager;
+        public Mission.MissionRunBinder MissionBinder => _missionBinder;
         public GameDatabase GameDatabase => gameDatabase;
         public bool IsPaused => _paused;
 
@@ -53,6 +55,14 @@ namespace LastTrain.UI
         public void RegisterAbilityPanel(AbilityPanelController panel)
         {
             _abilityPanel = panel;
+            if (_missionBinder != null && _gameSession?.RunState != null)
+            {
+                _missionBinder.Bind(
+                    _gameSession.RunState,
+                    _stationManager,
+                    panel != null ? panel.AbilityManager : null,
+                    _nonCombatServices?.Shop);
+            }
         }
 
         private void Start()
@@ -101,7 +111,15 @@ namespace LastTrain.UI
             _synergyManager = new SynergyManager(runState, gameDatabase.Synergies);
             _synergyManager.Recalculate();
 
-            int seed = unchecked(runState.RunId?.GetHashCode() ?? Environment.TickCount);
+            int seed = runState.RandomSeed != 0
+                ? runState.RandomSeed
+                : unchecked(runState.RunId?.GetHashCode() ?? Environment.TickCount);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (!runState.IsDailyRun && LastTrain.DebugTools.DebugCombatSettings.FixedSeed.HasValue)
+            {
+                seed = LastTrain.DebugTools.DebugCombatSettings.FixedSeed.Value;
+            }
+#endif
             var random = new RandomService(seed);
             var relicManager = new RelicManager(runState, gameDatabase);
             _nonCombatServices = new NonCombatStationServices(
@@ -124,10 +142,35 @@ namespace LastTrain.UI
                 _abilityPanel = FindAnyObjectByType<AbilityPanelController>();
             }
 
+            _missionBinder?.Dispose();
+            _missionBinder = new Mission.MissionRunBinder(gameDatabase);
+            _missionBinder.Bind(
+                runState,
+                _stationManager,
+                _abilityPanel != null ? _abilityPanel.AbilityManager : null,
+                _nonCombatServices.Shop);
+
             AnalyticsRunBinder binder = appRoot.AnalyticsRunBinder;
             binder?.BindBattle(_stationManager, battleManager, _synergyManager, gridManager);
 
             AppRoot.Instance?.Analytics?.BindRun(runState, runState.DifficultyId);
+
+            Tutorial.TutorialDirector director = GetComponent<Tutorial.TutorialDirector>();
+            if (director == null)
+            {
+                director = gameObject.AddComponent<Tutorial.TutorialDirector>();
+            }
+
+            director.Begin(
+                _stationManager,
+                _abilityPanel != null ? _abilityPanel.AbilityManager : null,
+                gridManager);
+
+            // Station/Synergy 준비 후 전투 피드백 이벤트 재구독
+            UiVfxInstaller feedbackInstaller = canvas != null
+                ? canvas.GetComponentInChildren<UiVfxInstaller>(true)
+                : FindAnyObjectByType<UiVfxInstaller>();
+            feedbackInstaller?.RebindFeedback();
 
             _gameSession.RunEnded += HandleRunEnded;
 
@@ -143,6 +186,16 @@ namespace LastTrain.UI
         {
             startingStation = null;
             string lineId = string.IsNullOrWhiteSpace(runState.LineId) ? RouteIds.Default : runState.LineId;
+            if (string.Equals(lineId, RouteIds.Endless, StringComparison.Ordinal)
+                && gameDatabase.EndlessRoute != null)
+            {
+                _currentRoute = null;
+                return gameDatabase.EndlessRoute.TryGetStationByIndex(
+                           runState.Station.CurrentStationIndex,
+                           out startingStation)
+                       && startingStation != null;
+            }
+
             if (gameDatabase.TryGetRoute(lineId, out _currentRoute) && _currentRoute != null)
             {
                 if (_currentRoute.TryGetStationByIndex(runState.Station.CurrentStationIndex, out startingStation)
@@ -189,6 +242,8 @@ namespace LastTrain.UI
             AppRoot.Instance?.AnalyticsRunBinder?.UnbindBattle();
             AppRoot.Instance?.AnalyticsRunBinder?.BindSummon(null);
             AppRoot.Instance?.AnalyticsRunBinder?.BindAbility(null);
+            _missionBinder?.Dispose();
+            _missionBinder = null;
         }
 
         private void HandleStationRewardGranted(StationData station, int rewardCoins)
@@ -217,13 +272,28 @@ namespace LastTrain.UI
 
         private void HandleStationStarted(StationData station)
         {
-            if (station != null && battleManager != null && _gameSession?.RunState != null)
+            if (station == null || _gameSession?.RunState == null)
             {
-                float enemyMult = _gameSession.RunState.NextStationModifiers.ConsumeEnemyHealthMultiplier();
-                battleManager.SetStationDifficulty(station.DifficultyMultiplier, enemyMult);
+                return;
             }
 
+            if (_gameSession.RunState.IsEndlessRun && gameDatabase?.EndlessRoute != null)
+            {
+                gameDatabase.EndlessRoute.PruneRuntimeCache(station.StationIndex);
+            }
+
+            // Modifier를 먼저 적용한 뒤 역 난이도에 반영한다.
             _difficultyModifiers?.OnStationStarted(station);
+
+            if (battleManager != null)
+            {
+                float enemyMult = _gameSession.RunState.NextStationModifiers.ConsumeEnemyHealthMultiplier();
+                float bonus = _gameSession.RunState.DifficultyModifiers.EnemyHealthBonusMultiplier;
+                battleManager.SetStationDifficulty(
+                    station.DifficultyMultiplier * Mathf.Max(0.01f, bonus),
+                    enemyMult);
+            }
+
             AppRoot.Instance?.Analytics?.BindRun(_gameSession.RunState, _gameSession.RunState?.DifficultyId);
         }
 
@@ -291,6 +361,13 @@ namespace LastTrain.UI
             }
 
             string lineId = _gameSession?.RunState?.LineId;
+            if (string.Equals(lineId, RouteIds.Endless, StringComparison.Ordinal)
+                && gameDatabase.EndlessRoute != null
+                && gameDatabase.EndlessRoute.TryGetStationByIndex(stationIndex, out StationData endlessStation))
+            {
+                return endlessStation;
+            }
+
             if (!string.IsNullOrWhiteSpace(lineId)
                 && gameDatabase.TryGetStationByRouteIndex(lineId, stationIndex, out StationData routeStation))
             {

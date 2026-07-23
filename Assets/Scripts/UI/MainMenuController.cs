@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using LastTrain.Analytics;
 using LastTrain.Audio;
 using LastTrain.Core;
-using LastTrain.Difficulty;
-using LastTrain.Run;
 using LastTrain.Data;
+using LastTrain.Difficulty;
+using LastTrain.Endless;
+using LastTrain.Mission;
+using LastTrain.Run;
 using LastTrain.Save;
 using UnityEngine;
 using UnityEngine.UI;
@@ -27,9 +29,13 @@ namespace LastTrain.UI
         [SerializeField] private Text metaStatusLabel;
 
         private SettingsPanelController _settingsPanel;
+        private MissionPanelController _missionPanel;
         private PrivacyConsentDialogController _privacyDialog;
         private DifficultySelectionController _difficultySelection;
         private DifficultyUnlockPopupController _difficultyUnlockPopup;
+        private Button _missionButton;
+        private Button _dailyRunButton;
+        private Button _endlessRunButton;
 
         private void Awake()
         {
@@ -50,6 +56,7 @@ namespace LastTrain.UI
         {
             EnsureMenuServices();
             EnsureDifficultyServices();
+            EnsureMissionServices();
             _privacyDialog?.TryShowIfNeeded();
             _difficultyUnlockPopup?.TryShowPendingUnlocks();
 
@@ -146,6 +153,135 @@ namespace LastTrain.UI
             }
 
             EnsureSettingsButton();
+        }
+
+        private void EnsureMissionServices()
+        {
+            _missionPanel = GetComponent<MissionPanelController>();
+            if (_missionPanel == null)
+            {
+                _missionPanel = gameObject.AddComponent<MissionPanelController>();
+            }
+
+            EnsureMissionButtons();
+            MetaSaveData meta = MetaSaveSystem.LoadOrCreate();
+            MissionProgressService.EnsurePeriods(meta, GameDatabaseLocator.Load()?.Missions);
+            MetaSaveSystem.Save(meta);
+        }
+
+        private void EnsureMissionButtons()
+        {
+            Canvas canvas = FindAnyObjectByType<Canvas>();
+            if (canvas == null)
+            {
+                return;
+            }
+
+            Transform safeArea = canvas.transform.Find("SafeArea");
+            Transform parent = safeArea != null ? safeArea : canvas.transform;
+
+            if (GameObject.Find("MissionButton") == null)
+            {
+                _missionButton = MenuOverlayUi.CreateButton(
+                    parent,
+                    "MissionButton",
+                    "미션",
+                    Vector2.zero,
+                    new Vector2(600f, 112f),
+                    () => _missionPanel?.Show(GameDatabaseLocator.Load()));
+                ApplyContinueButtonThemeTo(_missionButton);
+            }
+            else
+            {
+                _missionButton = GameObject.Find("MissionButton").GetComponent<Button>();
+                _missionButton.onClick.RemoveAllListeners();
+                _missionButton.onClick.AddListener(() => _missionPanel?.Show(GameDatabaseLocator.Load()));
+            }
+
+            if (GameObject.Find("DailyRunButton") == null)
+            {
+                _dailyRunButton = MenuOverlayUi.CreateButton(
+                    parent,
+                    "DailyRunButton",
+                    "오늘의 막차",
+                    Vector2.zero,
+                    new Vector2(600f, 112f),
+                    OnDailyRunClicked);
+                ApplyContinueButtonThemeTo(_dailyRunButton);
+            }
+            else
+            {
+                _dailyRunButton = GameObject.Find("DailyRunButton").GetComponent<Button>();
+                _dailyRunButton.onClick.RemoveAllListeners();
+                _dailyRunButton.onClick.AddListener(OnDailyRunClicked);
+            }
+
+            if (GameObject.Find("EndlessRunButton") == null)
+            {
+                _endlessRunButton = MenuOverlayUi.CreateButton(
+                    parent,
+                    "EndlessRunButton",
+                    "무한 모드",
+                    Vector2.zero,
+                    new Vector2(600f, 112f),
+                    OnEndlessRunClicked);
+                ApplyContinueButtonThemeTo(_endlessRunButton);
+            }
+            else
+            {
+                _endlessRunButton = GameObject.Find("EndlessRunButton").GetComponent<Button>();
+                _endlessRunButton.onClick.RemoveAllListeners();
+                _endlessRunButton.onClick.AddListener(OnEndlessRunClicked);
+            }
+
+            RefreshEndlessButton();
+        }
+
+        private void RefreshEndlessButton()
+        {
+            if (_endlessRunButton == null)
+            {
+                return;
+            }
+
+            MetaSaveData meta = MetaSaveSystem.LoadOrCreate();
+            bool unlocked = EndlessProgressService.IsUnlocked(meta);
+            _endlessRunButton.interactable = unlocked;
+            Text label = _endlessRunButton.GetComponentInChildren<Text>();
+            if (label != null)
+            {
+                label.text = unlocked
+                    ? (meta.endlessBestScore > 0
+                        ? $"무한 모드  (최고 {meta.endlessBestScore})"
+                        : "무한 모드")
+                    : "무한 모드  (노선 클리어 후 해금)";
+            }
+        }
+
+        private static void ApplyContinueButtonThemeTo(Button button)
+        {
+            if (button == null)
+            {
+                return;
+            }
+
+            VisualTheme theme = VisualThemeLocator.Load();
+            Image image = button.GetComponent<Image>();
+            if (theme == null || image == null || theme.ButtonNormal == null)
+            {
+                return;
+            }
+
+            image.sprite = theme.ButtonNormal;
+            image.type = Image.Type.Sliced;
+            image.color = Color.white;
+            button.transition = Selectable.Transition.SpriteSwap;
+
+            SpriteState state = button.spriteState;
+            state.highlightedSprite = theme.ButtonNormal;
+            state.pressedSprite = theme.ButtonPressed != null ? theme.ButtonPressed : theme.ButtonNormal;
+            state.disabledSprite = theme.ButtonDisabled != null ? theme.ButtonDisabled : theme.ButtonNormal;
+            button.spriteState = state;
         }
 
         private void EnsureDifficultyServices()
@@ -307,6 +443,7 @@ namespace LastTrain.UI
             }
 
             RefreshDifficultySelection();
+            RefreshEndlessButton();
         }
 
         private void EnsureContinueButton()
@@ -432,6 +569,73 @@ namespace LastTrain.UI
             SceneFlow.Load(SceneNames.Game);
         }
 
+        private void OnDailyRunClicked()
+        {
+            if (_dailyRunButton != null)
+            {
+                _dailyRunButton.interactable = false;
+            }
+
+            GameAudio.PlaySfx(SfxId.UiConfirm);
+
+            // 오늘의 막차는 이어하기·시드 변경을 막는다.
+            RunSaveSystem.DeleteRunSave();
+            DifficultySelectionState.UnlockSelection();
+
+            AppRoot appRoot = AppRoot.Instance;
+            if (appRoot != null)
+            {
+                int seed = DailyRunService.ComputeSeedForToday();
+                RunStartConfig config = RunStartConfig.CreateDailyRun(seed);
+                config.DifficultyId = DifficultySelectionState.SelectedDifficultyId;
+                appRoot.GameSession.StartNewRun(config);
+            }
+
+            SceneFlow.Load(SceneNames.Game);
+        }
+
+        private void OnEndlessRunClicked()
+        {
+            MetaSaveData meta = MetaSaveSystem.LoadOrCreate();
+            if (!EndlessProgressService.IsUnlocked(meta))
+            {
+                GameAudio.PlaySfx(SfxId.UiError);
+                RefreshEndlessButton();
+                return;
+            }
+
+            if (_endlessRunButton != null)
+            {
+                _endlessRunButton.interactable = false;
+            }
+
+            GameAudio.PlaySfx(SfxId.UiConfirm);
+            RunSaveSystem.DeleteRunSave();
+            DifficultySelectionState.UnlockSelection();
+
+            AppRoot appRoot = AppRoot.Instance;
+            if (appRoot != null)
+            {
+                DifficultyModifierData[] depthMods = null;
+                EndlessRouteData endless = GameDatabaseLocator.Load()?.EndlessRoute;
+                if (endless?.DepthModifiers != null && endless.DepthModifiers.Count > 0)
+                {
+                    depthMods = new DifficultyModifierData[endless.DepthModifiers.Count];
+                    for (int i = 0; i < depthMods.Length; i++)
+                    {
+                        depthMods[i] = endless.DepthModifiers[i];
+                    }
+                }
+
+                RunStartConfig config = RunStartConfig.CreateEndlessRun(
+                    DifficultySelectionState.SelectedDifficultyId,
+                    depthMods);
+                appRoot.GameSession.StartNewRun(config);
+            }
+
+            SceneFlow.Load(SceneNames.Game);
+        }
+
         private void OnContinueClicked()
         {
             if (continueButton != null)
@@ -439,7 +643,7 @@ namespace LastTrain.UI
                 continueButton.interactable = false;
             }
 
-            if (!RunSaveSystem.TryLoadPreparing(out RunSaveData save) || save == null)
+            if (!RunSaveSystem.TryLoadPreparing(out RunSaveData save) || save == null || save.isDailyRun)
             {
                 GameAudio.PlaySfx(SfxId.UiError);
                 RefreshContinueButton();
@@ -488,8 +692,12 @@ namespace LastTrain.UI
                 return;
             }
 
-            bool hasSave = RunSaveSystem.TryLoadPreparing(out _);
+            // 오늘의 막차 세이브는 이어하기 대상이 아니다.
+            bool hasSave = RunSaveSystem.TryLoadPreparing(out RunSaveData save)
+                           && save != null
+                           && !save.isDailyRun;
             continueButton.interactable = hasSave;
+            continueButton.gameObject.SetActive(hasSave);
         }
     }
 }

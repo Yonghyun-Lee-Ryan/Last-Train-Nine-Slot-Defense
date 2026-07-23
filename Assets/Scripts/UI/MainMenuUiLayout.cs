@@ -10,7 +10,7 @@ namespace LastTrain.UI
     {
         private const float TitleHeight = 170f;
         private const float MetaHeight = 110f;
-        private const float DifficultyHeight = 280f;
+        private const float DifficultyHeight = 360f;
         private const float DetailHeight = 100f;
         private const float ActionHeight = 112f;
 
@@ -54,6 +54,9 @@ namespace LastTrain.UI
             PlaceIfExists(root, safeArea, "DifficultyStatusLabel", DetailHeight, ref index);
             EnsureSpacer(root, "SpacerBeforeActions", ref index, flexible: 0.8f);
             PlaceIfExists(root, safeArea, "StartButton", ActionHeight, ref index);
+            PlaceIfExists(root, safeArea, "DailyRunButton", ActionHeight, ref index);
+            PlaceIfExists(root, safeArea, "EndlessRunButton", ActionHeight, ref index);
+            PlaceIfExists(root, safeArea, "MissionButton", ActionHeight, ref index);
             PlaceIfExists(root, safeArea, "ContinueButton", ActionHeight, ref index);
             EnsureSpacer(root, "SpacerBottom", ref index, flexible: 0.5f);
 
@@ -61,6 +64,9 @@ namespace LastTrain.UI
             ConfigureDifficultyArea(root.Find("DifficultySelection") as RectTransform);
             ConfigureDetailLabel(root.Find("DifficultyStatusLabel"));
             ConfigureActionButton(root.Find("StartButton") as RectTransform, ActionHeight);
+            ConfigureActionButton(root.Find("DailyRunButton") as RectTransform, ActionHeight);
+            ConfigureActionButton(root.Find("EndlessRunButton") as RectTransform, ActionHeight);
+            ConfigureActionButton(root.Find("MissionButton") as RectTransform, ActionHeight);
             ConfigureActionButton(root.Find("ContinueButton") as RectTransform, ActionHeight);
 
             CleanupOrphanDifficultyButtons(safeArea, root);

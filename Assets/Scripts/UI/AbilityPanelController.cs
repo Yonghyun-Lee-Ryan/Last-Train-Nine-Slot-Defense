@@ -84,7 +84,27 @@ namespace LastTrain.UI
             }
 
             _runState = appRoot.GameSession.RunState;
-            int seed = randomSeed != 0 ? randomSeed : unchecked(Environment.TickCount);
+            int seed;
+            if (_runState != null && _runState.IsDailyRun && _runState.RandomSeed != 0)
+            {
+                seed = _runState.RandomSeed;
+            }
+            else
+            {
+                seed = randomSeed != 0
+                    ? randomSeed
+                    : (_runState != null && _runState.RandomSeed != 0
+                        ? _runState.RandomSeed
+                        : unchecked(Environment.TickCount));
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                if (_runState != null
+                    && LastTrain.DebugTools.DebugCombatSettings.FixedSeed.HasValue)
+                {
+                    seed = LastTrain.DebugTools.DebugCombatSettings.FixedSeed.Value;
+                }
+#endif
+            }
+
             var random = new RandomService(seed);
             var offerService = new AbilityOfferService(gameDatabase.Abilities, random, offerCount: 3);
 

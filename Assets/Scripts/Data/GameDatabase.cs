@@ -41,6 +41,15 @@ namespace LastTrain.Data
         [Header("Events")]
         [SerializeField] private EventData[] events;
 
+        [Header("Missions")]
+        [SerializeField] private Mission.MissionData[] missions;
+
+        [Header("Endless")]
+        [SerializeField] private EndlessRouteData endlessRoute;
+
+        [Header("Tutorial")]
+        [SerializeField] private Tutorial.TutorialStepData[] tutorialSteps;
+
         public IReadOnlyList<PassengerData> Passengers => passengers;
         public IReadOnlyList<EnemyData> Enemies => enemies;
         public IReadOnlyList<WaveData> Waves => waves;
@@ -51,6 +60,9 @@ namespace LastTrain.Data
         public IReadOnlyList<Difficulty.DifficultyData> Difficulties => difficulties;
         public IReadOnlyList<RouteData> Routes => routes;
         public IReadOnlyList<EventData> Events => events;
+        public IReadOnlyList<Mission.MissionData> Missions => missions;
+        public EndlessRouteData EndlessRoute => endlessRoute;
+        public IReadOnlyList<Tutorial.TutorialStepData> TutorialSteps => tutorialSteps;
 
         public bool TryGetEvent(string id, out EventData data) =>
             TryFindById(events, id, out data);
@@ -114,6 +126,12 @@ namespace LastTrain.Data
         public bool TryGetStationByRouteIndex(string routeId, int stationIndex, out StationData data)
         {
             data = null;
+            if (string.Equals(routeId, RouteIds.Endless, System.StringComparison.Ordinal)
+                && endlessRoute != null)
+            {
+                return endlessRoute.TryGetStationByIndex(stationIndex, out data);
+            }
+
             if (!TryGetRoute(routeId, out RouteData route) || route == null)
             {
                 return false;
@@ -124,6 +142,12 @@ namespace LastTrain.Data
 
         public int GetRouteStationCount(string routeId)
         {
+            if (string.Equals(routeId, RouteIds.Endless, System.StringComparison.Ordinal)
+                && endlessRoute != null)
+            {
+                return int.MaxValue / 4;
+            }
+
             if (!TryGetRoute(routeId, out RouteData route) || route == null)
             {
                 return stations != null ? stations.Length : 0;
@@ -165,6 +189,7 @@ namespace LastTrain.Data
             ValidateCategory("Difficulty", difficulties);
             ValidateCategory("Route", routes);
             ValidateCategory("Event", events);
+            ValidateCategory("Mission", missions);
 
             ValidateStationIndices();
             ValidateAlphaContentCounts();
