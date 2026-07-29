@@ -38,4 +38,20 @@ MonoBehaviour:
     - {fileID: -958737578, guid: 07584d749a4faab41b63e4dea27f0c3c, type: 3}
     framesPerSecond: 8
     loop: 0
+  merge:
+    frames:
+    - {fileID: -346504165, guid: 52ba504ff9fe5ff4cbde8f3575c888ff, type: 3}
+    - {fileID: 1083404626, guid: 52ba504ff9fe5ff4cbde8f3575c888ff, type: 3}
+    - {fileID: 5877079, guid: 52ba504ff9fe5ff4cbde8f3575c888ff, type: 3}
+    - {fileID: 1174525688, guid: 52ba504ff9fe5ff4cbde8f3575c888ff, type: 3}
+    framesPerSecond: 8
+    loop: 0
+  hit:
+    frames:
+    - {fileID: 435327778, guid: 4d44837d2876a7147b3bb6b1ad6e5b3f, type: 3}
+    - {fileID: -1230910826, guid: 4d44837d2876a7147b3bb6b1ad6e5b3f, type: 3}
+    - {fileID: -426644819, guid: 4d44837d2876a7147b3bb6b1ad6e5b3f, type: 3}
+    - {fileID: 53911824, guid: 4d44837d2876a7147b3bb6b1ad6e5b3f, type: 3}
+    framesPerSecond: 8
+    loop: 0
   accentColor: {r: 0.9254902, g: 0.28235295, b: 0.6, a: 1}

@@ -11,6 +11,8 @@ namespace LastTrain.Data
         [SerializeField] private SpriteAnimationClip idle;
         [SerializeField] private SpriteAnimationClip attack;
         [SerializeField] private SpriteAnimationClip skill;
+        [SerializeField] private SpriteAnimationClip merge;
+        [SerializeField] private SpriteAnimationClip hit;
         [SerializeField] private Color accentColor = Color.white;
 
         public string Id => id;
@@ -18,6 +20,8 @@ namespace LastTrain.Data
         public SpriteAnimationClip Idle => idle;
         public SpriteAnimationClip Attack => attack;
         public SpriteAnimationClip Skill => skill;
+        public SpriteAnimationClip Merge => merge;
+        public SpriteAnimationClip Hit => hit;
         public Color AccentColor => accentColor;
 
         public Sprite GetPortraitOrFallback()

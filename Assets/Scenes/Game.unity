@@ -1223,6 +1223,7 @@ MonoBehaviour:
   gridManager: {fileID: 733082529}
   gameDatabase: {fileID: 11400000, guid: ff67a309c74e73546aa9176ecfbde94a, type: 2}
   economyConfig: {fileID: 11400000, guid: f00e7a542ae6b9a47ac4cc5ae95ddc8e, type: 2}
+  battleBootstrap: {fileID: 0}
   randomSeed: 0
   coinLabel: {fileID: 1731798254}
   costLabel: {fileID: 844573891}
@@ -2425,6 +2426,7 @@ MonoBehaviour:
   intervalLabel: {fileID: 561135503}
   rangeLabel: {fileID: 380727021}
   sellPriceLabel: {fileID: 1391127470}
+  skillLabel: {fileID: 0}
   sellButton: {fileID: 1008042038}
   closeButton: {fileID: 1050624012}
 --- !u!114 &429989637
@@ -4351,6 +4353,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.UI.UiVfxInstaller
   vfxPool: {fileID: 723548596}
+  effectPool: {fileID: 0}
+  floatingTextPool: {fileID: 0}
+  feedbackService: {fileID: 0}
   battleManager: {fileID: 229589661}
   gridManager: {fileID: 733082529}
 --- !u!114 &723548596
@@ -5918,6 +5923,8 @@ MonoBehaviour:
   pauseButton: {fileID: 1002379349}
   pauseOverlay: {fileID: 1271416927}
   resumeButton: {fileID: 232234842}
+  mainMenuFromPauseButton: {fileID: 0}
+  settingsFromPauseButton: {fileID: 0}
 --- !u!1 &1002379347
 GameObject:
   m_ObjectHideFlags: 0

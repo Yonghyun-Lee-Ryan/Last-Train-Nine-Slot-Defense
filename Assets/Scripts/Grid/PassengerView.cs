@@ -145,6 +145,20 @@ namespace LastTrain.Grid
             }
         }
 
+        public void PlayMergeAnimation()
+        {
+            if (_visualSet != null && _visualSet.Merge.HasFrames && portraitAnimator != null)
+            {
+                portraitAnimator.PlayOneShot(_visualSet.Merge, ResumeIdle);
+                return;
+            }
+
+            if (portraitImage != null)
+            {
+                portraitImage.transform.localScale = new Vector3(1.15f, 1.15f, 1f);
+            }
+        }
+
         public void SnapToSlot(GridSlot slot)
         {
             if (slot == null)

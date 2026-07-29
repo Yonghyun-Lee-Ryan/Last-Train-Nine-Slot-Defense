@@ -217,6 +217,8 @@ namespace LastTrain.Feedback
                 : Vector2.zero;
 
             effectPool?.Play("vfx_merge", pos);
+            PassengerView mergedView = gridManager.FindViewByInstanceId(result.ResultInstanceId);
+            mergedView?.PlayMergeAnimation();
             Vector2 starPos = pos + Vector2.up * 70f;
             floatingTextPool?.SpawnWorld(
                 $"{result.ResultingStarLevel}★",

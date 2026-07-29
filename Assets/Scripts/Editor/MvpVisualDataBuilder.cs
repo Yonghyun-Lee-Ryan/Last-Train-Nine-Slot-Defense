@@ -140,6 +140,8 @@ namespace LastTrain.EditorTools
             AssignClip(so, "idle", $"Assets/Art/Sprites/Characters/{id}_idle_sheet.png", 256, 256, true);
             AssignClip(so, "attack", $"Assets/Art/Sprites/Characters/{id}_attack_sheet.png", 256, 256, false);
             AssignClip(so, "skill", $"Assets/Art/Sprites/Characters/{id}_skill_sheet.png", 256, 256, false);
+            AssignClip(so, "merge", $"Assets/Art/Sprites/Characters/{id}_merge_sheet.png", 256, 256, false);
+            AssignClip(so, "hit", $"Assets/Art/Sprites/Characters/{id}_hit_sheet.png", 256, 256, false);
             so.FindProperty("accentColor").colorValue = VisualThemePalette.PassengerAccent[accentIndex];
             so.ApplyModifiedPropertiesWithoutUndo();
             list.Add(visual);
