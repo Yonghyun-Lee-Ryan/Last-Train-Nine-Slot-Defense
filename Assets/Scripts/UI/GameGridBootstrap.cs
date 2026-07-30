@@ -48,6 +48,7 @@ namespace LastTrain.UI
             EnsureSynergyCatalog(runState);
 
             // 이미 배치된 승객이 있으면(씬 재진입) 디버그 시드를 다시 넣지 않는다.
+            // Release 플레이어에는 디버그 시드를 넣지 않는다 (에디터/Dev만).
             if (!HasAnyPassenger(runState))
             {
                 PlaceDebugPassengers(runState);
@@ -105,6 +106,9 @@ namespace LastTrain.UI
 
         private void PlaceDebugPassengers(RunState runState)
         {
+#if !(UNITY_EDITOR || DEVELOPMENT_BUILD)
+            return;
+#else
             if (debugPassengers == null || debugPassengers.Length == 0)
             {
                 return;
@@ -143,6 +147,7 @@ namespace LastTrain.UI
                     mergePairSlotIndex,
                     PassengerRuntime.Create(debugPassengers[0]));
             }
+#endif
         }
     }
 }

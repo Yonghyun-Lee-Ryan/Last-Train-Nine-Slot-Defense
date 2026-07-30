@@ -16,6 +16,7 @@ namespace LastTrain.Grid
         [Header("Highlight Colors")]
         [SerializeField] private Color normalHighlightColor = new Color(1f, 1f, 1f, 0f);
         [SerializeField] private Color dragTargetColor = new Color(0.3f, 0.8f, 1f, 0.35f);
+        [SerializeField] private Color mergeHighlightColor = new Color(0.25f, 0.95f, 0.4f, 0.55f);
 
         public int SlotIndex => slotIndex;
 
@@ -35,6 +36,24 @@ namespace LastTrain.Grid
 
             highlightImage.color = active ? dragTargetColor : normalHighlightColor;
             highlightImage.enabled = active || normalHighlightColor.a > 0.01f;
+        }
+
+        /// <summary>튜토리얼/UX용 합성 가능 슬롯 초록 강조.</summary>
+        public void SetMergeHighlight(bool active)
+        {
+            if (highlightImage == null)
+            {
+                return;
+            }
+
+            if (active)
+            {
+                highlightImage.color = mergeHighlightColor;
+                highlightImage.enabled = true;
+                return;
+            }
+
+            SetHighlightActive(false);
         }
 
         public bool ContainsScreenPoint(Vector2 screenPosition, Camera eventCamera)

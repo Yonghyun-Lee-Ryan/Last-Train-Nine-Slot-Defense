@@ -10,6 +10,7 @@ namespace LastTrain.Enemy
     public sealed class EnemyPool : MonoBehaviour
     {
         private const string DefaultPrefabPath = "Assets/Prefabs/Enemies/BasicEnemy.prefab";
+        private const string ResourcesPrefabPath = "Combat/BasicEnemy";
 
         [SerializeField] private EnemyController prefab;
         [SerializeField] private RectTransform poolRoot;
@@ -22,12 +23,18 @@ namespace LastTrain.Enemy
         {
             EnsurePrefab();
             EnsurePoolRoot();
+            if (prefab == null)
+            {
+                throw new System.InvalidOperationException(
+                    "[EnemyPool] prefab이 없어 전투를 시작할 수 없습니다. Game 씬 EnemyPool에 BasicEnemy를 연결하세요.");
+            }
+
             Prewarm();
         }
 
         public EnemyController Spawn(EnemyRuntime runtime)
         {
-            if (runtime == null)
+            if (runtime == null || prefab == null)
             {
                 return null;
             }
@@ -103,8 +110,17 @@ namespace LastTrain.Enemy
 
             if (prefab == null)
             {
+                GameObject loaded = Resources.Load<GameObject>(ResourcesPrefabPath);
+                if (loaded != null)
+                {
+                    prefab = loaded.GetComponent<EnemyController>();
+                }
+            }
+
+            if (prefab == null)
+            {
                 Debug.LogError(
-                    $"[EnemyPool] prefab이 설정되지 않았습니다. Inspector에 연결하거나 {DefaultPrefabPath}를 확인하세요.",
+                    $"[EnemyPool] prefab이 설정되지 않았습니다. Inspector에 연결하거나 Resources/{ResourcesPrefabPath}를 확인하세요.",
                     this);
             }
         }

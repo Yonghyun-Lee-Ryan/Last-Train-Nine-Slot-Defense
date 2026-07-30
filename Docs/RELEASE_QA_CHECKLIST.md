@@ -4,19 +4,23 @@ Unity **6000.5.4f1** / 내부 테스트 빌드용 점검 목록입니다.
 
 ## 빌드 전 (Editor)
 
-- [ ] `Tools → 막차 생존 → Release → Setup Release Assets` 실행
-- [ ] `Tools → 막차 생존 → Release → Sync Release Config to Player Settings` 실행
-- [ ] `Tools → 막차 생존 → Release → Validate Release Build` 통과
+- [ ] `Tools → 막차 생존 → Release → Prepare For Play Internal Test` 실행
+- [ ] 또는 개별: Setup Release Assets / Sync / Validate 통과
 - [ ] `AppReleaseConfig` 버전명·Bundle Version Code 갱신
-- [ ] 개인정보처리방침 URL이 실제 주소로 설정됨
-- [ ] AdMob 운영 광고 ID 입력 (Release)
-- [ ] Player Settings → Android → Keystore가 **로컬 경로**에 설정됨 (저장소 미포함)
+- [ ] 개인정보처리방침 URL이 실제 주소로 설정됨 (placeholder면 WARN)
+- [ ] AdMob 운영 광고 ID 입력 (내부테스트는 테스트 ID로 가능, WARN)
+- [ ] Player Settings → Android → Publishing Settings Keystore 로컬 경로 확인
 
 ## AAB 생성
 
 - [ ] `Tools → 막차 생존 → Release → Build Android App Bundle (Release)`
-- [ ] `Builds/Android/LastTrain.aab` 생성 확인
-- [ ] Development Build 메뉴 결과물에 Debug Panel 메뉴가 없음 (Editor 전용)
+- [ ] `Builds/Android/LastTrain.aab` (및 버전 파일명 AAB) 생성 확인
+- [ ] Development Build OFF, Debug Panel은 Editor 전용만 존재
+
+## Play Console 내부 테스트
+
+- [ ] `Docs/PLAY_CONSOLE_INTERNAL_TEST.md` 절차로 AAB 업로드
+- [ ] 테스터 초대 링크로 설치 확인
 
 ## 설치·실행
 

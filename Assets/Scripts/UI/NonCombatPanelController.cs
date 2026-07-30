@@ -129,8 +129,11 @@ namespace LastTrain.UI
                 return;
             }
 
-            string key = BuildShopRenderKey();
-            bool needsRebuild = _lastRenderedPhase != RunPhase.ShopOpen || _lastRenderedKey != key;
+            BuildUiIfNeeded();
+            if (_root == null)
+            {
+                return;
+            }
 
             _root.SetActive(true);
             _title.text = "상점";
@@ -138,27 +141,51 @@ namespace LastTrain.UI
             _leaveButton.gameObject.SetActive(true);
             _status.text = $"보유 코인: {_runState.Currency.CurrentCoins}";
 
-            if (!needsRebuild)
+            var offers = _runState.Shop.Offers;
+            if (offers == null || offers.Count == 0)
             {
+                _status.text = "상품을 불러오지 못했습니다. 나가기 후 다시 시도하세요.";
+                for (int i = 0; i < _choiceButtons.Length; i++)
+                {
+                    if (_choiceButtons[i] != null)
+                    {
+                        _choiceButtons[i].gameObject.SetActive(false);
+                    }
+                }
+
+                _lastRenderedPhase = RunPhase.ShopOpen;
+                _lastRenderedKey = "empty";
                 return;
             }
 
+            string key = BuildShopRenderKey();
+            bool needsRebuild = _lastRenderedPhase != RunPhase.ShopOpen || _lastRenderedKey != key;
+
             for (int i = 0; i < _choiceButtons.Length; i++)
             {
-                bool visible = i < _runState.Shop.Offers.Count;
+                bool visible = i < offers.Count;
                 _choiceButtons[i].gameObject.SetActive(visible);
                 if (!visible)
                 {
                     continue;
                 }
 
-                ShopOffer offer = _runState.Shop.Offers[i];
-                string label = offer.purchased ? "[구매함] " : string.Empty;
-                label += $"{DescribeShopItem(offer)} - {offer.price}코인";
-                _choiceLabels[i].text = label;
-                int index = i;
-                _choiceButtons[i].onClick.RemoveAllListeners();
-                _choiceButtons[i].onClick.AddListener(() => OnShopBuy(index));
+                ShopOffer offer = offers[i];
+                string label = offer.purchased ? "[구매함]\n" : string.Empty;
+                label += $"{DescribeShopItem(offer)}\n{offer.price}코인";
+                if (_choiceLabels[i] != null)
+                {
+                    _choiceLabels[i].text = label;
+                    _choiceLabels[i].color = new Color(0.95f, 0.98f, 1f, 1f);
+                }
+
+                if (needsRebuild)
+                {
+                    int index = i;
+                    _choiceButtons[i].onClick.RemoveAllListeners();
+                    _choiceButtons[i].onClick.AddListener(() => OnShopBuy(index));
+                }
+
                 _choiceButtons[i].interactable = !offer.purchased;
             }
 
@@ -233,26 +260,85 @@ namespace LastTrain.UI
             int hash = offers.Count * 397 ^ _runState.Currency.CurrentCoins;
             for (int i = 0; i < offers.Count; i++)
             {
-                hash = unchecked(hash * 31 + (offers[i].purchased ? 1 : 0) + offers[i].price);
+                ShopOffer offer = offers[i];
+                hash = unchecked(
+                    hash * 31
+                    + (offer.purchased ? 1 : 0)
+                    + offer.price
+                    + (int)offer.itemType
+                    + (offer.payloadId?.GetHashCode() ?? 0)
+                    + offer.payloadValue);
             }
 
             return hash.ToString();
         }
 
-        private static string DescribeShopItem(ShopOffer offer)
+        private string DescribeShopItem(ShopOffer offer)
         {
-            return offer.itemType switch
+            if (offer == null)
             {
-                ShopItemType.RandomPassengerStar1 => "무작위 1성 승객",
-                ShopItemType.SpecificPassenger => "특정 승객",
-                ShopItemType.TrainHeal => "객차 회복",
-                ShopItemType.RandomAbility => "능력 카드",
-                ShopItemType.Relic => "유물",
-                ShopItemType.FreeSummonToken => "무료 소환권",
-                ShopItemType.DuplicatePassenger => "승객 복제",
-                ShopItemType.SummonCostReduction => "소환 비용 감소",
-                _ => offer.itemType.ToString(),
-            };
+                return "상품";
+            }
+
+            switch (offer.itemType)
+            {
+                case ShopItemType.RandomPassengerStar1:
+                    return "무작위 1성 승객";
+                case ShopItemType.SpecificPassenger:
+                    return ResolvePassengerName(offer.payloadId);
+                case ShopItemType.TrainHeal:
+                    return $"객차 회복 +{offer.payloadValue}";
+                case ShopItemType.RandomAbility:
+                    return "능력 카드";
+                case ShopItemType.Relic:
+                    return ResolveRelicName(offer.payloadId);
+                case ShopItemType.FreeSummonToken:
+                    return $"무료 소환권 x{Mathf.Max(1, offer.payloadValue)}";
+                case ShopItemType.DuplicatePassenger:
+                    return $"{ResolvePassengerName(offer.payloadId)} 복제";
+                case ShopItemType.SummonCostReduction:
+                    return $"소환 비용 -{Mathf.Max(1, offer.payloadValue)}";
+                default:
+                    return offer.itemType.ToString();
+            }
+        }
+
+        private string ResolvePassengerName(string passengerId)
+        {
+            if (string.IsNullOrWhiteSpace(passengerId) || gameDatabase?.Passengers == null)
+            {
+                return "특정 승객";
+            }
+
+            for (int i = 0; i < gameDatabase.Passengers.Count; i++)
+            {
+                PassengerData data = gameDatabase.Passengers[i];
+                if (data != null && data.Id == passengerId)
+                {
+                    return string.IsNullOrWhiteSpace(data.DisplayName) ? passengerId : data.DisplayName;
+                }
+            }
+
+            return passengerId;
+        }
+
+        private string ResolveRelicName(string relicId)
+        {
+            if (string.IsNullOrWhiteSpace(relicId) || gameDatabase?.Relics == null)
+            {
+                return "유물";
+            }
+
+            for (int i = 0; i < gameDatabase.Relics.Count; i++)
+            {
+                RelicData data = gameDatabase.Relics[i];
+                if (data != null && data.Id == relicId)
+                {
+                    return string.IsNullOrWhiteSpace(data.DisplayName) ? relicId : data.DisplayName;
+                }
+            }
+
+            return relicId;
         }
 
         private void OnShopBuy(int index)
@@ -384,8 +470,16 @@ namespace LastTrain.UI
             float[] xs = { -300f, -100f, 100f, 300f };
             for (int i = 0; i < 4; i++)
             {
-                _choiceButtons[i] = CreateButton(box.transform, $"Choice{i}", "선택", new Vector2(xs[i], 40f), theme, useCardFrame: true);
+                _choiceButtons[i] = CreateButton(box.transform, $"Choice{i}", "불러오는 중…", new Vector2(xs[i], 40f), theme, useCardFrame: true);
                 _choiceLabels[i] = _choiceButtons[i].GetComponentInChildren<Text>();
+                if (_choiceLabels[i] != null)
+                {
+                    _choiceLabels[i].fontSize = 22;
+                    _choiceLabels[i].resizeTextForBestFit = false;
+                    _choiceLabels[i].horizontalOverflow = HorizontalWrapMode.Wrap;
+                    _choiceLabels[i].verticalOverflow = VerticalWrapMode.Overflow;
+                    _choiceLabels[i].color = new Color(0.95f, 0.98f, 1f, 1f);
+                }
             }
 
             _leaveButton = CreateButton(box.transform, "LeaveButton", "나가기", new Vector2(0f, -340f), theme, useCardFrame: false);

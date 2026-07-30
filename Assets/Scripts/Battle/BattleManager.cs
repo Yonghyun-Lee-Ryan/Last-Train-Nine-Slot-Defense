@@ -221,7 +221,13 @@ namespace LastTrain.Battle
 
         public float ToWorldRange(float dataRange)
         {
-            return dataRange * rangeScale;
+            return dataRange * rangeScale * GetCombatWorldScale();
+        }
+
+        private float GetCombatWorldScale()
+        {
+            Canvas canvas = gridManager != null ? gridManager.RootCanvas : null;
+            return BattleConstants.GetUiWorldScale(canvas);
         }
 
         public void SetStationDifficulty(float difficulty, float eventEnemyHealthMultiplier = 1f)
@@ -334,16 +340,17 @@ namespace LastTrain.Battle
                 runtime.SetRouteSegment(
                     GetRouteSegmentStart(runtime.RouteWaypointIndex, runtime.SpawnPosition),
                     targetPosition);
+                float worldScale = GetCombatWorldScale();
                 bool reachedCurrentTarget = EnemyMovementService.TickMove(
                     runtime,
                     targetPosition,
                     deltaTime,
-                    moveSpeedScale,
-                    movingToWaypoint ? 8f : trainReachRadius);
+                    moveSpeedScale * worldScale,
+                    movingToWaypoint ? 8f * worldScale : trainReachRadius * worldScale);
 
                 if (!runtime.IsTargetable
                     && Vector2.Distance(runtime.SpawnPosition, runtime.Position)
-                    >= spawnTargetProtectionDistance)
+                    >= spawnTargetProtectionDistance * worldScale)
                 {
                     runtime.SetTargetable(true);
                 }

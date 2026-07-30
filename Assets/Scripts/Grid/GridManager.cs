@@ -265,9 +265,18 @@ namespace LastTrain.Grid
             }
 #endif
 
-            Debug.LogError(
-                $"[GridManager] passengerViewPrefab이 설정되지 않았습니다. Inspector에 연결하거나 {DefaultViewPrefabPath}를 확인하세요.",
-                this);
+            GameObject loaded = Resources.Load<GameObject>("Combat/PassengerView");
+            if (loaded != null)
+            {
+                passengerViewPrefab = loaded.GetComponent<PassengerView>();
+            }
+
+            if (passengerViewPrefab == null)
+            {
+                Debug.LogError(
+                    $"[GridManager] passengerViewPrefab이 설정되지 않았습니다. Inspector에 연결하거나 Resources/Combat/PassengerView를 확인하세요.",
+                    this);
+            }
         }
 
         private PassengerView GetOrCreateView(PassengerRuntime passenger)

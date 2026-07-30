@@ -11,6 +11,7 @@ namespace LastTrain.Battle
     public sealed class ProjectilePool : MonoBehaviour, IProjectileLauncher
     {
         private const string DefaultPrefabPath = "Assets/Prefabs/Projectiles/BasicProjectile.prefab";
+        private const string ResourcesPrefabPath = "Combat/BasicProjectile";
 
         [SerializeField] private ProjectileController prefab;
         [SerializeField] private RectTransform poolRoot;
@@ -25,18 +26,41 @@ namespace LastTrain.Battle
         {
             EnsurePrefab();
             EnsurePoolRoot();
+            if (prefab == null)
+            {
+                throw new System.InvalidOperationException(
+                    "[ProjectilePool] prefab이 없어 전투를 시작할 수 없습니다. Game 씬 ProjectilePool에 BasicProjectile을 연결하세요.");
+            }
+
+            float uiScale = BattleConstants.GetUiWorldScale(poolRoot != null
+                ? poolRoot.GetComponentInParent<Canvas>()
+                : GetComponentInParent<Canvas>());
+            moveSpeed = BattleConstants.ProjectileSpeed * uiScale;
+            hitRadius = 24f * uiScale;
+
             Prewarm();
         }
 
         public void Launch(Vector2 origin, EnemyRuntime target, float damage, string passengerId = null)
         {
-            if (target == null || !target.IsAlive)
+            if (prefab == null || target == null || !target.IsAlive)
             {
                 return;
             }
 
+            RefreshUiScale();
             ProjectileController projectile = Get();
+            projectile.Configure(this, moveSpeed, hitRadius);
             projectile.Launch(origin, target, damage, passengerId);
+        }
+
+        private void RefreshUiScale()
+        {
+            float uiScale = BattleConstants.GetUiWorldScale(poolRoot != null
+                ? poolRoot.GetComponentInParent<Canvas>()
+                : GetComponentInParent<Canvas>());
+            moveSpeed = BattleConstants.ProjectileSpeed * uiScale;
+            hitRadius = 24f * uiScale;
         }
 
         internal void Release(ProjectileController projectile)
@@ -100,8 +124,17 @@ namespace LastTrain.Battle
 
             if (prefab == null)
             {
+                GameObject loaded = Resources.Load<GameObject>(ResourcesPrefabPath);
+                if (loaded != null)
+                {
+                    prefab = loaded.GetComponent<ProjectileController>();
+                }
+            }
+
+            if (prefab == null)
+            {
                 Debug.LogError(
-                    $"[ProjectilePool] prefab이 설정되지 않았습니다. Inspector에 연결하거나 {DefaultPrefabPath}를 확인하세요.",
+                    $"[ProjectilePool] prefab이 설정되지 않았습니다. Inspector에 연결하거나 Resources/{ResourcesPrefabPath}를 확인하세요.",
                     this);
             }
         }

@@ -55,10 +55,14 @@ ExportedObj/
 sysinfo.txt
 
 # Builds
+/[Bb]uilds/
 *.apk
 *.aab
 *.unitypackage
 *.app
+
+# Local Android signing keys (never commit)
+/[Aa]ndroid[Kk]eys/
 
 # Crashlytics generated file
 crashlytics-build.properties
@@ -103,3 +107,7 @@ bin-release/
 *.swf
 *.air
 *.ipa
+
+# Unity/Android NDK temp
+.utmp/
+

@@ -8,9 +8,6 @@ using LastTrain.Data;
 using LastTrain.Run;
 using UnityEngine;
 using UnityEngine.UI;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
 namespace LastTrain.UI
 {
@@ -184,12 +181,7 @@ namespace LastTrain.UI
                 gameDatabase = battleBootstrap.GameDatabase;
             }
 
-#if UNITY_EDITOR
-            if (gameDatabase == null)
-            {
-                gameDatabase = AssetDatabase.LoadAssetAtPath<GameDatabase>("Assets/Data/GameDatabase.asset");
-            }
-#endif
+            gameDatabase ??= GameDatabaseLocator.Load();
 
             if (root == null)
             {

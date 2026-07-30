@@ -102,7 +102,18 @@ namespace LastTrain.UI
                 return;
             }
 
-            battleManager.Initialize(runState, gridManager, gameDatabase);
+            try
+            {
+                battleManager.Initialize(runState, gridManager, gameDatabase);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(
+                    "[GameBattleBootstrap] BattleManager 초기화 실패 — 웨이브를 시작할 수 없습니다: " + ex.Message,
+                    this);
+                return;
+            }
+
             battleManager.SetStationDifficulty(startingStation.DifficultyMultiplier);
 
             Canvas canvas = gridManager != null ? gridManager.RootCanvas : FindAnyObjectByType<Canvas>();
@@ -164,7 +175,8 @@ namespace LastTrain.UI
             director.Begin(
                 _stationManager,
                 _abilityPanel != null ? _abilityPanel.AbilityManager : null,
-                gridManager);
+                gridManager,
+                gameDatabase);
 
             // Station/Synergy 준비 후 전투 피드백 이벤트 재구독
             UiVfxInstaller feedbackInstaller = canvas != null

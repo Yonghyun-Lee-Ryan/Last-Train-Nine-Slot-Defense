@@ -4,7 +4,6 @@ using LastTrain.Passenger;
 using LastTrain.Run;
 using LastTrain.UI;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace LastTrain.Ux
 {
@@ -45,9 +44,123 @@ namespace LastTrain.Ux
         }
     }
 
-    /// <summary>합성 가능한 동일 승객 슬롯을 강조한다.</summary>
+    /// <summary>합성 가능한 동일 승객 슬롯을 초록 하이라이트로 강조한다.</summary>
     public static class MergeHighlightService
     {
+        public static bool HasMergeablePair(RunState runState)
+        {
+            if (runState == null)
+            {
+                return false;
+            }
+
+            for (int a = 0; a < RunState.GridSlotCount; a++)
+            {
+                PassengerRuntime pa = runState.GetPassengerAtSlot(a);
+                if (pa == null)
+                {
+                    continue;
+                }
+
+                for (int b = a + 1; b < RunState.GridSlotCount; b++)
+                {
+                    PassengerRuntime pb = runState.GetPassengerAtSlot(b);
+                    if (pb != null && MergeService.CanMerge(pa, pb))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 합성 가능한 쌍이 없으면 동일 승객을 빈 칸에 복제해 튜토리얼이 진행되게 한다.
+        /// </summary>
+        public static bool EnsureMergeablePair(GridManager grid, RunState runState)
+        {
+            if (runState == null)
+            {
+                return false;
+            }
+
+            if (HasMergeablePair(runState))
+            {
+                Refresh(grid, runState);
+                return true;
+            }
+
+            PassengerRuntime source = null;
+            for (int i = 0; i < RunState.GridSlotCount; i++)
+            {
+                PassengerRuntime passenger = runState.GetPassengerAtSlot(i);
+                if (passenger?.Data == null)
+                {
+                    continue;
+                }
+
+                if (passenger.StarLevel < passenger.Data.MaxStarLevel)
+                {
+                    source = passenger;
+                    break;
+                }
+            }
+
+            if (source == null)
+            {
+                Refresh(grid, runState);
+                return false;
+            }
+
+            int emptySlot = -1;
+            for (int i = 0; i < RunState.GridSlotCount; i++)
+            {
+                if (runState.GetPassengerAtSlot(i) == null)
+                {
+                    emptySlot = i;
+                    break;
+                }
+            }
+
+            if (emptySlot < 0)
+            {
+                // 빈 칸이 없으면 합성 불가능한 다른 칸을 동일 승객으로 교체
+                for (int i = 0; i < RunState.GridSlotCount; i++)
+                {
+                    PassengerRuntime other = runState.GetPassengerAtSlot(i);
+                    if (other == null || ReferenceEquals(other, source))
+                    {
+                        continue;
+                    }
+
+                    if (!MergeService.CanMerge(source, other)
+                        && runState.TryConsumePassenger(i, out _))
+                    {
+                        emptySlot = i;
+                        break;
+                    }
+                }
+            }
+
+            if (emptySlot < 0)
+            {
+                Refresh(grid, runState);
+                return false;
+            }
+
+            PassengerRuntime clone = PassengerRuntime.Create(source.Data, source.StarLevel);
+            if (!runState.TryPlacePassenger(emptySlot, clone))
+            {
+                Refresh(grid, runState);
+                return false;
+            }
+
+            grid?.RefreshViews();
+            Refresh(grid, runState);
+            return true;
+        }
+
         public static void Refresh(GridManager grid, RunState runState)
         {
             Clear(grid);
@@ -99,15 +212,7 @@ namespace LastTrain.Ux
                 return;
             }
 
-            Image image = slot.GetComponent<Image>();
-            if (image == null)
-            {
-                return;
-            }
-
-            image.color = on
-                ? new Color(0.45f, 0.95f, 0.55f, 0.85f)
-                : Color.white;
+            slot.SetMergeHighlight(on);
         }
     }
 }

@@ -1578,7 +1578,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b3d2200128460143a608ff34865bc0b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Battle.ProjectilePool
-  prefab: {fileID: 0}
+  prefab: {fileID: 4592440286405046194, guid: 78164d319e3f32146941e93146be91d1, type: 3}
   poolRoot: {fileID: 631833062}
   prewarmCount: 12
   moveSpeed: 600
@@ -1616,7 +1616,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9b47b406e17ed684487624ead5a103da, type: 3}
   m_Name: 
   m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Enemy.EnemyPool
-  prefab: {fileID: 0}
+  prefab: {fileID: 4871455871038368865, guid: 4f3b8f82c7fcd434cbf5216d0674f1a5, type: 3}
   poolRoot: {fileID: 1753377183}
   prewarmCount: 8
 --- !u!1 &232234840

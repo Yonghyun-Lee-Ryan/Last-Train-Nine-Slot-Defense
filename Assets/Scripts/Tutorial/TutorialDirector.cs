@@ -66,8 +66,14 @@ namespace LastTrain.Tutorial
         public void Begin(
             StationManager stationManager,
             AbilityManager abilityManager,
-            GridManager gridManager)
+            GridManager gridManager,
+            GameDatabase database = null)
         {
+            if (database != null)
+            {
+                gameDatabase = database;
+            }
+
             gameDatabase ??= GameDatabaseLocator.Load();
             MetaSaveData meta = MetaSaveSystem.LoadOrCreate();
             if (!TutorialProgressService.ShouldOfferTutorial(meta))
@@ -78,6 +84,10 @@ namespace LastTrain.Tutorial
             IReadOnlyListWrapper steps = new IReadOnlyListWrapper(gameDatabase?.TutorialSteps);
             if (steps.Count == 0)
             {
+                Debug.LogError(
+                    "[TutorialDirector] TutorialSteps가 비어 있습니다. " +
+                    "GameDatabase를 Begin에 전달하거나 Resources/GameDatabase를 확인하세요.",
+                    this);
                 return;
             }
 
@@ -173,7 +183,8 @@ namespace LastTrain.Tutorial
             HighlightTarget(step?.UiTargetId);
             if (step != null && step.StepKind == TutorialStepKind.MergePassengers)
             {
-                Ux.MergeHighlightService.Refresh(_gridManager, AppRoot.Instance?.GameSession?.RunState);
+                RunState runState = AppRoot.Instance?.GameSession?.RunState;
+                Ux.MergeHighlightService.EnsureMergeablePair(_gridManager, runState);
             }
         }
 
@@ -210,6 +221,13 @@ namespace LastTrain.Tutorial
             if (result == GridDropResult.Moved || result == GridDropResult.Swapped)
             {
                 // 배치는 소환 선택에서도 발생. 드래그 이동도 배치 학습에 포함.
+                if (_machine?.CurrentStep != null
+                    && _machine.CurrentStep.StepKind == TutorialStepKind.MergePassengers)
+                {
+                    Ux.MergeHighlightService.Refresh(
+                        _gridManager,
+                        AppRoot.Instance?.GameSession?.RunState);
+                }
             }
 
             if (result == GridDropResult.Reverted)
@@ -395,8 +413,11 @@ namespace LastTrain.Tutorial
                 return;
             }
 
+            // 레거시 id 호환: GridRoot → PassengerGrid
+            string resolvedId = targetId == "GridRoot" ? "PassengerGrid" : targetId;
+
             // 이름으로 UI를 찾아 한 프레임 강조 (좌표 하드코딩 없음)
-            GameObject target = GameObject.Find(targetId);
+            GameObject target = GameObject.Find(resolvedId);
             if (target == null)
             {
                 return;
