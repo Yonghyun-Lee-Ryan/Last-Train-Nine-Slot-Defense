@@ -77,24 +77,27 @@ namespace LastTrain.Tests.EditMode
         }
 
         [Test]
-        public void MvpTuning_MaxPassengerRangeDoesNotCoverFullEnemyCorridor()
+        public void MvpTuning_BackLeftSeatCannotSnipeSpawn()
         {
             const float maxPassengerDataRange = 6f;
             float maxRange = maxPassengerDataRange * BattleConstants.RangeToWorldScale;
-            float directDistance = Vector2.Distance(
-                BattleConstants.SpawnAnchoredPosition,
-                BattleConstants.TrainTargetAnchoredPosition);
+            var backLeftSeat = new Vector2(-232f, -532f);
+            float spawnDistance = Vector2.Distance(
+                backLeftSeat,
+                BattleConstants.SpawnAnchoredPosition);
 
-            Assert.Less(maxRange, directDistance);
+            Assert.Less(maxRange, spawnDistance);
         }
 
         [Test]
-        public void MvpLayout_WaypointPathIsAboutTwiceLegacyStraightCorridor()
+        public void MvpLayout_EnemyPathIsFourLaneZigzag()
         {
-            const float legacyStraightCorridor = 520f;
-            float pathLength = BattleConstants.GetEnemyPathLength();
-
-            Assert.That(pathLength, Is.InRange(legacyStraightCorridor * 1.9f, legacyStraightCorridor * 2.5f));
+            Assert.AreEqual(4, BattleConstants.EnemyPathLaneYs.Length);
+            Assert.AreEqual(6, BattleConstants.EnemyWaypointAnchoredPositions.Length);
+            Assert.AreEqual(BattleConstants.EnemyPathRightX, BattleConstants.SpawnAnchoredPosition.x, 0.001f);
+            Assert.AreEqual(BattleConstants.EnemyPathLeftX, BattleConstants.EnemyWaypointAnchoredPositions[0].x, 0.001f);
+            Assert.AreEqual(BattleConstants.EnemyPathRightX, BattleConstants.EnemyWaypointAnchoredPositions[2].x, 0.001f);
+            Assert.Greater(BattleConstants.GetEnemyPathLength(), 3000f);
         }
     }
 }

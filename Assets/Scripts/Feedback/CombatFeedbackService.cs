@@ -164,7 +164,7 @@ namespace LastTrain.Feedback
                 return;
             }
 
-            effectPool?.Play(isCrit ? "vfx_crit" : "vfx_hit", enemy.Position);
+            effectPool?.Play(isCrit ? "vfx_crit" : "vfx_hit", ToWorldFromCombatLocal(enemy.Position));
 
             if (damage > 0.5f)
             {
@@ -174,7 +174,7 @@ namespace LastTrain.Feedback
                 string text = isCrit
                     ? $"CRIT {Mathf.RoundToInt(damage)}"
                     : $"-{Mathf.RoundToInt(damage)}";
-                SpawnDamageNumber(text, color, enemy.Position);
+                SpawnDamageNumber(text, color, ToWorldFromCombatLocal(enemy.Position));
             }
 
             if (isCrit)
@@ -190,7 +190,7 @@ namespace LastTrain.Feedback
                 return;
             }
 
-            effectPool?.Play("vfx_death", enemy.Position);
+            effectPool?.Play("vfx_death", ToWorldFromCombatLocal(enemy.Position));
         }
 
         private void HandlePassengerAttacked(string passengerInstanceId)
@@ -231,19 +231,19 @@ namespace LastTrain.Feedback
             FlashSlot(slot);
         }
 
-        private void HandleTrainHealed(Vector2 worldPosition)
+        private void HandleTrainHealed(Vector2 combatLocalPosition)
         {
-            effectPool?.Play("vfx_heal", worldPosition);
+            effectPool?.Play("vfx_heal", ToWorldFromCombatLocal(combatLocalPosition));
         }
 
-        private void HandleAreaAttack(Vector2 worldPosition)
+        private void HandleAreaAttack(Vector2 combatLocalPosition)
         {
-            effectPool?.Play("vfx_aoe", worldPosition);
+            effectPool?.Play("vfx_aoe", ToWorldFromCombatLocal(combatLocalPosition));
         }
 
-        private void HandleKnockback(Vector2 worldPosition)
+        private void HandleKnockback(Vector2 combatLocalPosition)
         {
-            effectPool?.Play("vfx_knockback", worldPosition);
+            effectPool?.Play("vfx_knockback", ToWorldFromCombatLocal(combatLocalPosition));
         }
 
         private void HandleTrainDamaged(float damage)
@@ -281,9 +281,25 @@ namespace LastTrain.Feedback
             return Vector2.zero;
         }
 
+        private Vector2 ToWorldFromCombatLocal(Vector2 combatLocal)
+        {
+            RectTransform space = null;
+            if (gridManager != null)
+            {
+                space = gridManager.transform.parent as RectTransform;
+            }
+
+            if (space == null && battleManager != null)
+            {
+                space = battleManager.transform.parent as RectTransform;
+            }
+
+            return BattleCombatSpace.LocalToWorld(space, combatLocal);
+        }
+
         private void HandleBossSpawned(EnemyRuntime boss)
         {
-            Vector2 pos = boss != null ? boss.Position : Vector2.zero;
+            Vector2 pos = boss != null ? ToWorldFromCombatLocal(boss.Position) : Vector2.zero;
             effectPool?.Play("vfx_boss_portal", pos);
             CameraShakeService.Shake(0.2f, 14f);
             ShowBanner(boss != null && boss.Data != null ? $"BOSS — {boss.Data.DisplayName}" : "BOSS");
@@ -297,7 +313,7 @@ namespace LastTrain.Feedback
             }
 
             EnemyRuntime boss = battleManager != null ? battleManager.ActiveBoss : null;
-            Vector2 pos = boss != null ? boss.Position : Vector2.zero;
+            Vector2 pos = boss != null ? ToWorldFromCombatLocal(boss.Position) : Vector2.zero;
             effectPool?.Play("vfx_boss_enrage", pos);
             CameraShakeService.Shake(0.15f, 12f);
             ShowBanner($"PHASE {next}");

@@ -1,3 +1,4 @@
+using LastTrain.Battle;
 using LastTrain.Data;
 using LastTrain.UI;
 using UnityEngine;
@@ -16,6 +17,7 @@ namespace LastTrain.Enemy
         [SerializeField] private UiSpriteAnimator bodyAnimator;
 
         private RectTransform _rectTransform;
+        private RectTransform _combatSpace;
         private EnemyRuntime _runtime;
         private EnemyPool _ownerPool;
         private VisualDatabase _visualDatabase;
@@ -23,6 +25,11 @@ namespace LastTrain.Enemy
         private bool _isDying;
 
         public EnemyRuntime Runtime => _runtime;
+
+        public void SetCombatSpace(RectTransform combatSpace)
+        {
+            _combatSpace = combatSpace;
+        }
 
         public void Bind(EnemyPool ownerPool, EnemyRuntime runtime)
         {
@@ -48,7 +55,7 @@ namespace LastTrain.Enemy
                 _rectTransform = GetComponent<RectTransform>();
             }
 
-            _rectTransform.position = _runtime.Position;
+            _rectTransform.position = BattleCombatSpace.LocalToWorld(_combatSpace, _runtime.Position);
         }
 
         public void Release()

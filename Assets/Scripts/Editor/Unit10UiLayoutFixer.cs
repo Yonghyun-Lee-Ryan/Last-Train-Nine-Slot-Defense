@@ -100,16 +100,20 @@ namespace LastTrain.EditorTools
             }
 
             PlaceCenter(safeArea, "TrainTarget", BattleConstants.TrainTargetAnchoredPosition, new Vector2(160f, 140f));
-            PlaceCenter(
-                safeArea,
-                "SpawnLaneDecorTop",
-                BattleConstants.EnemyLaneTopAnchoredPosition,
-                BattleConstants.EnemyLaneTopSize);
-            PlaceCenter(
-                safeArea,
-                "SpawnLaneDecorRight",
-                BattleConstants.EnemyLaneRightAnchoredPosition,
-                BattleConstants.EnemyLaneRightSize);
+            for (int i = 0; i < BattleConstants.LegacyEnemyLaneDecorNames.Length; i++)
+            {
+                Transform legacy = FindDeepChild(safeArea, BattleConstants.LegacyEnemyLaneDecorNames[i]);
+                if (legacy != null)
+                {
+                    Object.DestroyImmediate(legacy.gameObject);
+                }
+            }
+
+            for (int i = 0; i < BattleConstants.EnemyLaneDecors.Length; i++)
+            {
+                BattleConstants.LaneDecorSpec decor = BattleConstants.EnemyLaneDecors[i];
+                PlaceCenter(safeArea, decor.Name, decor.AnchoredPosition, decor.Size);
+            }
             PlaceTop(safeArea, "SynergyListLabel", new Vector2(0f, -210f), new Vector2(1000f, 40f));
 
             foreach (Transform child in safeArea)

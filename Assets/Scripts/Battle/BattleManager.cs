@@ -25,12 +25,12 @@ namespace LastTrain.Battle
         [SerializeField] private RectTransform spawnPoint;
         [SerializeField] private RectTransform[] enemyWaypoints = Array.Empty<RectTransform>();
         [SerializeField] private RectTransform trainTarget;
+        [Tooltip("사거리·이동 판정에 쓰는 SafeArea 등 로컬 공간. 비우면 부모 RectTransform을 사용한다.")]
+        [SerializeField] private RectTransform combatSpace;
         [SerializeField] private GameDatabase gameDatabase;
         [SerializeField] private EnemyData bossMinionData;
 
         [Header("Combat")]
-        [SerializeField] private float rangeScale = BattleConstants.RangeToWorldScale;
-        [SerializeField] private float moveSpeedScale = BattleConstants.MoveSpeedToWorldScale;
         [SerializeField] private float trainReachRadius = 32f;
         [SerializeField] private float spawnTargetProtectionDistance =
             BattleConstants.SpawnTargetProtectionDistance;
@@ -50,6 +50,7 @@ namespace LastTrain.Battle
 
         private RunState _runState;
         private DifficultyRuntime _difficulty;
+        private RectTransform _resolvedCombatSpace;
         private bool _initialized;
 
         public event Action<EnemyRuntime> BossSpawned;
@@ -87,14 +88,16 @@ namespace LastTrain.Battle
                 return;
             }
 
+            _resolvedCombatSpace = null;
+            RectTransform space = ResolveCombatSpace();
             if (projectilePool != null)
             {
-                projectilePool.Initialize();
+                projectilePool.Initialize(space);
             }
 
             if (enemyPool != null)
             {
-                enemyPool.Initialize();
+                enemyPool.Initialize(space);
             }
 
             gridManager.PassengerDropped -= HandlePassengerDropped;
@@ -143,7 +146,7 @@ namespace LastTrain.Battle
             }
 
             Vector2 spawnPosition = spawnPositionOverride
-                                    ?? (spawnPoint != null ? (Vector2)spawnPoint.position : Vector2.zero);
+                                    ?? ToCombatLocal(spawnPoint != null ? spawnPoint.position : Vector3.zero);
 
             float healthBonus = _runState?.DifficultyModifiers?.EnemyHealthBonusMultiplier ?? 1f;
             EnemyRuntime runtime = EnemyFactory.CreateRuntime(
@@ -221,13 +224,41 @@ namespace LastTrain.Battle
 
         public float ToWorldRange(float dataRange)
         {
-            return dataRange * rangeScale * GetCombatWorldScale();
+            return BattleConstants.ToWorldRange(dataRange);
         }
 
-        private float GetCombatWorldScale()
+        private RectTransform ResolveCombatSpace()
         {
-            Canvas canvas = gridManager != null ? gridManager.RootCanvas : null;
-            return BattleConstants.GetUiWorldScale(canvas);
+            if (_resolvedCombatSpace != null)
+            {
+                return _resolvedCombatSpace;
+            }
+
+            if (combatSpace != null)
+            {
+                _resolvedCombatSpace = combatSpace;
+                return _resolvedCombatSpace;
+            }
+
+            if (transform.parent is RectTransform parent)
+            {
+                _resolvedCombatSpace = parent;
+                return _resolvedCombatSpace;
+            }
+
+            if (spawnPoint != null && spawnPoint.parent is RectTransform spawnParent)
+            {
+                _resolvedCombatSpace = spawnParent;
+                return _resolvedCombatSpace;
+            }
+
+            _resolvedCombatSpace = transform as RectTransform;
+            return _resolvedCombatSpace;
+        }
+
+        private Vector2 ToCombatLocal(Vector3 worldPosition)
+        {
+            return BattleCombatSpace.WorldToLocal(ResolveCombatSpace(), worldPosition);
         }
 
         public void SetStationDifficulty(float difficulty, float eventEnemyHealthMultiplier = 1f)
@@ -334,23 +365,22 @@ namespace LastTrain.Battle
                 bool movingToWaypoint = TryGetWaypointPosition(runtime.RouteWaypointIndex, out Vector2 targetPosition);
                 if (!movingToWaypoint)
                 {
-                    targetPosition = trainTarget.position;
+                    targetPosition = ToCombatLocal(trainTarget.position);
                 }
 
                 runtime.SetRouteSegment(
                     GetRouteSegmentStart(runtime.RouteWaypointIndex, runtime.SpawnPosition),
                     targetPosition);
-                float worldScale = GetCombatWorldScale();
                 bool reachedCurrentTarget = EnemyMovementService.TickMove(
                     runtime,
                     targetPosition,
                     deltaTime,
-                    moveSpeedScale * worldScale,
-                    movingToWaypoint ? 8f * worldScale : trainReachRadius * worldScale);
+                    BattleConstants.MoveSpeedToWorldScale,
+                    movingToWaypoint ? 8f : trainReachRadius);
 
                 if (!runtime.IsTargetable
                     && Vector2.Distance(runtime.SpawnPosition, runtime.Position)
-                    >= spawnTargetProtectionDistance * worldScale)
+                    >= spawnTargetProtectionDistance)
                 {
                     runtime.SetTargetable(true);
                 }
@@ -380,7 +410,7 @@ namespace LastTrain.Battle
                 && waypointIndex < enemyWaypoints.Length
                 && enemyWaypoints[waypointIndex] != null)
             {
-                position = enemyWaypoints[waypointIndex].position;
+                position = ToCombatLocal(enemyWaypoints[waypointIndex].position);
                 return true;
             }
 
@@ -392,12 +422,12 @@ namespace LastTrain.Battle
         {
             if (waypointIndex <= 0)
             {
-                return spawnPoint != null ? (Vector2)spawnPoint.position : fallback;
+                return spawnPoint != null ? ToCombatLocal(spawnPoint.position) : fallback;
             }
 
             int previousIndex = Mathf.Min(waypointIndex - 1, enemyWaypoints.Length - 1);
             RectTransform previous = enemyWaypoints[previousIndex];
-            return previous != null ? (Vector2)previous.position : fallback;
+            return previous != null ? ToCombatLocal(previous.position) : fallback;
         }
 
         private int GetInitialRouteWaypointIndex(Vector2 position)
@@ -409,16 +439,16 @@ namespace LastTrain.Battle
 
             var routePoints = _routePointScratch;
             routePoints.Clear();
-            routePoints.Add(spawnPoint != null ? (Vector2)spawnPoint.position : position);
+            routePoints.Add(spawnPoint != null ? ToCombatLocal(spawnPoint.position) : position);
             for (int i = 0; i < enemyWaypoints.Length; i++)
             {
                 if (enemyWaypoints[i] != null)
                 {
-                    routePoints.Add(enemyWaypoints[i].position);
+                    routePoints.Add(ToCombatLocal(enemyWaypoints[i].position));
                 }
             }
 
-            routePoints.Add(trainTarget.position);
+            routePoints.Add(ToCombatLocal(trainTarget.position));
             float bestDistanceSq = float.MaxValue;
             int bestSegmentIndex = 0;
             for (int i = 0; i < routePoints.Count - 1; i++)
@@ -467,8 +497,8 @@ namespace LastTrain.Battle
             Relic.RelicModifiers relicModifiers = _runState.Relics?.Modifiers ?? Relic.RelicModifiers.Empty;
             float fastEnemyBonus = synergyModifiers.FastEnemyDamagePercent;
             float bossDamageBonus = modifiers.PoliceBossDamagePercent;
-            Vector2 spawnPos = spawnPoint != null ? (Vector2)spawnPoint.position : Vector2.zero;
-            Vector2 trainPos = trainTarget != null ? (Vector2)trainTarget.position : Vector2.zero;
+            Vector2 spawnPos = spawnPoint != null ? ToCombatLocal(spawnPoint.position) : Vector2.zero;
+            Vector2 trainPos = trainTarget != null ? ToCombatLocal(trainTarget.position) : Vector2.zero;
 
             for (int i = 0; i < _passengerScratch.Count; i++)
             {
@@ -480,7 +510,7 @@ namespace LastTrain.Battle
                     continue;
                 }
 
-                Vector2 position = GetSlotWorldPosition(runtime.GridSlotIndex);
+                Vector2 position = GetSlotCombatPosition(runtime.GridSlotIndex);
                 float worldRange = ToWorldRange(runtime.GetEffectiveRange());
                 var skillContext = new PassengerSkillContext(
                     runtime,
@@ -715,14 +745,14 @@ namespace LastTrain.Battle
             }
         }
 
-        private Vector2 GetSlotWorldPosition(int slotIndex)
+        private Vector2 GetSlotCombatPosition(int slotIndex)
         {
             if (gridManager == null || !gridManager.TryGetSlot(slotIndex, out GridSlot slot))
             {
                 return Vector2.zero;
             }
 
-            return slot.ContentAnchor.position;
+            return ToCombatLocal(slot.ContentAnchor.position);
         }
     }
 }

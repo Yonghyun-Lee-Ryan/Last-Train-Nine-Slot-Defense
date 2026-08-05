@@ -56,12 +56,15 @@ namespace LastTrain.EditorTools
 
             GridManager gridManager = SceneBuilderCleanup.FindFirstInScene<GridManager>(scene);
             SceneBuilderCleanup.DestroyAllNamed(scene, "SpawnPoint");
-            SceneBuilderCleanup.DestroyAllNamed(scene, "EnemyWaypoint0");
-            SceneBuilderCleanup.DestroyAllNamed(scene, "EnemyWaypoint1");
+            for (int i = 0; i < 16; i++)
+            {
+                SceneBuilderCleanup.DestroyAllNamed(scene, $"EnemyWaypoint{i}");
+            }
+
             SceneBuilderCleanup.DestroyAllNamed(scene, "TrainTarget");
             SceneBuilderCleanup.DestroyAllNamed(scene, "EnemyPoolRoot");
 
-            // 적 경로 전체가 화면 안에 보이도록 오른쪽 통로 상단에서 하단 객차까지 배치한다.
+            // 상단 우측에서 시작해 4단 지그재그로 객차까지 내려온다.
             RectTransform spawnPoint = CreateMarker(parent, "SpawnPoint", BattleConstants.SpawnAnchoredPosition, Color.clear);
             var waypoints = new RectTransform[BattleConstants.EnemyWaypointAnchoredPositions.Length];
             for (int i = 0; i < waypoints.Length; i++)

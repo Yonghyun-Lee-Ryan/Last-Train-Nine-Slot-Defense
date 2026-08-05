@@ -21,9 +21,11 @@ namespace LastTrain.Battle
 
         private readonly Queue<ProjectileController> _available = new();
         private readonly HashSet<ProjectileController> _inUse = new();
+        private RectTransform _combatSpace;
 
-        public void Initialize()
+        public void Initialize(RectTransform combatSpace = null)
         {
+            _combatSpace = combatSpace;
             EnsurePrefab();
             EnsurePoolRoot();
             if (prefab == null)
@@ -32,12 +34,8 @@ namespace LastTrain.Battle
                     "[ProjectilePool] prefab이 없어 전투를 시작할 수 없습니다. Game 씬 ProjectilePool에 BasicProjectile을 연결하세요.");
             }
 
-            float uiScale = BattleConstants.GetUiWorldScale(poolRoot != null
-                ? poolRoot.GetComponentInParent<Canvas>()
-                : GetComponentInParent<Canvas>());
-            moveSpeed = BattleConstants.ProjectileSpeed * uiScale;
-            hitRadius = 24f * uiScale;
-
+            moveSpeed = BattleConstants.ProjectileSpeed;
+            hitRadius = 24f;
             Prewarm();
         }
 
@@ -48,19 +46,9 @@ namespace LastTrain.Battle
                 return;
             }
 
-            RefreshUiScale();
             ProjectileController projectile = Get();
-            projectile.Configure(this, moveSpeed, hitRadius);
+            projectile.Configure(this, moveSpeed, hitRadius, _combatSpace);
             projectile.Launch(origin, target, damage, passengerId);
-        }
-
-        private void RefreshUiScale()
-        {
-            float uiScale = BattleConstants.GetUiWorldScale(poolRoot != null
-                ? poolRoot.GetComponentInParent<Canvas>()
-                : GetComponentInParent<Canvas>());
-            moveSpeed = BattleConstants.ProjectileSpeed * uiScale;
-            hitRadius = 24f * uiScale;
         }
 
         internal void Release(ProjectileController projectile)
@@ -107,7 +95,7 @@ namespace LastTrain.Battle
         private ProjectileController CreateInstance()
         {
             ProjectileController instance = Instantiate(prefab, poolRoot);
-            instance.Configure(this, moveSpeed, hitRadius);
+            instance.Configure(this, moveSpeed, hitRadius, _combatSpace);
             return instance;
         }
 

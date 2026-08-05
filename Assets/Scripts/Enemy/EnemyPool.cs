@@ -18,9 +18,11 @@ namespace LastTrain.Enemy
 
         private readonly Queue<EnemyController> _available = new();
         private readonly HashSet<EnemyController> _inUse = new();
+        private RectTransform _combatSpace;
 
-        public void Initialize()
+        public void Initialize(RectTransform combatSpace = null)
         {
+            _combatSpace = combatSpace;
             EnsurePrefab();
             EnsurePoolRoot();
             if (prefab == null)
@@ -40,6 +42,7 @@ namespace LastTrain.Enemy
             }
 
             EnemyController controller = Get();
+            controller.SetCombatSpace(_combatSpace);
             controller.Bind(this, runtime);
             return controller;
         }

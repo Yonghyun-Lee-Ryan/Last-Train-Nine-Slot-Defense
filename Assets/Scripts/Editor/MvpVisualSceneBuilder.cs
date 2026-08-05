@@ -79,22 +79,27 @@ namespace LastTrain.EditorTools
             }
 
             EnsureBackground(safeArea, theme.SubwayBackground, "SubwayBackground", stretch: true, alpha: 1f);
-            EnsureBackground(
-                safeArea,
-                theme.SpawnLane,
-                "SpawnLaneDecorTop",
-                stretch: false,
-                alpha: 0.72f,
-                anchoredPosition: BattleConstants.EnemyLaneTopAnchoredPosition,
-                size: BattleConstants.EnemyLaneTopSize);
-            EnsureBackground(
-                safeArea,
-                theme.SpawnLane,
-                "SpawnLaneDecorRight",
-                stretch: false,
-                alpha: 0.72f,
-                anchoredPosition: BattleConstants.EnemyLaneRightAnchoredPosition,
-                size: BattleConstants.EnemyLaneRightSize);
+            for (int i = 0; i < BattleConstants.LegacyEnemyLaneDecorNames.Length; i++)
+            {
+                Transform legacy = safeArea.Find(BattleConstants.LegacyEnemyLaneDecorNames[i]);
+                if (legacy != null)
+                {
+                    Object.DestroyImmediate(legacy.gameObject);
+                }
+            }
+
+            for (int i = 0; i < BattleConstants.EnemyLaneDecors.Length; i++)
+            {
+                BattleConstants.LaneDecorSpec decor = BattleConstants.EnemyLaneDecors[i];
+                EnsureBackground(
+                    safeArea,
+                    theme.SpawnLane,
+                    decor.Name,
+                    stretch: false,
+                    alpha: 0.72f,
+                    anchoredPosition: decor.AnchoredPosition,
+                    size: decor.Size);
+            }
 
             SkinButtons(safeArea, theme);
             SkinSliders(scene, theme);

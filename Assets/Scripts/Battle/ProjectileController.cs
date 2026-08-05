@@ -21,15 +21,18 @@ namespace LastTrain.Battle
         private float _damage;
         private ProjectilePool _pool;
         private RectTransform _rectTransform;
+        private RectTransform _combatSpace;
+        private Vector2 _localPosition;
         private bool _active;
         private ProjectileVisualSet _visualSet;
         private bool _rotateTowardTarget = true;
 
         public bool IsActive => _active;
 
-        public void Configure(ProjectilePool pool, float speed, float radius)
+        public void Configure(ProjectilePool pool, float speed, float radius, RectTransform combatSpace = null)
         {
             _pool = pool;
+            _combatSpace = combatSpace;
             if (speed > 0f)
             {
                 moveSpeed = speed;
@@ -47,7 +50,8 @@ namespace LastTrain.Battle
             _target = target;
             _damage = damage;
             _active = true;
-            _rectTransform.position = origin;
+            _localPosition = origin;
+            _rectTransform.position = BattleCombatSpace.LocalToWorld(_combatSpace, origin);
             ApplyVisual(passengerId);
             gameObject.SetActive(true);
         }
@@ -65,10 +69,11 @@ namespace LastTrain.Battle
                 return;
             }
 
-            Vector2 current = _rectTransform.position;
+            Vector2 current = _localPosition;
             Vector2 targetPos = _target.Position;
             Vector2 next = Vector2.MoveTowards(current, targetPos, moveSpeed * Time.deltaTime);
-            _rectTransform.position = next;
+            _localPosition = next;
+            _rectTransform.position = BattleCombatSpace.LocalToWorld(_combatSpace, next);
 
             if (_rotateTowardTarget)
             {
