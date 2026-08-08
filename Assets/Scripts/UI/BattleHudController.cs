@@ -5,6 +5,7 @@ using LastTrain.Core;
 using LastTrain.Data;
 using LastTrain.Feedback;
 using LastTrain.Grid;
+using LastTrain.Passenger;
 using LastTrain.Release;
 using LastTrain.Run;
 using LastTrain.Save;
@@ -23,6 +24,7 @@ namespace LastTrain.UI
         [SerializeField] private GridManager gridManager;
         [SerializeField] private GameBattleBootstrap battleBootstrap;
         [SerializeField] private PassengerDetailPopup detailPopup;
+        [SerializeField] private PassengerRangeOverlay rangeOverlay;
         [SerializeField] private FloatingCombatText floatingTextPrefab;
         [SerializeField] private RectTransform floatingTextRoot;
 
@@ -63,6 +65,7 @@ namespace LastTrain.UI
         private int _lastHp = -1;
         private int _totalStations = 5;
         private SummonPanelController _summonPanel;
+        private EnemyPathDirectionView _pathDirectionView;
 
         private void Start()
         {
@@ -102,6 +105,7 @@ namespace LastTrain.UI
 
             _battleManager = FindAnyObjectByType<BattleManager>();
 
+            EnsureCombatUxOverlays();
             Subscribe();
             EnsurePauseOverlayButtons();
             WireButtons();
@@ -109,6 +113,7 @@ namespace LastTrain.UI
             HideTopCoinDisplay();
             BindCameraShakeTarget();
             detailPopup?.Initialize(_runState, OnPassengerSold, OnDetailPopupClosed);
+            rangeOverlay?.Hide();
             if (pauseOverlay != null)
             {
                 pauseOverlay.SetActive(false);
@@ -298,6 +303,7 @@ namespace LastTrain.UI
             if (gridManager != null)
             {
                 gridManager.PassengerSelected += HandlePassengerSelected;
+                gridManager.PassengerDragStarted += HandlePassengerDragStarted;
             }
 
             if (_battleManager != null)
@@ -345,6 +351,7 @@ namespace LastTrain.UI
             if (gridManager != null)
             {
                 gridManager.PassengerSelected -= HandlePassengerSelected;
+                gridManager.PassengerDragStarted -= HandlePassengerDragStarted;
             }
 
             if (_battleManager != null)
@@ -727,6 +734,7 @@ namespace LastTrain.UI
         {
             if (_paused || slotIndex < 0)
             {
+                rangeOverlay?.Hide();
                 if (slotIndex < 0)
                 {
                     detailPopup?.Close(playSfx: false);
@@ -736,10 +744,87 @@ namespace LastTrain.UI
             }
 
             detailPopup?.Show(slotIndex);
+            ShowRangeOverlayForSlot(slotIndex);
+        }
+
+        private void HandlePassengerDragStarted()
+        {
+            rangeOverlay?.Hide();
+        }
+
+        private void ShowRangeOverlayForSlot(int slotIndex)
+        {
+            if (rangeOverlay == null || _runState == null || gridManager == null)
+            {
+                return;
+            }
+
+            PassengerRuntime passenger = _runState.GetPassengerAtSlot(slotIndex);
+            if (passenger == null || !gridManager.TryGetSlot(slotIndex, out GridSlot slot) || slot == null)
+            {
+                rangeOverlay.Hide();
+                return;
+            }
+
+            RectTransform combatSpace = ResolveCombatSpace();
+            Vector2 center = BattleCombatSpace.WorldToLocal(
+                combatSpace,
+                slot.ContentAnchor != null ? slot.ContentAnchor.position : slot.transform.position);
+            float radius = PassengerRangeOverlay.RadiusForEffectiveRange(passenger.GetEffectiveRange());
+            rangeOverlay.Show(center, radius);
+        }
+
+        private void EnsureCombatUxOverlays()
+        {
+            RectTransform safeArea = ResolveCombatSpace();
+            if (safeArea == null)
+            {
+                return;
+            }
+
+            _pathDirectionView = EnemyPathDirectionView.Ensure(safeArea);
+            if (rangeOverlay == null)
+            {
+                rangeOverlay = PassengerRangeOverlay.Ensure(safeArea);
+            }
+            else
+            {
+                rangeOverlay.Hide();
+            }
+
+            SyncPathDirectionVisibility();
+        }
+
+        private void SyncPathDirectionVisibility()
+        {
+            bool showInPrep = _runState != null
+                              && _runState.Battle != null
+                              && _runState.Battle.CurrentPhase == RunPhase.Preparing;
+            _pathDirectionView?.SetVisible(showInPrep);
+        }
+
+        private RectTransform ResolveCombatSpace()
+        {
+            if (_battleManager != null && _battleManager.SpawnPoint != null
+                && _battleManager.SpawnPoint.parent is RectTransform spawnParent)
+            {
+                return spawnParent;
+            }
+
+            Canvas canvas = gridManager != null ? gridManager.RootCanvas : FindAnyObjectByType<Canvas>();
+            if (canvas == null)
+            {
+                return null;
+            }
+
+            Transform root = canvas.rootCanvas != null ? canvas.rootCanvas.transform : canvas.transform;
+            Transform safeArea = root.Find("SafeArea");
+            return safeArea as RectTransform ?? canvas.transform as RectTransform;
         }
 
         private void OnDetailPopupClosed()
         {
+            rangeOverlay?.Hide();
             if (gridManager != null && gridManager.SelectedSlotIndex >= 0)
             {
                 gridManager.ClearSelection();
@@ -867,11 +952,13 @@ namespace LastTrain.UI
         {
             RefreshPhase();
             RefreshReadyButton();
+            SyncPathDirectionVisibility();
         }
 
         private void HandleStationChanged(int _)
         {
             RefreshStationWave();
+            SyncPathDirectionVisibility();
         }
 
         private void HandleStationStarted(StationData station)
@@ -887,6 +974,7 @@ namespace LastTrain.UI
             GameAudio.PlaySfx(SfxId.Switch);
             RefreshStationWave();
             RefreshReadyButton();
+            SyncPathDirectionVisibility();
         }
 
         private void HandleWaveChanged(int _)

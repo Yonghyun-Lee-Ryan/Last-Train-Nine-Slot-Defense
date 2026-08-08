@@ -114,6 +114,10 @@ namespace LastTrain.EditorTools
                 BattleConstants.LaneDecorSpec decor = BattleConstants.EnemyLaneDecors[i];
                 PlaceCenter(safeArea, decor.Name, decor.AnchoredPosition, decor.Size);
             }
+
+            var safeRect = safeArea as RectTransform;
+            EnemyPathDirectionView.Ensure(safeRect);
+            PassengerRangeOverlay.Ensure(safeRect);
             PlaceTop(safeArea, "SynergyListLabel", new Vector2(0f, -210f), new Vector2(1000f, 40f));
 
             foreach (Transform child in safeArea)
@@ -128,7 +132,10 @@ namespace LastTrain.EditorTools
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
-            EditorUtility.DisplayDialog("완료", "UI 버튼과 적 이동 경로를 화면 안쪽으로 재배치했습니다.", "확인");
+            EditorUtility.DisplayDialog(
+                "완료",
+                "UI 버튼·적 지그재그 경로·방향 화살표·사거리 오버레이를 재배치했습니다.",
+                "확인");
         }
 
         private static void PlaceBottom(Transform parent, string childName, Vector2 anchoredPos, Vector2 size)

@@ -19,6 +19,7 @@ namespace LastTrain.Grid
         public event Action<MergeResult> MergeStarted;
         public event Action<MergeResult> MergeCompleted;
         public event Action<int> PassengerSelected;
+        public event Action PassengerDragStarted;
 
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private GridSlot[] slots = new GridSlot[RunState.GridSlotCount];
@@ -132,6 +133,7 @@ namespace LastTrain.Grid
             _draggingView = view;
             _dragOriginSlotIndex = view.SlotIndex;
             SetAllHighlights(true);
+            PassengerDragStarted?.Invoke();
         }
 
         internal void HandlePassengerClicked(PassengerView view)

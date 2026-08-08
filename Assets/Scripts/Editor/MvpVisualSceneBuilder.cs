@@ -101,6 +101,9 @@ namespace LastTrain.EditorTools
                     size: decor.Size);
             }
 
+            EnemyPathDirectionView.Ensure(safeArea as RectTransform);
+            PassengerRangeOverlay.Ensure(safeArea as RectTransform);
+
             SkinButtons(safeArea, theme);
             SkinSliders(scene, theme);
             SkinGridSlots(scene, theme);

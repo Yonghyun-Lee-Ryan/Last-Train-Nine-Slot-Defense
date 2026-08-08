@@ -152,6 +152,8 @@ namespace LastTrain.EditorTools
                 "SpawnLaneDecorJoin0",
                 "SpawnLaneDecorJoin1",
                 "SpawnLaneDecorJoin2",
+                "EnemyPathDirectionView",
+                "PassengerRangeOverlay",
                 "SummonPanel",
                 "BattleHud",
                 "SynergyHud",

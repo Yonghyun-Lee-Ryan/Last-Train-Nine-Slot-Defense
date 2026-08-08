@@ -81,7 +81,7 @@ namespace LastTrain.Battle
             return dataMoveSpeed * MoveSpeedToWorldScale;
         }
 
-        public static float GetEnemyPathLength()
+        public static Vector2[] GetEnemyPathPoints()
         {
             var points = new Vector2[EnemyWaypointAnchoredPositions.Length + 2];
             points[0] = SpawnAnchoredPosition;
@@ -91,7 +91,12 @@ namespace LastTrain.Battle
             }
 
             points[^1] = TrainTargetAnchoredPosition;
+            return points;
+        }
 
+        public static float GetEnemyPathLength()
+        {
+            Vector2[] points = GetEnemyPathPoints();
             float length = 0f;
             for (int i = 0; i < points.Length - 1; i++)
             {
