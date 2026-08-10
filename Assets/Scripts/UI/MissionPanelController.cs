@@ -27,17 +27,16 @@ namespace LastTrain.UI
             _database = database ?? GameDatabaseLocator.Load();
             GameAudio.PlaySfx(SfxId.UiOpen);
             _root = MenuOverlayUi.CreateRoot("MissionPanel", sortingOrder: 4100);
+            GameObject dim = MenuOverlayUi.CreateFullScreenDim(
+                _root.transform,
+                new Color(0f, 0f, 0f, 0.72f),
+                Hide);
+            RectTransform host = MenuOverlayUi.EnsureSafeAreaHost(_root.transform);
 
-            GameObject dim = MenuOverlayUi.CreatePanel(_root.transform, "Dim", new Color(0f, 0f, 0f, 0.72f));
-            MenuOverlayUi.Stretch(dim.GetComponent<RectTransform>());
-            Button dimButton = dim.AddComponent<Button>();
-            dimButton.transition = Selectable.Transition.None;
-            dimButton.onClick.AddListener(Hide);
-
-            GameObject box = MenuOverlayUi.CreatePanel(_root.transform, "Box", new Color(0.12f, 0.16f, 0.22f, 0.98f));
+            GameObject box = MenuOverlayUi.CreatePanel(host, "Box", new Color(0.12f, 0.16f, 0.22f, 0.98f));
             RectTransform boxRect = box.GetComponent<RectTransform>();
-            boxRect.anchorMin = new Vector2(0.08f, 0.08f);
-            boxRect.anchorMax = new Vector2(0.92f, 0.92f);
+            boxRect.anchorMin = new Vector2(0.06f, 0.08f);
+            boxRect.anchorMax = new Vector2(0.94f, 0.92f);
             boxRect.offsetMin = Vector2.zero;
             boxRect.offsetMax = Vector2.zero;
 
@@ -104,13 +103,7 @@ namespace LastTrain.UI
             AddSection(content, "일일 미션", MissionPeriod.Daily, meta, missions);
             AddSection(content, "주간 미션", MissionPeriod.Weekly, meta, missions);
 
-            MenuOverlayUi.CreateButton(
-                box.transform,
-                "Close",
-                "닫기",
-                new Vector2(0f, 36f),
-                new Vector2(280f, 72f),
-                Hide);
+            MenuOverlayUi.CreateLayoutButton(box.transform, "Close", "닫기", 72f, Hide);
             Button close = box.transform.Find("Close")?.GetComponent<Button>();
             if (close != null)
             {
@@ -118,7 +111,13 @@ namespace LastTrain.UI
                 closeRect.anchorMin = new Vector2(0.5f, 0f);
                 closeRect.anchorMax = new Vector2(0.5f, 0f);
                 closeRect.pivot = new Vector2(0.5f, 0f);
+                closeRect.sizeDelta = new Vector2(280f, 72f);
                 closeRect.anchoredPosition = new Vector2(0f, 28f);
+                LayoutElement closeLayout = close.GetComponent<LayoutElement>();
+                if (closeLayout != null)
+                {
+                    closeLayout.ignoreLayout = true;
+                }
             }
         }
 

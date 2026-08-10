@@ -264,6 +264,7 @@ namespace LastTrain.UI
 
             RefreshEndlessButton();
             RefreshLiveEventButton();
+            RelayoutMainMenu();
         }
 
         private void RefreshLiveEventButton()
@@ -275,6 +276,7 @@ namespace LastTrain.UI
 
             LiveEventService live = AppRoot.Instance?.LiveEvents;
             bool active = live != null && live.HasActiveEvent;
+            bool wasActive = _liveEventButton.gameObject.activeSelf;
             _liveEventButton.gameObject.SetActive(active);
             if (active && live.ActiveEvent != null)
             {
@@ -284,6 +286,18 @@ namespace LastTrain.UI
                     label.text = live.ActiveEvent.DisplayName;
                 }
             }
+
+            if (wasActive != active)
+            {
+                RelayoutMainMenu();
+            }
+        }
+
+        private static void RelayoutMainMenu()
+        {
+            Canvas canvas = FindAnyObjectByType<Canvas>();
+            Transform safeArea = canvas != null ? canvas.transform.Find("SafeArea") : null;
+            MainMenuUiLayout.Apply(safeArea);
         }
 
         private void RefreshEndlessButton()
@@ -389,15 +403,15 @@ namespace LastTrain.UI
                 parent,
                 "SettingsButton",
                 "설정",
-                new Vector2(-20f, -20f),
-                new Vector2(168f, 68f),
+                new Vector2(-48f, -48f),
+                new Vector2(160f, 64f),
                 () => _settingsPanel?.Show());
 
             RectTransform rect = settingsButton.GetComponent<RectTransform>();
             rect.anchorMin = new Vector2(1f, 1f);
             rect.anchorMax = new Vector2(1f, 1f);
             rect.pivot = new Vector2(1f, 1f);
-            rect.anchoredPosition = new Vector2(-20f, -20f);
+            rect.anchoredPosition = new Vector2(-48f, -48f);
             ApplySettingsButtonTheme(settingsButton);
         }
 

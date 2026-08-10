@@ -147,26 +147,48 @@ namespace LastTrain.UI
             UnwireButtons();
         }
 
-        public void OpenRewardSelection()
+        /// <summary>
+        /// 능력 보상 UI를 연다.
+        /// true면 UI가 열렸거나 보상 플로우가 이미 완료되어 StationManager를 추가 호출하면 안 된다.
+        /// false면 호출측에서 ContinueAfterAbilityReward를 호출해야 한다.
+        /// </summary>
+        public bool TryOpenRewardSelection()
         {
             if (_abilityManager == null)
             {
-                return;
+                return false;
             }
 
-            AbilityOfferResult result = _abilityManager.TryBeginRewardSelection();
-            if (result == AbilityOfferResult.Success)
+            if (_runState != null && _runState.Abilities != null && _runState.Abilities.HasActiveOffers)
             {
                 GameAudio.PlaySfx(SfxId.Reward);
                 ShowPanel();
                 SubscribeAds();
                 RefreshOfferPanel();
                 SetStatus("능력 카드 3장 중 하나를 선택하세요.");
+                return true;
             }
-            else if (result == AbilityOfferResult.NoEligibleAbilities)
+
+            AbilityOfferResult result = _abilityManager.TryBeginRewardSelection();
+            if (result == AbilityOfferResult.Success || result == AbilityOfferResult.AlreadyOpen)
             {
-                HidePanel();
+                GameAudio.PlaySfx(SfxId.Reward);
+                ShowPanel();
+                SubscribeAds();
+                RefreshOfferPanel();
+                SetStatus("능력 카드 3장 중 하나를 선택하세요.");
+                return true;
             }
+
+            if (result == AbilityOfferResult.NoEligibleAbilities)
+            {
+                // AbilityManager.CompleteRewardFlow가 이미 Continue를 호출함
+                HidePanel();
+                return true;
+            }
+
+            HidePanel();
+            return false;
         }
 
         private void EnsureReferences()

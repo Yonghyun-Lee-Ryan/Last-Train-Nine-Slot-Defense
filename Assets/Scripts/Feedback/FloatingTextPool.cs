@@ -183,7 +183,7 @@ namespace LastTrain.Feedback
             label.raycastTarget = false;
             if (label.font == null)
             {
-                label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                label.font = LastTrain.UI.GameFontProvider.Get();
             }
 
             prefab = go.GetComponent<FloatingCombatText>();

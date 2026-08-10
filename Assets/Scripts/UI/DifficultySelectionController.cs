@@ -10,7 +10,7 @@ namespace LastTrain.UI
     /// <summary>메인 메뉴 난이도 선택 UI.</summary>
     public sealed class DifficultySelectionController : MonoBehaviour
     {
-            private const float ButtonHeight = 58f;
+        private const float ButtonHeight = 56f;
 
         [SerializeField] private Transform buttonContainer;
         [SerializeField] private Text statusLabel;
@@ -221,15 +221,20 @@ namespace LastTrain.UI
 
         private void ClearButtons()
         {
-            for (int i = 0; i < _buttons.Count; i++)
+            _buttons.Clear();
+            if (buttonContainer == null)
             {
-                if (_buttons[i] != null)
-                {
-                    Destroy(_buttons[i].gameObject);
-                }
+                return;
             }
 
-            _buttons.Clear();
+            // Destroy는 프레임 끝에 삭제되므로, 같은 프레임 Rebuild 전에 트리에서 분리한다.
+            for (int i = buttonContainer.childCount - 1; i >= 0; i--)
+            {
+                Transform child = buttonContainer.GetChild(i);
+                child.SetParent(null, false);
+                child.gameObject.SetActive(false);
+                Object.Destroy(child.gameObject);
+            }
         }
     }
 }

@@ -200,7 +200,7 @@ namespace LastTrain.UI
             var go = new GameObject("SkillLabel", typeof(RectTransform), typeof(Text));
             go.transform.SetParent(root.transform, false);
             skillLabel = go.GetComponent<Text>();
-            skillLabel.font = nameLabel != null ? nameLabel.font : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            skillLabel.font = GameFontProvider.Get();
             skillLabel.color = Color.white;
             skillLabel.raycastTarget = false;
         }

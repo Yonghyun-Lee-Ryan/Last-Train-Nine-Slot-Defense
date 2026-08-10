@@ -155,8 +155,10 @@ namespace LastTrain.UI
             }
 
             AdCoordinator ads = AppRoot.Instance?.Ads;
-            doubleRewardAdButton.interactable =
-                ads != null && ads.IsReady(RewardedAdPlacement.DoubleResultReward);
+            bool ready = ads != null && ads.IsReady(RewardedAdPlacement.DoubleResultReward);
+            // 광고 SDK 미배선(NoOp) 시 비활성 버튼만 두지 않고 숨긴다.
+            doubleRewardAdButton.gameObject.SetActive(ready);
+            doubleRewardAdButton.interactable = ready;
         }
 
         private void EnsureDoubleRewardButton()

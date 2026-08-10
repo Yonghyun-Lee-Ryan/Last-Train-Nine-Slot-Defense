@@ -90,7 +90,12 @@ namespace LastTrain.UI
 
             if (gameDatabase == null)
             {
-                Debug.LogError("[GameBattleBootstrap] gameDatabase가 연결되지 않았습니다.", this);
+                gameDatabase = Resources.Load<GameDatabase>("GameDatabase");
+            }
+
+            if (gameDatabase == null)
+            {
+                Debug.LogError("[GameBattleBootstrap] gameDatabase가 연결되지 않았고 Resources/GameDatabase도 없습니다.", this);
                 return;
             }
 
@@ -113,6 +118,9 @@ namespace LastTrain.UI
                     this);
                 return;
             }
+
+            // Initialize 이후에 View 갱신 → GridCompositionChanged로 전투 컨트롤러를 한 번 더 맞춘다.
+            gridManager?.RefreshViews();
 
             battleManager.SetStationDifficulty(startingStation.DifficultyMultiplier);
 
@@ -311,13 +319,12 @@ namespace LastTrain.UI
 
         private void HandleAbilityRewardRequested(StationData _)
         {
-            if (_abilityPanel != null)
+            // 패널/매니저가 없거나 오퍼를 열지 못하면 즉시 다음으로 진행(소프트락 방지).
+            if (_abilityPanel != null && _abilityPanel.TryOpenRewardSelection())
             {
-                _abilityPanel.OpenRewardSelection();
                 return;
             }
 
-            // 패널이 없으면 즉시 다음 역으로 진행
             _stationManager?.ContinueAfterAbilityReward();
         }
 

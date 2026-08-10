@@ -119,6 +119,19 @@ namespace LastTrain.Event
             return EventChoiceResult.Success;
         }
 
+        /// <summary>데이터/UI 오류 시 이벤트 역을 안전하게 빠져나온다.</summary>
+        public bool TrySkipEvent()
+        {
+            if (!_runState.Events.IsActive || _runState.Events.IsResolved)
+            {
+                return false;
+            }
+
+            _runState.Events.Resolve(-1);
+            _runState.Battle.SetPhase(RunPhase.Preparing);
+            return true;
+        }
+
         private EventData PickEvent(int stationIndex)
         {
             if (_database?.Events == null || _database.Events.Count == 0)

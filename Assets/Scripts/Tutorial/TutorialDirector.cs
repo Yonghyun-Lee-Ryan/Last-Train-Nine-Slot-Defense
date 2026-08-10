@@ -9,6 +9,7 @@ using LastTrain.Grid;
 using LastTrain.Passenger;
 using LastTrain.Run;
 using LastTrain.Save;
+using LastTrain.UI;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -278,8 +279,9 @@ namespace LastTrain.Tutorial
             }
 
             _overlayRoot = UI.MenuOverlayUi.CreateRoot("TutorialOverlay", sortingOrder: 4500);
+            RectTransform host = UI.MenuOverlayUi.EnsureSafeAreaHost(_overlayRoot.transform);
             GameObject box = UI.MenuOverlayUi.CreatePanel(
-                _overlayRoot.transform,
+                host,
                 "Box",
                 new Color(0.08f, 0.12f, 0.18f, 0.94f));
             RectTransform boxRect = box.GetComponent<RectTransform>();
@@ -345,6 +347,9 @@ namespace LastTrain.Tutorial
                 return;
             }
 
+            // 튜토리얼 오버레이는 씬 로드 이후 생성되므로 한글 폰트를 강제 적용한다.
+            GameFontProvider.ApplyTo(_overlayRoot);
+
             TutorialStepData step = _machine.CurrentStep;
             if (_titleLabel != null)
             {
@@ -371,6 +376,7 @@ namespace LastTrain.Tutorial
 
         private void HideOverlay()
         {
+            RestoreHighlight();
             if (_overlayRoot != null)
             {
                 Destroy(_overlayRoot);
@@ -406,8 +412,13 @@ namespace LastTrain.Tutorial
             }
         }
 
+        private static Color? _highlightOriginalColor;
+        private static Image _highlightImage;
+
         private static void HighlightTarget(string targetId)
         {
+            RestoreHighlight();
+
             if (string.IsNullOrWhiteSpace(targetId))
             {
                 return;
@@ -426,8 +437,21 @@ namespace LastTrain.Tutorial
             Image image = target.GetComponent<Image>();
             if (image != null)
             {
+                _highlightImage = image;
+                _highlightOriginalColor = image.color;
                 image.color = new Color(1f, 0.92f, 0.55f, 1f);
             }
+        }
+
+        private static void RestoreHighlight()
+        {
+            if (_highlightImage != null && _highlightOriginalColor.HasValue)
+            {
+                _highlightImage.color = _highlightOriginalColor.Value;
+            }
+
+            _highlightImage = null;
+            _highlightOriginalColor = null;
         }
 
         /// <summary>GameDatabase.TutorialSteps용 얇은 래퍼.</summary>

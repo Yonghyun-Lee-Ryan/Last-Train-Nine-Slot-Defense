@@ -8,11 +8,13 @@ namespace LastTrain.UI
     /// <summary>메인 메뉴 SafeArea 레이아웃을 일관되게 정렬한다.</summary>
     public static class MainMenuUiLayout
     {
-        private const float TitleHeight = 170f;
-        private const float MetaHeight = 110f;
-        private const float DifficultyHeight = 360f;
-        private const float DetailHeight = 100f;
-        private const float ActionHeight = 112f;
+        private const float TitleHeight = 96f;
+        private const float MetaHeight = 72f;
+        private const float DifficultyButtonHeight = 56f;
+        private const float DetailHeight = 72f;
+        private const float PrimaryActionHeight = 88f;
+        private const float SecondaryActionHeight = 76f;
+        private const float SettingsInset = 48f;
 
         public static void Apply(Transform safeArea)
         {
@@ -37,7 +39,7 @@ namespace LastTrain.UI
             }
 
             int index = 0;
-            EnsureSpacer(root, "SpacerTop", ref index, flexible: 0.6f);
+            EnsureSpacer(root, "SpacerTop", ref index, flexible: 0.15f);
 
             Transform title = FindNamed(safeArea, "Title");
             if (title != null)
@@ -47,32 +49,148 @@ namespace LastTrain.UI
                 Place(root, title, TitleHeight, index++);
             }
 
-            EnsureSpacer(root, "SpacerAfterTitle", ref index, flexible: 0.35f);
+            EnsureSpacer(root, "SpacerAfterTitle", ref index, flexible: 0.1f);
             PlaceIfExists(root, safeArea, "MetaStatusLabel", MetaHeight, ref index);
-            EnsureSpacer(root, "SpacerAfterMeta", ref index, flexible: 0.35f);
-            PlaceIfExists(root, safeArea, "DifficultySelection", DifficultyHeight, ref index);
+            EnsureSpacer(root, "SpacerAfterMeta", ref index, flexible: 0.1f);
+
+            float difficultyHeight = ResolveDifficultyHeight(safeArea, root);
+            PlaceIfExists(root, safeArea, "DifficultySelection", difficultyHeight, ref index);
             PlaceIfExists(root, safeArea, "DifficultyStatusLabel", DetailHeight, ref index);
-            EnsureSpacer(root, "SpacerBeforeActions", ref index, flexible: 0.8f);
-            PlaceIfExists(root, safeArea, "StartButton", ActionHeight, ref index);
-            PlaceIfExists(root, safeArea, "DailyRunButton", ActionHeight, ref index);
-            PlaceIfExists(root, safeArea, "EndlessRunButton", ActionHeight, ref index);
-            PlaceIfExists(root, safeArea, "LiveEventButton", ActionHeight, ref index);
-            PlaceIfExists(root, safeArea, "MissionButton", ActionHeight, ref index);
-            PlaceIfExists(root, safeArea, "ContinueButton", ActionHeight, ref index);
-            EnsureSpacer(root, "SpacerBottom", ref index, flexible: 0.5f);
+            EnsureSpacer(root, "SpacerBeforeActions", ref index, flexible: 0.25f);
+
+            PlaceIfExists(root, safeArea, "StartButton", PrimaryActionHeight, ref index);
+            PlaceIfExists(root, safeArea, "ContinueButton", PrimaryActionHeight, ref index);
+            PlaceIfExists(root, safeArea, "DailyRunButton", SecondaryActionHeight, ref index);
+            PlaceIfExists(root, safeArea, "EndlessRunButton", SecondaryActionHeight, ref index);
+            // 비활성 버튼도 Content에 둔다(VLG가 inactive 자식을 무시). SafeArea에 빼 두면 재활성 시 중앙에 뜬다.
+            PlaceIfExists(root, safeArea, "LiveEventButton", SecondaryActionHeight, ref index);
+            PlaceIfExists(root, safeArea, "MissionButton", SecondaryActionHeight, ref index);
+            EnsureSpacer(root, "SpacerBottom", ref index, flexible: 0.2f);
 
             ConfigureMetaLabel(root.Find("MetaStatusLabel") as RectTransform);
             ConfigureDifficultyArea(root.Find("DifficultySelection") as RectTransform);
             ConfigureDetailLabel(root.Find("DifficultyStatusLabel"));
-            ConfigureActionButton(root.Find("StartButton") as RectTransform, ActionHeight);
-            ConfigureActionButton(root.Find("DailyRunButton") as RectTransform, ActionHeight);
-            ConfigureActionButton(root.Find("EndlessRunButton") as RectTransform, ActionHeight);
-            ConfigureActionButton(root.Find("LiveEventButton") as RectTransform, ActionHeight);
-            ConfigureActionButton(root.Find("MissionButton") as RectTransform, ActionHeight);
-            ConfigureActionButton(root.Find("ContinueButton") as RectTransform, ActionHeight);
+            ConfigureActionButton(FindNamed(root, "StartButton") as RectTransform, PrimaryActionHeight);
+            ConfigureActionButton(FindNamed(root, "ContinueButton") as RectTransform, PrimaryActionHeight);
+            ConfigureActionButton(FindNamed(root, "DailyRunButton") as RectTransform, SecondaryActionHeight);
+            ConfigureActionButton(FindNamed(root, "EndlessRunButton") as RectTransform, SecondaryActionHeight);
+            ConfigureActionButton(FindNamed(root, "LiveEventButton") as RectTransform, SecondaryActionHeight);
+            ConfigureActionButton(FindNamed(root, "MissionButton") as RectTransform, SecondaryActionHeight);
 
             CleanupOrphanDifficultyButtons(safeArea, root);
+            Canvas.ForceUpdateCanvases();
+            RedistributeVerticalSpace(root);
             UiLayoutUtility.ForceRebuild(root);
+            if (root.parent is RectTransform scrollContentParent
+                && scrollContentParent.name == "Viewport"
+                && scrollContentParent.parent is RectTransform scrollRoot)
+            {
+                UiLayoutUtility.ForceRebuild(scrollRoot);
+            }
+        }
+
+        /// <summary>
+        /// ContentSizeFitter(Preferred)는 flexibleHeight를 무시해 스페이서가 0이 된다.
+        /// 뷰포트 남는 높이를 스페이서 preferredHeight로 나눠 화면 전체에 분산한다.
+        /// </summary>
+        private static void RedistributeVerticalSpace(RectTransform root)
+        {
+            if (root == null)
+            {
+                return;
+            }
+
+            RectTransform viewport = root.parent as RectTransform;
+            float viewportHeight = viewport != null ? viewport.rect.height : 0f;
+            if (viewportHeight < 8f && viewport != null && viewport.parent is RectTransform scrollRoot)
+            {
+                viewportHeight = scrollRoot.rect.height;
+            }
+
+            VerticalLayoutGroup layout = root.GetComponent<VerticalLayoutGroup>();
+            float padding = 0f;
+            float spacing = 0f;
+            if (layout != null)
+            {
+                padding = layout.padding.top + layout.padding.bottom;
+                spacing = layout.spacing;
+            }
+
+            float fixedHeight = 0f;
+            int laidOutChildren = 0;
+            float flexWeightTotal = 0f;
+            var spacers = new List<LayoutElement>();
+
+            for (int i = 0; i < root.childCount; i++)
+            {
+                Transform child = root.GetChild(i);
+                if (!child.gameObject.activeSelf)
+                {
+                    continue;
+                }
+
+                laidOutChildren++;
+                LayoutElement element = child.GetComponent<LayoutElement>();
+                if (child.name.StartsWith("Spacer", System.StringComparison.Ordinal))
+                {
+                    if (element == null)
+                    {
+                        element = child.gameObject.AddComponent<LayoutElement>();
+                    }
+
+                    float weight = element.flexibleHeight > 0f ? element.flexibleHeight : 1f;
+                    // weight를 flexibleHeight에 잠시 보관했다가 preferred로 환산한다.
+                    element.flexibleHeight = weight;
+                    flexWeightTotal += weight;
+                    spacers.Add(element);
+                    continue;
+                }
+
+                float childHeight = element != null && element.preferredHeight > 0f
+                    ? element.preferredHeight
+                    : (child as RectTransform)?.sizeDelta.y ?? 0f;
+                fixedHeight += Mathf.Max(0f, childHeight);
+            }
+
+            float spacingTotal = laidOutChildren > 1 ? spacing * (laidOutChildren - 1) : 0f;
+            float contentMin = fixedHeight + spacingTotal + padding;
+            float leftover = viewportHeight > contentMin ? viewportHeight - contentMin : 0f;
+
+            if (spacers.Count == 0)
+            {
+                return;
+            }
+
+            if (flexWeightTotal <= 0f)
+            {
+                flexWeightTotal = spacers.Count;
+            }
+
+            for (int i = 0; i < spacers.Count; i++)
+            {
+                LayoutElement spacer = spacers[i];
+                float weight = spacer.flexibleHeight > 0f ? spacer.flexibleHeight : 1f;
+                float share = leftover > 0f ? leftover * (weight / flexWeightTotal) : 0f;
+                spacer.minHeight = share;
+                spacer.preferredHeight = share;
+                spacer.flexibleHeight = 0f;
+                spacer.flexibleWidth = 1f;
+            }
+
+            ContentSizeFitter fitter = root.GetComponent<ContentSizeFitter>();
+            if (fitter == null)
+            {
+                fitter = root.gameObject.AddComponent<ContentSizeFitter>();
+            }
+
+            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            root.anchorMin = new Vector2(0f, 1f);
+            root.anchorMax = new Vector2(1f, 1f);
+            root.pivot = new Vector2(0.5f, 1f);
+            root.anchoredPosition = Vector2.zero;
+            root.sizeDelta = new Vector2(0f, Mathf.Max(viewportHeight, contentMin + leftover));
         }
 
         /// <summary>메타 진행 텍스트 컴포넌트(자식 Label 우선).</summary>
@@ -96,6 +214,27 @@ namespace LastTrain.UI
             return metaRoot.GetComponent<Text>();
         }
 
+        private static float ResolveDifficultyHeight(Transform safeArea, RectTransform contentRoot)
+        {
+            Transform area = FindNamed(safeArea, "DifficultySelection") ?? contentRoot.Find("DifficultySelection");
+            int buttonCount = 0;
+            if (area != null)
+            {
+                for (int i = 0; i < area.childCount; i++)
+                {
+                    if (area.GetChild(i).gameObject.activeSelf)
+                    {
+                        buttonCount++;
+                    }
+                }
+            }
+
+            buttonCount = Mathf.Max(1, buttonCount);
+            const float padding = 24f;
+            const float spacing = 10f;
+            return padding + (buttonCount * DifficultyButtonHeight) + ((buttonCount - 1) * spacing);
+        }
+
         private static void PlaceSettingsButton(Transform safeArea)
         {
             Transform settings = FindNamed(safeArea, "SettingsButton");
@@ -105,11 +244,12 @@ namespace LastTrain.UI
             }
 
             rect.SetParent(safeArea, false);
+            rect.SetAsLastSibling();
             rect.anchorMin = new Vector2(1f, 1f);
             rect.anchorMax = new Vector2(1f, 1f);
             rect.pivot = new Vector2(1f, 1f);
-            rect.anchoredPosition = new Vector2(-20f, -20f);
-            rect.sizeDelta = new Vector2(168f, 68f);
+            rect.anchoredPosition = new Vector2(-SettingsInset, -SettingsInset);
+            rect.sizeDelta = new Vector2(160f, 64f);
             UiButtonStyler.ApplyStandardTheme(settings.GetComponent<Button>());
             CenterButtonLabel(settings.GetComponent<Button>());
         }
@@ -121,14 +261,17 @@ namespace LastTrain.UI
                 return;
             }
 
+            Transform scroll = safeArea.Find("MainMenuScroll");
             var toDestroy = new List<GameObject>();
             for (int i = 0; i < safeArea.childCount; i++)
             {
                 Transform child = safeArea.GetChild(i);
                 if (child == contentRoot
+                    || child == scroll
                     || child.name == "MainMenuBackground"
                     || child.name == "SettingsButton"
-                    || child.name == "TitleArtwork")
+                    || child.name == "TitleArtwork"
+                    || child.name == "MainMenuContent")
                 {
                     continue;
                 }
@@ -147,7 +290,33 @@ namespace LastTrain.UI
 
         public static RectTransform EnsureContentRoot(Transform safeArea)
         {
-            Transform existing = safeArea.Find("MainMenuContent");
+            RectTransform scrollRoot = EnsureScrollRoot(safeArea);
+            Transform viewport = scrollRoot.Find("Viewport");
+            if (viewport == null)
+            {
+                var viewportGo = new GameObject("Viewport", typeof(RectTransform), typeof(Image), typeof(RectMask2D));
+                viewport = viewportGo.transform;
+                viewport.SetParent(scrollRoot, false);
+                Image viewportImage = viewportGo.GetComponent<Image>();
+                viewportImage.color = new Color(1f, 1f, 1f, 0.001f);
+                viewportImage.raycastTarget = true;
+            }
+
+            RectTransform viewportRect = viewport as RectTransform;
+            Stretch(viewportRect);
+
+            Transform existing = viewport.Find("MainMenuContent");
+            if (existing == null)
+            {
+                // 이전 구조 호환: SafeArea 직계 MainMenuContent를 Viewport로 옮긴다.
+                Transform legacy = safeArea.Find("MainMenuContent");
+                if (legacy != null)
+                {
+                    legacy.SetParent(viewport, false);
+                    existing = legacy;
+                }
+            }
+
             RectTransform root;
             if (existing != null)
             {
@@ -157,10 +326,16 @@ namespace LastTrain.UI
             {
                 var rootGo = new GameObject("MainMenuContent", typeof(RectTransform));
                 root = rootGo.GetComponent<RectTransform>();
-                root.SetParent(safeArea, false);
+                root.SetParent(viewport, false);
             }
 
-            Stretch(root);
+            root.anchorMin = new Vector2(0f, 1f);
+            root.anchorMax = new Vector2(1f, 1f);
+            root.pivot = new Vector2(0.5f, 1f);
+            root.anchoredPosition = Vector2.zero;
+            root.sizeDelta = new Vector2(0f, 0f);
+            root.offsetMin = new Vector2(0f, root.offsetMin.y);
+            root.offsetMax = new Vector2(0f, root.offsetMax.y);
 
             VerticalLayoutGroup layout = root.GetComponent<VerticalLayoutGroup>();
             if (layout == null)
@@ -169,14 +344,64 @@ namespace LastTrain.UI
             }
 
             layout.childAlignment = TextAnchor.UpperCenter;
-            layout.spacing = 18f;
-            layout.padding = new RectOffset(40, 40, 72, 56);
+            layout.spacing = 12f;
+            layout.padding = new RectOffset(36, 36, 24, 40);
             layout.childControlWidth = true;
             layout.childControlHeight = true;
             layout.childForceExpandWidth = true;
             layout.childForceExpandHeight = false;
 
+            ContentSizeFitter fitter = root.GetComponent<ContentSizeFitter>();
+            if (fitter == null)
+            {
+                fitter = root.gameObject.AddComponent<ContentSizeFitter>();
+            }
+
+            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            ScrollRect scroll = scrollRoot.GetComponent<ScrollRect>();
+            scroll.content = root;
+            scroll.viewport = viewportRect;
+
             return root;
+        }
+
+        private static RectTransform EnsureScrollRoot(Transform safeArea)
+        {
+            Transform existing = safeArea.Find("MainMenuScroll");
+            RectTransform scrollRoot;
+            if (existing != null)
+            {
+                scrollRoot = existing as RectTransform;
+            }
+            else
+            {
+                var go = new GameObject(
+                    "MainMenuScroll",
+                    typeof(RectTransform),
+                    typeof(Image),
+                    typeof(ScrollRect));
+                scrollRoot = go.GetComponent<RectTransform>();
+                scrollRoot.SetParent(safeArea, false);
+                Image bg = go.GetComponent<Image>();
+                bg.color = new Color(0f, 0f, 0f, 0f);
+                bg.raycastTarget = true;
+            }
+
+            Stretch(scrollRoot);
+            // 설정 버튼과 겹치지 않도록 상단 여백
+            scrollRoot.offsetMax = new Vector2(0f, -(SettingsInset + 72f));
+            scrollRoot.offsetMin = Vector2.zero;
+
+            ScrollRect scroll = scrollRoot.GetComponent<ScrollRect>();
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = 40f;
+            scroll.inertia = true;
+
+            return scrollRoot;
         }
 
         public static void ConfigureDifficultyContainer(RectTransform rect)
@@ -186,8 +411,9 @@ namespace LastTrain.UI
                 return;
             }
 
-            UiLayoutUtility.ResetForVerticalLayout(rect, DifficultyHeight);
-            UiLayoutUtility.EnsureLayoutElement(rect.gameObject, DifficultyHeight);
+            float height = ResolveDifficultyHeight(rect, null);
+            UiLayoutUtility.ResetForVerticalLayout(rect, height);
+            UiLayoutUtility.EnsureLayoutElement(rect.gameObject, height);
 
             VerticalLayoutGroup layout = rect.GetComponent<VerticalLayoutGroup>();
             if (layout == null)
@@ -195,7 +421,7 @@ namespace LastTrain.UI
                 layout = rect.gameObject.AddComponent<VerticalLayoutGroup>();
             }
 
-            layout.spacing = 12f;
+            layout.spacing = 10f;
             layout.padding = new RectOffset(12, 12, 12, 12);
             layout.childAlignment = TextAnchor.MiddleCenter;
             layout.childControlWidth = true;
@@ -227,9 +453,10 @@ namespace LastTrain.UI
 
         private static void Place(RectTransform root, Transform child, float height, int siblingIndex)
         {
+            bool wasActive = child.gameObject.activeSelf;
             child.SetParent(root, false);
             child.SetSiblingIndex(siblingIndex);
-            child.gameObject.SetActive(true);
+            child.gameObject.SetActive(wasActive);
             UiLayoutUtility.ResetForVerticalLayout(child as RectTransform, height);
             UiLayoutUtility.EnsureLayoutElement(child.gameObject, height);
         }
@@ -268,7 +495,6 @@ namespace LastTrain.UI
                 return;
             }
 
-            // Title에 잘못 붙은 Image(장식 PNG)가 텍스트를 가리면 제거
             Image image = rect.GetComponent<Image>();
             if (image != null)
             {
@@ -280,7 +506,7 @@ namespace LastTrain.UI
             {
                 title.enabled = true;
                 title.alignment = TextAnchor.MiddleCenter;
-                title.fontSize = 48;
+                title.fontSize = 42;
                 title.color = Color.white;
                 title.horizontalOverflow = HorizontalWrapMode.Wrap;
                 title.verticalOverflow = VerticalWrapMode.Overflow;
@@ -320,7 +546,7 @@ namespace LastTrain.UI
             if (label != null)
             {
                 label.alignment = TextAnchor.MiddleCenter;
-                label.fontSize = 26;
+                label.fontSize = 24;
                 label.color = Color.white;
                 label.horizontalOverflow = HorizontalWrapMode.Wrap;
                 label.verticalOverflow = VerticalWrapMode.Overflow;
@@ -330,9 +556,6 @@ namespace LastTrain.UI
             UiLayoutUtility.ResetForVerticalLayout(rect, MetaHeight);
         }
 
-        /// <summary>
-        /// Graphic은 GameObject당 하나이므로 Background(Image)+Label(Text) 자식 구조로 분리한다.
-        /// </summary>
         private static void EnsureGraphicTextSplit(RectTransform root, out Image background, out Text label)
         {
             background = null;
@@ -413,7 +636,7 @@ namespace LastTrain.UI
             if (label != null)
             {
                 label.alignment = TextAnchor.MiddleCenter;
-                label.fontSize = 24;
+                label.fontSize = 22;
                 label.color = Color.white;
                 label.horizontalOverflow = HorizontalWrapMode.Wrap;
                 label.verticalOverflow = VerticalWrapMode.Overflow;
@@ -424,7 +647,7 @@ namespace LastTrain.UI
 
         private static void ConfigureActionButton(RectTransform rect, float height)
         {
-            if (rect == null)
+            if (rect == null || !rect.gameObject.activeSelf)
             {
                 return;
             }
@@ -469,9 +692,9 @@ namespace LastTrain.UI
             textRect.anchoredPosition = Vector2.zero;
             label.alignment = TextAnchor.MiddleCenter;
             label.color = Color.white;
-            if (label.fontSize < 32)
+            if (label.fontSize < 30)
             {
-                label.fontSize = 34;
+                label.fontSize = 32;
             }
         }
 

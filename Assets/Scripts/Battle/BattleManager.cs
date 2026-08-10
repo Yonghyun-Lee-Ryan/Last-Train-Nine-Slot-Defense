@@ -102,6 +102,8 @@ namespace LastTrain.Battle
 
             gridManager.PassengerDropped -= HandlePassengerDropped;
             gridManager.PassengerDropped += HandlePassengerDropped;
+            gridManager.GridCompositionChanged -= HandleGridCompositionChanged;
+            gridManager.GridCompositionChanged += HandleGridCompositionChanged;
 
             _skillRandom ??= new RandomService(
                 runState.RandomSeed != 0 ? runState.RandomSeed : runState.GetHashCode());
@@ -482,6 +484,9 @@ namespace LastTrain.Battle
                 return;
             }
 
+            // 소환·상점 등으로 그리드만 바뀌고 Sync가 빠진 경우 즉시 보정(릴리즈 필수).
+            EnsurePassengerControllersSynced();
+
             IReadOnlyList<EnemyRuntime> enemies = _enemyRegistry.Enemies;
             _passengerScratch.Clear();
             foreach (KeyValuePair<string, PassengerController> pair in _passengerControllers)
@@ -696,6 +701,7 @@ namespace LastTrain.Battle
             if (gridManager != null)
             {
                 gridManager.PassengerDropped -= HandlePassengerDropped;
+                gridManager.GridCompositionChanged -= HandleGridCompositionChanged;
             }
 
             ClearEnemies();
@@ -704,6 +710,37 @@ namespace LastTrain.Battle
         private void HandlePassengerDropped(int originSlot, int targetSlot, GridDropResult result)
         {
             SyncPassengerControllers();
+        }
+
+        private void HandleGridCompositionChanged()
+        {
+            SyncPassengerControllers();
+        }
+
+        /// <summary>그리드에 있는데 컨트롤러가 없는 승객이 있으면 재동기화한다.</summary>
+        private void EnsurePassengerControllersSynced()
+        {
+            if (_runState == null)
+            {
+                return;
+            }
+
+            for (int slotIndex = 0; slotIndex < RunState.GridSlotCount; slotIndex++)
+            {
+                PassengerRuntime passenger = _runState.GetPassengerAtSlot(slotIndex);
+                if (passenger == null)
+                {
+                    continue;
+                }
+
+                if (!_passengerControllers.TryGetValue(passenger.InstanceId, out PassengerController controller)
+                    || controller == null
+                    || !ReferenceEquals(controller.Runtime, passenger))
+                {
+                    SyncPassengerControllers();
+                    return;
+                }
+            }
         }
 
         private void SyncPassengerControllers()
@@ -724,7 +761,9 @@ namespace LastTrain.Battle
                 }
 
                 activeIds.Add(passenger.InstanceId);
-                if (!_passengerControllers.ContainsKey(passenger.InstanceId))
+                if (!_passengerControllers.TryGetValue(passenger.InstanceId, out PassengerController existing)
+                    || existing == null
+                    || !ReferenceEquals(existing.Runtime, passenger))
                 {
                     _passengerControllers[passenger.InstanceId] = PassengerFactory.CreateController(passenger);
                 }

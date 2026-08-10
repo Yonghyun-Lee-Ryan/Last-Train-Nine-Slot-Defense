@@ -36,9 +36,10 @@ namespace LastTrain.UI
             GameAudio.PlaySfx(SfxId.UiOpen);
 
             _root = MenuOverlayUi.CreateRoot("SettingsPanel", sortingOrder: 4200);
-
-            GameObject dim = MenuOverlayUi.CreatePanel(_root.transform, "Dim", new Color(0f, 0f, 0f, 0.72f));
-            MenuOverlayUi.Stretch(dim.GetComponent<RectTransform>());
+            GameObject dim = MenuOverlayUi.CreateFullScreenDim(
+                _root.transform,
+                new Color(0f, 0f, 0f, 0.72f),
+                Hide);
             if (theme?.PopupDim != null)
             {
                 Image dimImage = dim.GetComponent<Image>();
@@ -47,14 +48,12 @@ namespace LastTrain.UI
                 dimImage.color = Color.white;
             }
 
-            Button dimButton = dim.AddComponent<Button>();
-            dimButton.transition = Selectable.Transition.None;
-            dimButton.onClick.AddListener(Hide);
+            RectTransform host = MenuOverlayUi.EnsureSafeAreaHost(_root.transform);
 
-            GameObject box = MenuOverlayUi.CreatePanel(_root.transform, "Box", new Color(0.12f, 0.16f, 0.22f, 0.98f));
+            GameObject box = MenuOverlayUi.CreatePanel(host, "Box", new Color(0.12f, 0.16f, 0.22f, 0.98f));
             RectTransform boxRect = box.GetComponent<RectTransform>();
-            boxRect.anchorMin = new Vector2(0.08f, 0.06f);
-            boxRect.anchorMax = new Vector2(0.92f, 0.94f);
+            boxRect.anchorMin = new Vector2(0.06f, 0.06f);
+            boxRect.anchorMax = new Vector2(0.94f, 0.94f);
             boxRect.offsetMin = Vector2.zero;
             boxRect.offsetMax = Vector2.zero;
             if (theme?.Panel != null)
@@ -165,11 +164,17 @@ namespace LastTrain.UI
             {
                 AddToggleRow(content, "맞춤형 광고", _privacy.HasAdsConsent, granted =>
                 {
-                    appRoot.ApplyPrivacyConsent(granted, _privacy.HasAnalyticsConsent);
+                    PrivacyConsentService privacy = AppRoot.Instance?.Privacy ?? _privacy;
+                    bool analytics = privacy != null && privacy.HasAnalyticsConsent;
+                    AppRoot.Instance?.ApplyPrivacyConsent(granted, analytics);
+                    _privacy = AppRoot.Instance?.Privacy ?? privacy;
                 });
                 AddToggleRow(content, "게임 분석", _privacy.HasAnalyticsConsent, granted =>
                 {
-                    appRoot.ApplyPrivacyConsent(_privacy.HasAdsConsent, granted);
+                    PrivacyConsentService privacy = AppRoot.Instance?.Privacy ?? _privacy;
+                    bool ads = privacy != null && privacy.HasAdsConsent;
+                    AppRoot.Instance?.ApplyPrivacyConsent(ads, granted);
+                    _privacy = AppRoot.Instance?.Privacy ?? privacy;
                 });
             }
 

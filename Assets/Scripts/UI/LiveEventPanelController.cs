@@ -34,45 +34,51 @@ namespace LastTrain.UI
 
             GameAudio.PlaySfx(SfxId.UiOpen);
             _root = MenuOverlayUi.CreateRoot("LiveEventPanel", sortingOrder: 4150);
+            MenuOverlayUi.CreateFullScreenDim(_root.transform, new Color(0f, 0f, 0f, 0.72f), Hide);
+            RectTransform host = MenuOverlayUi.EnsureSafeAreaHost(_root.transform);
 
-            GameObject dim = MenuOverlayUi.CreatePanel(_root.transform, "Dim", new Color(0f, 0f, 0f, 0.72f));
-            MenuOverlayUi.Stretch(dim.GetComponent<RectTransform>());
-            Button dimButton = dim.AddComponent<Button>();
-            dimButton.transition = Selectable.Transition.None;
-            dimButton.onClick.AddListener(Hide);
-
-            GameObject box = MenuOverlayUi.CreatePanel(_root.transform, "Box", new Color(0.14f, 0.18f, 0.26f, 0.98f));
+            GameObject box = MenuOverlayUi.CreatePanel(host, "Box", new Color(0.14f, 0.18f, 0.26f, 0.98f));
             RectTransform boxRect = box.GetComponent<RectTransform>();
-            boxRect.anchorMin = new Vector2(0.1f, 0.18f);
-            boxRect.anchorMax = new Vector2(0.9f, 0.82f);
+            boxRect.anchorMin = new Vector2(0.08f, 0.16f);
+            boxRect.anchorMax = new Vector2(0.92f, 0.84f);
             boxRect.offsetMin = Vector2.zero;
             boxRect.offsetMax = Vector2.zero;
+
+            var contentGo = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup));
+            RectTransform content = contentGo.GetComponent<RectTransform>();
+            content.SetParent(box.transform, false);
+            MenuOverlayUi.Stretch(content);
+            content.offsetMin = new Vector2(28f, 28f);
+            content.offsetMax = new Vector2(-28f, -28f);
+
+            VerticalLayoutGroup layout = contentGo.GetComponent<VerticalLayoutGroup>();
+            layout.childAlignment = TextAnchor.UpperCenter;
+            layout.spacing = 12f;
+            layout.padding = new RectOffset(8, 8, 8, 8);
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+            layout.childForceExpandWidth = true;
+            layout.childForceExpandHeight = false;
 
             LiveEventData evt = live.ActiveEvent;
             MetaSaveData meta = MetaSaveSystem.LoadOrCreate();
             LiveEventProgress progress = live.GetOrCreateProgress(meta, evt);
 
-            Text title = MenuOverlayUi.CreateText(
-                box.transform,
-                "Title",
-                evt.DisplayName,
-                36,
-                TextAnchor.MiddleCenter);
-            title.rectTransform.anchoredPosition = new Vector2(0f, 280f);
-            title.rectTransform.sizeDelta = new Vector2(700f, 56f);
+            Text title = MenuOverlayUi.CreateText(content, "Title", evt.DisplayName, 36, TextAnchor.MiddleCenter);
+            UiLayoutUtility.EnsureLayoutElement(title.gameObject, 52f);
+            UiLayoutUtility.ResetForVerticalLayout(title.rectTransform, 52f);
 
             string remaining = FormatRemaining(evt);
             string currencyName = evt.EventCurrency != null ? evt.EventCurrency.DisplayName : "이벤트 재화";
             Text status = MenuOverlayUi.CreateText(
-                box.transform,
+                content,
                 "Status",
                 $"{remaining}\n{currencyName}: {progress.currencyBalance}",
                 26,
                 TextAnchor.MiddleCenter);
-            status.rectTransform.anchoredPosition = new Vector2(0f, 180f);
-            status.rectTransform.sizeDelta = new Vector2(700f, 90f);
+            UiLayoutUtility.EnsureLayoutElement(status.gameObject, 72f);
+            UiLayoutUtility.ResetForVerticalLayout(status.rectTransform, 72f);
 
-            float y = 80f;
             EventRewardTrack track = evt.RewardTrack;
             if (track != null)
             {
@@ -89,34 +95,19 @@ namespace LastTrain.UI
                         ? $"수령 완료 · {step.rewardId}"
                         : $"보상 수령 ({step.requiredCurrency})";
                     string rewardId = step.rewardId;
-                    Button claim = MenuOverlayUi.CreateButton(
-                        box.transform,
+                    Button claim = MenuOverlayUi.CreateLayoutButton(
+                        content,
                         $"Claim_{i}",
                         label,
-                        new Vector2(0f, y),
-                        new Vector2(560f, 64f),
+                        64f,
                         () => OnClaim(rewardId));
                     claim.interactable = !progress.HasClaimed(step.rewardId)
                                         && progress.currencyBalance >= step.requiredCurrency;
-                    y -= 78f;
                 }
             }
 
-            MenuOverlayUi.CreateButton(
-                box.transform,
-                "StartEventRun",
-                "이벤트 플레이",
-                new Vector2(0f, -220f),
-                new Vector2(560f, 72f),
-                OnStartEventRun);
-
-            MenuOverlayUi.CreateButton(
-                box.transform,
-                "Close",
-                "닫기",
-                new Vector2(0f, -310f),
-                new Vector2(560f, 64f),
-                Hide);
+            MenuOverlayUi.CreateLayoutButton(content, "StartEventRun", "이벤트 플레이", 72f, OnStartEventRun);
+            MenuOverlayUi.CreateLayoutButton(content, "Close", "닫기", 64f, Hide);
         }
 
         public void Hide()
@@ -200,7 +191,7 @@ namespace LastTrain.UI
                 return $"남은 기간: {Math.Ceiling(left.TotalDays)}일";
             }
 
-            return $"남은 시간: {Math.Max(1, (int)Math.Ceiling(left.TotalHours))}시간";
+            return $"남은 시간: {Math.Ceiling(left.TotalHours)}시간";
         }
     }
 }

@@ -526,6 +526,7 @@ namespace LastTrain.UI
 
             // Unit 16: Preparing 상태에서만 이어하기 저장 생성
             RunSaveSystem.TrySavePreparing(_session);
+            EnsurePauseOverlayButtons();
 
             if (pauseOverlay != null)
             {
@@ -650,7 +651,18 @@ namespace LastTrain.UI
 
             ApplyPauseButtonLayout(resumeButton, new Vector2(0f, 80f), "계속하기");
             ApplyPauseButtonLayout(settingsFromPauseButton, new Vector2(0f, -50f), "설정");
-            ApplyPauseButtonLayout(mainMenuFromPauseButton, new Vector2(0f, -180f), "메인 메뉴");
+
+            bool canSaveContinue = _runState != null
+                                   && _runState.Battle != null
+                                   && _runState.Battle.IsRunActive
+                                   && _runState.Battle.CurrentPhase == RunPhase.Preparing
+                                   && !_runState.IsDailyRun;
+            string mainMenuLabel = canSaveContinue
+                ? "메인 메뉴 (이어하기 저장)"
+                : "메인 메뉴 (전투 중 저장 안 됨)";
+            ApplyPauseButtonLayout(mainMenuFromPauseButton, new Vector2(0f, -180f), mainMenuLabel);
+
+            EnsurePauseSaveHint(canSaveContinue);
 
             if (settingsFromPauseButton != null)
             {
@@ -662,6 +674,46 @@ namespace LastTrain.UI
             if (title is RectTransform titleRect)
             {
                 titleRect.anchoredPosition = new Vector2(0f, 200f);
+            }
+        }
+
+        private void EnsurePauseSaveHint(bool canSaveContinue)
+        {
+            if (pauseOverlay == null)
+            {
+                return;
+            }
+
+            Transform existing = pauseOverlay.transform.Find("SaveHint");
+            Text hint;
+            if (existing == null)
+            {
+                var go = new GameObject("SaveHint", typeof(RectTransform), typeof(Text));
+                existing = go.transform;
+                existing.SetParent(pauseOverlay.transform, false);
+                hint = go.GetComponent<Text>();
+                hint.font = GameFontProvider.Get();
+                hint.fontSize = 22;
+                hint.alignment = TextAnchor.MiddleCenter;
+                hint.color = new Color(0.85f, 0.9f, 1f, 0.95f);
+                hint.raycastTarget = false;
+                RectTransform rect = go.GetComponent<RectTransform>();
+                rect.anchorMin = new Vector2(0.5f, 0.5f);
+                rect.anchorMax = new Vector2(0.5f, 0.5f);
+                rect.pivot = new Vector2(0.5f, 0.5f);
+                rect.anchoredPosition = new Vector2(0f, -280f);
+                rect.sizeDelta = new Vector2(720f, 64f);
+            }
+            else
+            {
+                hint = existing.GetComponent<Text>();
+            }
+
+            if (hint != null)
+            {
+                hint.text = canSaveContinue
+                    ? "준비 단계에서 나가면 이어하기가 저장됩니다."
+                    : "전투 중에는 이어하기가 저장되지 않습니다.";
             }
         }
 

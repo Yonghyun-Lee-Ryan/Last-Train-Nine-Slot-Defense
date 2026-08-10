@@ -21,6 +21,45 @@ namespace LastTrain.UI
             return root;
         }
 
+        /// <summary>오버레이 Canvas 안에 SafeArea 호스트를 만들고 반환한다.</summary>
+        public static RectTransform EnsureSafeAreaHost(Transform overlayRoot)
+        {
+            if (overlayRoot == null)
+            {
+                return null;
+            }
+
+            Transform existing = overlayRoot.Find("SafeArea");
+            if (existing is RectTransform existingRect)
+            {
+                return existingRect;
+            }
+
+            var go = new GameObject("SafeArea", typeof(RectTransform), typeof(SafeAreaFitter));
+            RectTransform rect = go.GetComponent<RectTransform>();
+            rect.SetParent(overlayRoot, false);
+            Stretch(rect);
+            return rect;
+        }
+
+        /// <summary>
+        /// 전체 화면 Dim(노치·홈 인디케이터 밖까지). SafeArea 밖에 두면 메뉴 버튼이 비치지 않는다.
+        /// </summary>
+        public static GameObject CreateFullScreenDim(Transform overlayRoot, Color color, System.Action onClick = null)
+        {
+            GameObject dim = CreatePanel(overlayRoot, "Dim", color);
+            Stretch(dim.GetComponent<RectTransform>());
+            dim.transform.SetAsFirstSibling();
+            if (onClick != null)
+            {
+                Button dimButton = dim.AddComponent<Button>();
+                dimButton.transition = Selectable.Transition.None;
+                dimButton.onClick.AddListener(() => onClick.Invoke());
+            }
+
+            return dim;
+        }
+
         public static GameObject CreatePanel(Transform parent, string name, Color color)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Image));

@@ -467,7 +467,7 @@ namespace LastTrain.Feedback
             bannerLabel.raycastTarget = false;
             if (bannerLabel.font == null)
             {
-                bannerLabel.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                bannerLabel.font = LastTrain.UI.GameFontProvider.Get();
             }
 
             root.SetActive(false);

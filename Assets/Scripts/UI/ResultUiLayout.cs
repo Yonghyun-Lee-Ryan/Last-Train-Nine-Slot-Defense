@@ -23,6 +23,15 @@ namespace LastTrain.UI
                 return;
             }
 
+            float bottomMargin = BottomMargin;
+            Rect safe = Screen.safeArea;
+            if (Screen.height > 0 && safe.height > 0)
+            {
+                float bottomInset = safe.yMin;
+                float scale = 1920f / Mathf.Max(1, Screen.height);
+                bottomMargin = Mathf.Max(BottomMargin, 48f + (bottomInset * scale));
+            }
+
             Transform group = parent.Find("ResultButtonGroup");
             if (group == null)
             {
@@ -34,7 +43,7 @@ namespace LastTrain.UI
                 groupRect.anchorMin = new Vector2(0.5f, 0f);
                 groupRect.anchorMax = new Vector2(0.5f, 0f);
                 groupRect.pivot = new Vector2(0.5f, 0f);
-                groupRect.anchoredPosition = new Vector2(0f, BottomMargin);
+                groupRect.anchoredPosition = new Vector2(0f, bottomMargin);
                 groupRect.sizeDelta = new Vector2(600f, 0f);
 
                 VerticalLayoutGroup layout = groupGo.AddComponent<VerticalLayoutGroup>();
@@ -48,6 +57,10 @@ namespace LastTrain.UI
                 ContentSizeFitter fitter = groupGo.AddComponent<ContentSizeFitter>();
                 fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
                 fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            }
+            else if (group is RectTransform existingGroup)
+            {
+                existingGroup.anchoredPosition = new Vector2(0f, bottomMargin);
             }
 
             retryButton.transform.SetParent(group, false);

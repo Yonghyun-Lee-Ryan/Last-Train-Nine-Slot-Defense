@@ -16,6 +16,8 @@ namespace LastTrain.Grid
     public class GridManager : MonoBehaviour
     {
         public event Action<int, int, GridDropResult> PassengerDropped;
+        /// <summary>그리드 승객 구성이 View와 맞춰진 직후(소환·판매·상점·드롭 등).</summary>
+        public event Action GridCompositionChanged;
         public event Action<MergeResult> MergeStarted;
         public event Action<MergeResult> MergeCompleted;
         public event Action<int> PassengerSelected;
@@ -126,6 +128,7 @@ namespace LastTrain.Grid
             }
 
             RemoveInactiveViews(activeIds);
+            GridCompositionChanged?.Invoke();
         }
 
         internal void HandleDragStarted(PassengerView view)

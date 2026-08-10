@@ -32,33 +32,50 @@ namespace LastTrain.UI
 
             GameObject root = MenuOverlayUi.CreateRoot("DifficultyUnlockPopup", 5000);
             _overlay = root;
-
-            GameObject dim = MenuOverlayUi.CreatePanel(root.transform, "Dim", new Color(0f, 0f, 0f, 0.72f));
-            MenuOverlayUi.Stretch(dim.GetComponent<RectTransform>());
+            MenuOverlayUi.CreateFullScreenDim(root.transform, new Color(0f, 0f, 0f, 0.72f));
+            RectTransform host = MenuOverlayUi.EnsureSafeAreaHost(root.transform);
 
             GameObject box = MenuOverlayUi.CreatePanel(
-                root.transform,
+                host,
                 "Box",
                 new Color(0.12f, 0.16f, 0.24f, 0.96f));
             RectTransform boxRect = box.GetComponent<RectTransform>();
-            boxRect.anchorMin = new Vector2(0.5f, 0.5f);
-            boxRect.anchorMax = new Vector2(0.5f, 0.5f);
-            boxRect.pivot = new Vector2(0.5f, 0.5f);
-            boxRect.sizeDelta = new Vector2(760f, 420f);
+            boxRect.anchorMin = new Vector2(0.1f, 0.32f);
+            boxRect.anchorMax = new Vector2(0.9f, 0.68f);
+            boxRect.offsetMin = Vector2.zero;
+            boxRect.offsetMax = Vector2.zero;
 
-            Text title = MenuOverlayUi.CreateText(box.transform, "Title", "새 난이도 해금!", 40, TextAnchor.MiddleCenter);
-            StretchTop(title.rectTransform, 0f, -40f, 720f, 80f);
+            var contentGo = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup));
+            RectTransform content = contentGo.GetComponent<RectTransform>();
+            content.SetParent(box.transform, false);
+            MenuOverlayUi.Stretch(content);
+            content.offsetMin = new Vector2(28f, 28f);
+            content.offsetMax = new Vector2(-28f, -28f);
+
+            VerticalLayoutGroup layout = contentGo.GetComponent<VerticalLayoutGroup>();
+            layout.childAlignment = TextAnchor.UpperCenter;
+            layout.spacing = 16f;
+            layout.padding = new RectOffset(8, 8, 8, 8);
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+            layout.childForceExpandWidth = true;
+            layout.childForceExpandHeight = false;
+
+            Text title = MenuOverlayUi.CreateText(content, "Title", "새 난이도 해금!", 40, TextAnchor.MiddleCenter);
+            UiLayoutUtility.EnsureLayoutElement(title.gameObject, 56f);
+            UiLayoutUtility.ResetForVerticalLayout(title.rectTransform, 56f);
 
             string body = BuildBody(difficultyIds);
-            Text message = MenuOverlayUi.CreateText(box.transform, "Message", body, 30, TextAnchor.UpperLeft);
-            StretchTop(message.rectTransform, 0f, -140f, 680f, 180f);
+            Text message = MenuOverlayUi.CreateText(content, "Message", body, 30, TextAnchor.UpperCenter);
+            LayoutElement messageLayout = UiLayoutUtility.EnsureLayoutElement(message.gameObject, 120f);
+            messageLayout.flexibleHeight = 1f;
+            UiLayoutUtility.ResetForVerticalLayout(message.rectTransform, 120f);
 
-            Button confirm = MenuOverlayUi.CreateButton(
-                box.transform,
+            Button confirm = MenuOverlayUi.CreateLayoutButton(
+                content,
                 "ConfirmButton",
                 "확인",
-                new Vector2(0f, -160f),
-                new Vector2(280f, 80f),
+                80f,
                 () => Destroy(root));
             UiButtonStyler.ApplyStandardTheme(confirm);
         }
@@ -80,15 +97,6 @@ namespace LastTrain.UI
             }
 
             return lines.ToString().TrimEnd();
-        }
-
-        private static void StretchTop(RectTransform rect, float x, float y, float width, float height)
-        {
-            rect.anchorMin = new Vector2(0.5f, 0.5f);
-            rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = new Vector2(x, y);
-            rect.sizeDelta = new Vector2(width, height);
         }
     }
 }

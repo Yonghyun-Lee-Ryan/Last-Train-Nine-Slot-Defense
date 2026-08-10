@@ -33,7 +33,8 @@ namespace LastTrain.Battle
         {
             if (context?.RunState == null || context.Services?.Events == null)
             {
-                return false;
+                context?.CompleteStation?.Invoke();
+                return true;
             }
 
             if (context.RunState.Events.IsResolved)
@@ -47,7 +48,14 @@ namespace LastTrain.Battle
                 return true;
             }
 
-            return context.Services.Events.TryOpenEvent(context.Station);
+            if (context.Services.Events.TryOpenEvent(context.Station))
+            {
+                return true;
+            }
+
+            // 이벤트 데이터가 없으면 해당 역을 건너뛴다(첫 클리어 경로 소프트락 방지).
+            context.CompleteStation.Invoke();
+            return true;
         }
     }
 
@@ -65,7 +73,8 @@ namespace LastTrain.Battle
         {
             if (context?.RunState == null || context.Services?.Shop == null)
             {
-                return false;
+                context?.CompleteStation?.Invoke();
+                return true;
             }
 
             if (context.RunState.Shop.IsResolved)
@@ -79,7 +88,13 @@ namespace LastTrain.Battle
                 return true;
             }
 
-            return context.Services.Shop.TryOpenShop(context.Station);
+            if (context.Services.Shop.TryOpenShop(context.Station))
+            {
+                return true;
+            }
+
+            context.CompleteStation.Invoke();
+            return true;
         }
     }
 

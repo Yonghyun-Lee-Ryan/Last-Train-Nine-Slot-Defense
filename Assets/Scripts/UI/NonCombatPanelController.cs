@@ -118,7 +118,12 @@ namespace LastTrain.UI
 
             if (gameDatabase == null)
             {
-                gameDatabase = battleBootstrap.GameDatabase;
+                gameDatabase = battleBootstrap != null ? battleBootstrap.GameDatabase : null;
+            }
+
+            if (gameDatabase == null)
+            {
+                gameDatabase = GameDatabaseLocator.Load();
             }
         }
 
@@ -136,6 +141,15 @@ namespace LastTrain.UI
             }
 
             _root.SetActive(true);
+            EnsureKoreanFont();
+            Text leaveLabel = _leaveButton.GetComponentInChildren<Text>();
+            if (leaveLabel != null)
+            {
+                leaveLabel.text = "나가기";
+            }
+
+            _leaveButton.onClick.RemoveAllListeners();
+            _leaveButton.onClick.AddListener(OnLeaveShop);
             _title.text = "상점";
             _body.text = "상품을 구매하거나 나갈 수 있습니다.";
             _leaveButton.gameObject.SetActive(true);
@@ -177,6 +191,7 @@ namespace LastTrain.UI
                 {
                     _choiceLabels[i].text = label;
                     _choiceLabels[i].color = new Color(0.95f, 0.98f, 1f, 1f);
+                    ApplyFontTo(_choiceLabels[i]);
                 }
 
                 if (needsRebuild)
@@ -207,26 +222,41 @@ namespace LastTrain.UI
             bool needsRebuild = _lastRenderedPhase != RunPhase.EventOpen || _lastRenderedKey != key;
 
             _root.SetActive(true);
+            EnsureKoreanFont();
             _leaveButton.gameObject.SetActive(false);
 
             if (eventData == null)
             {
                 _title.text = "이벤트";
-                _body.text = "이벤트 데이터를 찾을 수 없습니다. Unit 27 빌더 실행 후 GameDatabase 등록을 확인하세요.";
-                _status.text = "선택지를 표시할 수 없습니다.";
+                _body.text = "이벤트 정보를 불러오지 못했습니다. 건너뛰기를 눌러 계속하세요.";
+                _status.text = "이벤트를 진행할 수 없습니다.";
                 for (int i = 0; i < _choiceButtons.Length; i++)
                 {
                     _choiceButtons[i].gameObject.SetActive(false);
                 }
 
+                _leaveButton.gameObject.SetActive(true);
+                Text leaveLabel = _leaveButton.GetComponentInChildren<Text>();
+                if (leaveLabel != null)
+                {
+                    leaveLabel.text = "건너뛰기";
+                }
+
+                _leaveButton.onClick.RemoveAllListeners();
+                _leaveButton.onClick.AddListener(OnSkipEvent);
                 _lastRenderedPhase = RunPhase.EventOpen;
                 _lastRenderedKey = key;
                 return;
             }
 
-            _title.text = eventData.DisplayName;
-            _body.text = eventData.Description;
+            _title.text = string.IsNullOrWhiteSpace(eventData.DisplayName) ? "이벤트" : eventData.DisplayName;
+            _body.text = string.IsNullOrWhiteSpace(eventData.Description)
+                ? "선택지를 고르세요."
+                : eventData.Description;
             _status.text = "선택지를 고르세요.";
+            _leaveButton.gameObject.SetActive(false);
+            _leaveButton.onClick.RemoveAllListeners();
+            _leaveButton.onClick.AddListener(OnLeaveShop);
 
             if (!needsRebuild)
             {
@@ -244,6 +274,12 @@ namespace LastTrain.UI
                 }
 
                 _choiceLabels[i].text = choices[i].text;
+                if (string.IsNullOrWhiteSpace(_choiceLabels[i].text))
+                {
+                    _choiceLabels[i].text = $"선택 {i + 1}";
+                }
+
+                ApplyFontTo(_choiceLabels[i]);
                 int index = i;
                 _choiceButtons[i].onClick.RemoveAllListeners();
                 _choiceButtons[i].onClick.AddListener(() => OnEventChoice(index));
@@ -375,6 +411,30 @@ namespace LastTrain.UI
             _lastRenderedKey = string.Empty;
         }
 
+        private void OnSkipEvent()
+        {
+            GameAudio.PlaySfx(SfxId.UiCancel);
+            if (_events != null && _events.TrySkipEvent())
+            {
+                _stationManager?.TryActivateStation();
+            }
+
+            Hide();
+            _lastRenderedPhase = RunPhase.None;
+            _lastRenderedKey = string.Empty;
+            Text leaveLabel = _leaveButton != null ? _leaveButton.GetComponentInChildren<Text>() : null;
+            if (leaveLabel != null)
+            {
+                leaveLabel.text = "나가기";
+            }
+
+            if (_leaveButton != null)
+            {
+                _leaveButton.onClick.RemoveAllListeners();
+                _leaveButton.onClick.AddListener(OnLeaveShop);
+            }
+        }
+
         private void OnEventChoice(int index)
         {
             EventChoiceResult result = _events.TrySelectChoice(index);
@@ -485,6 +545,48 @@ namespace LastTrain.UI
             _leaveButton = CreateButton(box.transform, "LeaveButton", "나가기", new Vector2(0f, -340f), theme, useCardFrame: false);
             _leaveButton.GetComponent<RectTransform>().sizeDelta = new Vector2(280f, 88f);
             _leaveButton.onClick.AddListener(OnLeaveShop);
+            EnsureKoreanFont();
+        }
+
+        private void EnsureKoreanFont()
+        {
+            if (_root != null)
+            {
+                GameFontProvider.ApplyTo(_root);
+            }
+
+            ApplyFontTo(_title);
+            ApplyFontTo(_body);
+            ApplyFontTo(_status);
+            if (_choiceLabels != null)
+            {
+                for (int i = 0; i < _choiceLabels.Length; i++)
+                {
+                    ApplyFontTo(_choiceLabels[i]);
+                }
+            }
+
+            if (_leaveButton != null)
+            {
+                ApplyFontTo(_leaveButton.GetComponentInChildren<Text>());
+            }
+        }
+
+        private static void ApplyFontTo(Text text)
+        {
+            if (text == null)
+            {
+                return;
+            }
+
+            Font font = GameFontProvider.Get();
+            if (font != null)
+            {
+                text.font = font;
+            }
+
+            // BestFit + 기본 영문 폰트 조합에서 한글이 ???로 깨지는 경우가 있다.
+            text.resizeTextForBestFit = false;
         }
 
         private static Text CreateText(Transform parent, string name, string value, int size, Vector2 pos, Vector2? box = null)
@@ -495,12 +597,15 @@ namespace LastTrain.UI
             rect.anchoredPosition = pos;
             rect.sizeDelta = box ?? new Vector2(800f, 50f);
             Text text = go.GetComponent<Text>();
-            text.font = GameFontProvider.Get() ?? Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.font = GameFontProvider.Get();
             text.fontSize = size;
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
             text.text = value;
             text.raycastTarget = false;
+            text.resizeTextForBestFit = false;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.verticalOverflow = VerticalWrapMode.Overflow;
             return text;
         }
 
@@ -533,8 +638,8 @@ namespace LastTrain.UI
                 image.color = new Color(0.2f, 0.25f, 0.35f, 0.95f);
             }
 
-            Text text = CreateText(go.transform, "Label", label, 20, Vector2.zero, new Vector2(180f, 200f));
-            text.resizeTextForBestFit = true;
+            Text text = CreateText(go.transform, "Label", label, 22, Vector2.zero, new Vector2(180f, 200f));
+            text.resizeTextForBestFit = false;
             return go.GetComponent<Button>();
         }
     }

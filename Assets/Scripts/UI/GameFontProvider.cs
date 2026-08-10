@@ -9,12 +9,19 @@ namespace LastTrain.UI
     {
         private const string ResourcePath = "Fonts/Jua-Regular";
         private static Font _cachedFont;
+        private static bool _loggedMissingFont;
 
         public static Font Get()
         {
             if (_cachedFont == null)
             {
                 _cachedFont = Resources.Load<Font>(ResourcePath);
+                if (_cachedFont == null && !_loggedMissingFont)
+                {
+                    _loggedMissingFont = true;
+                    Debug.LogError(
+                        "[GameFontProvider] Resources/Fonts/Jua-Regular 로드 실패 — 한글이 ???로 보일 수 있습니다.");
+                }
             }
 
             return _cachedFont != null
