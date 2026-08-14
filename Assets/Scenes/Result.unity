@@ -481,7 +481,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: dc0917d9b4b658845963c4ff3a8a8603, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.UI.ResultPlaceholderController
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.UI.ResultController
   titleLabel: {fileID: 1136879879}
   messageLabel: {fileID: 476300464}
   statsLabel: {fileID: 1743225923}

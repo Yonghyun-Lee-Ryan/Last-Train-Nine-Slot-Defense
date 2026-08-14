@@ -43,5 +43,45 @@ namespace LastTrain.UI
 
             LayoutRebuilder.ForceRebuildLayoutImmediate(root);
         }
+
+        public static void DestroyChildren(Transform parent)
+        {
+            if (parent == null)
+            {
+                return;
+            }
+
+            for (int i = parent.childCount - 1; i >= 0; i--)
+            {
+                GameObject child = parent.GetChild(i).gameObject;
+                child.transform.SetParent(null, false);
+                if (Application.isPlaying)
+                {
+                    Object.Destroy(child);
+                }
+                else
+                {
+                    Object.DestroyImmediate(child);
+                }
+            }
+        }
+
+        public static void DestroyRoot(GameObject root)
+        {
+            if (root == null)
+            {
+                return;
+            }
+
+            root.SetActive(false);
+            if (Application.isPlaying)
+            {
+                Object.Destroy(root);
+            }
+            else
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
     }
 }

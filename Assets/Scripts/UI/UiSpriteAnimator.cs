@@ -39,7 +39,7 @@ namespace LastTrain.UI
 
         private void Update()
         {
-            Tick(Time.deltaTime);
+            Tick(Time.unscaledDeltaTime);
         }
 
         public void Tick(float deltaTime)

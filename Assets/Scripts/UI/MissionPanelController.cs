@@ -33,67 +33,10 @@ namespace LastTrain.UI
                 Hide);
             RectTransform host = MenuOverlayUi.EnsureSafeAreaHost(_root.transform);
 
-            GameObject box = MenuOverlayUi.CreatePanel(host, "Box", new Color(0.12f, 0.16f, 0.22f, 0.98f));
-            RectTransform boxRect = box.GetComponent<RectTransform>();
-            boxRect.anchorMin = new Vector2(0.06f, 0.08f);
-            boxRect.anchorMax = new Vector2(0.94f, 0.92f);
-            boxRect.offsetMin = Vector2.zero;
-            boxRect.offsetMax = Vector2.zero;
-
-            Text title = MenuOverlayUi.CreateText(box.transform, "Title", "일일 · 주간 미션", 36, TextAnchor.MiddleCenter);
-            RectTransform titleRect = title.rectTransform;
-            titleRect.anchorMin = new Vector2(0f, 1f);
-            titleRect.anchorMax = new Vector2(1f, 1f);
-            titleRect.pivot = new Vector2(0.5f, 1f);
-            titleRect.sizeDelta = new Vector2(-56f, 56f);
-            titleRect.anchoredPosition = new Vector2(0f, -20f);
-
-            GameObject scrollGo = new GameObject("Scroll", typeof(RectTransform), typeof(Image), typeof(ScrollRect));
-            scrollGo.transform.SetParent(box.transform, false);
-            RectTransform scrollRect = scrollGo.GetComponent<RectTransform>();
-            scrollRect.anchorMin = new Vector2(0f, 0f);
-            scrollRect.anchorMax = new Vector2(1f, 1f);
-            scrollRect.offsetMin = new Vector2(24f, 100f);
-            scrollRect.offsetMax = new Vector2(-24f, -84f);
-            Image scrollBg = scrollGo.GetComponent<Image>();
-            scrollBg.color = new Color(0f, 0f, 0f, 0.15f);
-            scrollBg.raycastTarget = true;
-
-            GameObject viewport = new GameObject("Viewport", typeof(RectTransform), typeof(RectMask2D));
-            viewport.transform.SetParent(scrollGo.transform, false);
-            MenuOverlayUi.Stretch(viewport.GetComponent<RectTransform>());
-
-            var contentGo = new GameObject(
-                "Content",
-                typeof(RectTransform),
-                typeof(VerticalLayoutGroup),
-                typeof(ContentSizeFitter));
-            RectTransform content = contentGo.GetComponent<RectTransform>();
-            content.SetParent(viewport.transform, false);
-            content.anchorMin = new Vector2(0f, 1f);
-            content.anchorMax = new Vector2(1f, 1f);
-            content.pivot = new Vector2(0.5f, 1f);
-            content.anchoredPosition = Vector2.zero;
-            content.sizeDelta = new Vector2(0f, 0f);
-
-            VerticalLayoutGroup layout = contentGo.GetComponent<VerticalLayoutGroup>();
-            layout.spacing = 10f;
-            layout.padding = new RectOffset(8, 8, 8, 8);
-            layout.childControlWidth = true;
-            layout.childControlHeight = true;
-            layout.childForceExpandWidth = true;
-            layout.childForceExpandHeight = false;
-
-            ContentSizeFitter fitter = contentGo.GetComponent<ContentSizeFitter>();
-            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
-            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-            ScrollRect scroll = scrollGo.GetComponent<ScrollRect>();
-            scroll.viewport = viewport.GetComponent<RectTransform>();
-            scroll.content = content;
-            scroll.horizontal = false;
-            scroll.vertical = true;
-            scroll.movementType = ScrollRect.MovementType.Clamped;
+            GameObject box = MenuOverlayUi.CreateOverlayBox(host, MenuOverlayUi.OverlaySizeTall);
+            MenuOverlayUi.CreateOverlayTitle(box.transform, "일일 · 주간 미션");
+            MenuOverlayUi.OverlayScroll scroll = MenuOverlayUi.CreateOverlayScroll(box.transform);
+            Transform content = scroll.Content;
 
             MetaSaveData meta = MetaSaveSystem.LoadOrCreate();
             IReadOnlyList<MissionData> missions = _database?.Missions;
@@ -102,23 +45,7 @@ namespace LastTrain.UI
 
             AddSection(content, "일일 미션", MissionPeriod.Daily, meta, missions);
             AddSection(content, "주간 미션", MissionPeriod.Weekly, meta, missions);
-
-            MenuOverlayUi.CreateLayoutButton(box.transform, "Close", "닫기", 72f, Hide);
-            Button close = box.transform.Find("Close")?.GetComponent<Button>();
-            if (close != null)
-            {
-                RectTransform closeRect = close.GetComponent<RectTransform>();
-                closeRect.anchorMin = new Vector2(0.5f, 0f);
-                closeRect.anchorMax = new Vector2(0.5f, 0f);
-                closeRect.pivot = new Vector2(0.5f, 0f);
-                closeRect.sizeDelta = new Vector2(280f, 72f);
-                closeRect.anchoredPosition = new Vector2(0f, 28f);
-                LayoutElement closeLayout = close.GetComponent<LayoutElement>();
-                if (closeLayout != null)
-                {
-                    closeLayout.ignoreLayout = true;
-                }
-            }
+            MenuOverlayUi.CreateOverlayClose(box.transform, Hide);
         }
 
         public void Hide()

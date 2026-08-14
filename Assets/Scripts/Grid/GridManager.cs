@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using LastTrain.Passenger;
 using LastTrain.Run;
+using LastTrain.Ux;
 using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -164,12 +165,14 @@ namespace LastTrain.Grid
             {
                 view.RevertToOriginalTransform();
                 ClearDragState();
+                MergeHighlightService.Refresh(this, _runState);
                 return;
             }
 
             int targetSlot = FindSlotIndexAtScreenPoint(screenPosition, eventCamera);
             ApplyDrop(_dragOriginSlotIndex, targetSlot);
             ClearDragState();
+            MergeHighlightService.Refresh(this, _runState);
         }
 
         /// <summary>드롭 결과를 적용한다. 테스트·입력 공용.</summary>

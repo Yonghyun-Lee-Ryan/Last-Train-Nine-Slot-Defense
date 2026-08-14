@@ -204,6 +204,92 @@ namespace LastTrain.Save
             return ContainsId(meta.unlockedPassengerIds, passengerId);
         }
 
+        public static bool IsPassengerDiscovered(MetaSaveData meta, string passengerId)
+        {
+            if (meta == null || string.IsNullOrWhiteSpace(passengerId))
+            {
+                return false;
+            }
+
+            meta.EnsureDefaults();
+            return ContainsId(meta.discoveredPassengerIds, passengerId);
+        }
+
+        public static bool IsEnemyDiscovered(MetaSaveData meta, string enemyId)
+        {
+            if (meta == null || string.IsNullOrWhiteSpace(enemyId))
+            {
+                return false;
+            }
+
+            meta.EnsureDefaults();
+            return ContainsId(meta.discoveredEnemyIds, enemyId);
+        }
+
+        public static bool IsBossDiscovered(MetaSaveData meta, string bossId)
+        {
+            if (meta == null || string.IsNullOrWhiteSpace(bossId))
+            {
+                return false;
+            }
+
+            meta.EnsureDefaults();
+            return ContainsId(meta.discoveredBossIds, bossId);
+        }
+
+        /// <summary>유물 도감 해금. RunResult 파이프라인 연동 전까지 unlockedRelicIds를 사용한다.</summary>
+        public static bool IsRelicDiscovered(MetaSaveData meta, string relicId)
+        {
+            if (meta == null || string.IsNullOrWhiteSpace(relicId))
+            {
+                return false;
+            }
+
+            meta.EnsureDefaults();
+            return ContainsId(meta.unlockedRelicIds, relicId);
+        }
+
+        public static bool IsAchievementUnlocked(MetaSaveData meta, string achievementId)
+        {
+            if (meta == null || string.IsNullOrWhiteSpace(achievementId))
+            {
+                return false;
+            }
+
+            meta.EnsureDefaults();
+            return ContainsId(meta.unlockedAchievementIds, achievementId);
+        }
+
+        public static bool TryGetPassengerMastery(
+            MetaSaveData meta,
+            string passengerId,
+            out MetaPassengerMasteryEntry entry)
+        {
+            entry = null;
+            if (meta == null || string.IsNullOrWhiteSpace(passengerId))
+            {
+                return false;
+            }
+
+            meta.EnsureDefaults();
+            if (meta.passengerMasteries == null)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < meta.passengerMasteries.Length; i++)
+            {
+                MetaPassengerMasteryEntry candidate = meta.passengerMasteries[i];
+                if (candidate != null && string.Equals(candidate.passengerId, passengerId, StringComparison.Ordinal))
+                {
+                    entry = candidate;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         /// <summary>라이브 이벤트 보상 트랙 지급. 티켓·XP·승객 해금.</summary>
         public static bool TryGrantLiveEventReward(
             MetaSaveData meta,

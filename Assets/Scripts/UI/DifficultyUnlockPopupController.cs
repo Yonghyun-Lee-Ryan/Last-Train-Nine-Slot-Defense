@@ -23,6 +23,16 @@ namespace LastTrain.UI
             ShowPopup(pending);
         }
 
+        public void Show(string[] difficultyIds)
+        {
+            if (difficultyIds == null || difficultyIds.Length == 0)
+            {
+                return;
+            }
+
+            ShowPopup(difficultyIds);
+        }
+
         private void ShowPopup(string[] difficultyIds)
         {
             if (_overlay != null)
@@ -35,49 +45,81 @@ namespace LastTrain.UI
             MenuOverlayUi.CreateFullScreenDim(root.transform, new Color(0f, 0f, 0f, 0.72f));
             RectTransform host = MenuOverlayUi.EnsureSafeAreaHost(root.transform);
 
-            GameObject box = MenuOverlayUi.CreatePanel(
+            int count = Mathf.Max(1, difficultyIds.Length);
+            float boxHeight = Mathf.Clamp(220f + (count * 32f), 240f, 420f);
+            GameObject box = MenuOverlayUi.CreateCenteredPanel(
                 host,
                 "Box",
+                new Vector2(680f, boxHeight),
                 new Color(0.12f, 0.16f, 0.24f, 0.96f));
-            RectTransform boxRect = box.GetComponent<RectTransform>();
-            boxRect.anchorMin = new Vector2(0.1f, 0.32f);
-            boxRect.anchorMax = new Vector2(0.9f, 0.68f);
-            boxRect.offsetMin = Vector2.zero;
-            boxRect.offsetMax = Vector2.zero;
+            MenuOverlayUi.EnableClipping(box);
 
             var contentGo = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup));
             RectTransform content = contentGo.GetComponent<RectTransform>();
             content.SetParent(box.transform, false);
             MenuOverlayUi.Stretch(content);
-            content.offsetMin = new Vector2(28f, 28f);
-            content.offsetMax = new Vector2(-28f, -28f);
+            content.offsetMin = new Vector2(24f, 20f);
+            content.offsetMax = new Vector2(-24f, -20f);
 
             VerticalLayoutGroup layout = contentGo.GetComponent<VerticalLayoutGroup>();
             layout.childAlignment = TextAnchor.UpperCenter;
-            layout.spacing = 16f;
-            layout.padding = new RectOffset(8, 8, 8, 8);
+            layout.spacing = 12f;
+            layout.padding = new RectOffset(4, 4, 4, 4);
             layout.childControlWidth = true;
             layout.childControlHeight = true;
             layout.childForceExpandWidth = true;
             layout.childForceExpandHeight = false;
 
-            Text title = MenuOverlayUi.CreateText(content, "Title", "새 난이도 해금!", 40, TextAnchor.MiddleCenter);
-            UiLayoutUtility.EnsureLayoutElement(title.gameObject, 56f);
-            UiLayoutUtility.ResetForVerticalLayout(title.rectTransform, 56f);
+            Text title = MenuOverlayUi.CreateText(content, "Title", "새 난이도 해금!", 34, TextAnchor.MiddleCenter);
+            UiLayoutUtility.EnsureLayoutElement(title.gameObject, 44f);
+            UiLayoutUtility.ResetForVerticalLayout(title.rectTransform, 44f);
 
             string body = BuildBody(difficultyIds);
-            Text message = MenuOverlayUi.CreateText(content, "Message", body, 30, TextAnchor.UpperCenter);
-            LayoutElement messageLayout = UiLayoutUtility.EnsureLayoutElement(message.gameObject, 120f);
-            messageLayout.flexibleHeight = 1f;
-            UiLayoutUtility.ResetForVerticalLayout(message.rectTransform, 120f);
+            Text message = MenuOverlayUi.CreateText(content, "Message", body, 28, TextAnchor.MiddleCenter);
+            float messageHeight = Mathf.Max(40f, 32f * count);
+            LayoutElement messageLayout = UiLayoutUtility.EnsureLayoutElement(message.gameObject, messageHeight);
+            messageLayout.flexibleHeight = 0f;
+            UiLayoutUtility.ResetForVerticalLayout(message.rectTransform, messageHeight);
 
             Button confirm = MenuOverlayUi.CreateLayoutButton(
                 content,
                 "ConfirmButton",
                 "확인",
-                80f,
-                () => Destroy(root));
+                56f,
+                Close);
             UiButtonStyler.ApplyStandardTheme(confirm);
+        }
+
+        private void Close()
+        {
+            Dismiss(notifyAttendance: true);
+        }
+
+        private void OnDestroy()
+        {
+            Dismiss(notifyAttendance: false);
+        }
+
+        private void Dismiss(bool notifyAttendance)
+        {
+            if (_overlay == null)
+            {
+                return;
+            }
+
+            GameObject root = _overlay;
+            _overlay = null;
+            MenuOverlayUi.DestroyRoot(root);
+            if (!notifyAttendance)
+            {
+                return;
+            }
+
+            MainMenuController menu = Object.FindAnyObjectByType<MainMenuController>();
+            if (menu != null && menu.isActiveAndEnabled)
+            {
+                menu.TryShowQueuedAttendance();
+            }
         }
 
         private static string BuildBody(string[] difficultyIds)

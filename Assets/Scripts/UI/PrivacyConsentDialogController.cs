@@ -37,44 +37,18 @@ namespace LastTrain.UI
 
             RectTransform host = MenuOverlayUi.EnsureSafeAreaHost(_root.transform);
 
-            GameObject box = MenuOverlayUi.CreatePanel(host, "Box", new Color(0.12f, 0.16f, 0.22f, 0.98f));
-            RectTransform boxRect = box.GetComponent<RectTransform>();
-            boxRect.anchorMin = new Vector2(0.06f, 0.12f);
-            boxRect.anchorMax = new Vector2(0.94f, 0.88f);
-            boxRect.offsetMin = Vector2.zero;
-            boxRect.offsetMax = Vector2.zero;
-            if (theme?.Panel != null)
-            {
-                Image boxImage = box.GetComponent<Image>();
-                boxImage.sprite = theme.Panel;
-                boxImage.type = Image.Type.Sliced;
-                boxImage.color = Color.white;
-            }
-
-            var contentGo = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup));
-            RectTransform content = contentGo.GetComponent<RectTransform>();
-            content.SetParent(box.transform, false);
-            MenuOverlayUi.Stretch(content);
-            content.offsetMin = new Vector2(28f, 28f);
-            content.offsetMax = new Vector2(-28f, -28f);
-
-            VerticalLayoutGroup layout = contentGo.GetComponent<VerticalLayoutGroup>();
+            GameObject box = MenuOverlayUi.CreateOverlayBox(host, MenuOverlayUi.OverlaySizeCompact);
+            MenuOverlayUi.CreateOverlayTitle(box.transform, "개인정보 및 광고 안내");
+            MenuOverlayUi.OverlayScroll scroll = MenuOverlayUi.CreateVerticalScroll(
+                box.transform,
+                "Scroll",
+                new Vector2(MenuOverlayUi.OverlayPad, MenuOverlayUi.OverlayPad),
+                new Vector2(-MenuOverlayUi.OverlayPad, -(MenuOverlayUi.OverlayPad + MenuOverlayUi.OverlayTitleHeight + 12f)));
+            Transform content = scroll.Content;
+            VerticalLayoutGroup layout = content.GetComponent<VerticalLayoutGroup>();
             layout.childAlignment = TextAnchor.UpperCenter;
             layout.spacing = 14f;
             layout.padding = new RectOffset(8, 8, 12, 12);
-            layout.childControlWidth = true;
-            layout.childControlHeight = true;
-            layout.childForceExpandWidth = true;
-            layout.childForceExpandHeight = false;
-
-            Text title = MenuOverlayUi.CreateText(
-                content,
-                "Title",
-                "개인정보 및 광고 안내",
-                40,
-                TextAnchor.MiddleCenter);
-            UiLayoutUtility.EnsureLayoutElement(title.gameObject, 56f);
-            UiLayoutUtility.ResetForVerticalLayout(title.rectTransform, 56f);
 
             string body =
                 "맞춤형 광고와 게임 개선을 위한 분석 데이터 수집에 동의할 수 있습니다.\n" +
@@ -109,18 +83,34 @@ namespace LastTrain.UI
 
         private void Close()
         {
+            Dismiss(notifyAttendance: true);
+        }
+
+        private void OnDestroy()
+        {
+            Dismiss(notifyAttendance: false);
+        }
+
+        private void Dismiss(bool notifyAttendance)
+        {
             if (_root == null)
             {
                 return;
             }
 
-            Destroy(_root);
+            GameObject root = _root;
             _root = null;
-        }
+            MenuOverlayUi.DestroyRoot(root);
+            if (!notifyAttendance)
+            {
+                return;
+            }
 
-        private void OnDestroy()
-        {
-            Close();
+            MainMenuController menu = UnityEngine.Object.FindAnyObjectByType<MainMenuController>();
+            if (menu != null && menu.isActiveAndEnabled)
+            {
+                menu.TryShowQueuedAttendance();
+            }
         }
     }
 }

@@ -59,6 +59,12 @@ namespace LastTrain.Save
         // Unit 34: 시즌·라이브 이벤트 진행 (기본 진행과 분리)
         public LiveOps.LiveEventProgress[] liveEventProgresses = Array.Empty<LiveOps.LiveEventProgress>();
 
+        // Unit 40: 7일 출석
+        public int attendanceCycleDay;
+        public string attendanceLastClaimLocalDate = string.Empty;
+        public string attendanceLastAdBonusLocalDate = string.Empty;
+        public int metaPendingFreeSummonCharges;
+
         public void EnsureDefaults()
         {
             if (version <= 0)
@@ -92,6 +98,17 @@ namespace LastTrain.Save
             endlessBestRunId ??= string.Empty;
             endlessSubmittedRunIds ??= Array.Empty<string>();
             liveEventProgresses ??= Array.Empty<LiveOps.LiveEventProgress>();
+            attendanceLastClaimLocalDate ??= string.Empty;
+            attendanceLastAdBonusLocalDate ??= string.Empty;
+            if (attendanceCycleDay < 0 || attendanceCycleDay >= 7)
+            {
+                attendanceCycleDay = 0;
+            }
+
+            if (metaPendingFreeSummonCharges < 0)
+            {
+                metaPendingFreeSummonCharges = 0;
+            }
             if (tutorialStepIndex < 0)
             {
                 tutorialStepIndex = 0;

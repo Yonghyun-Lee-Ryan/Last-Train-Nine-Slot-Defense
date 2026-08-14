@@ -15,6 +15,7 @@ namespace LastTrain.Release
         private const string DamageNumbersKey = "lasttrain.settings.damageNumbers";
         private const string CoinNumbersKey = "lasttrain.settings.coinNumbers";
         private const string LowFxKey = "lasttrain.settings.lowFx";
+        private const string BattleSpeedKey = "lasttrain.settings.battleSpeed";
 
         public bool BgmEnabled { get; private set; } = true;
         public bool SfxEnabled { get; private set; } = true;
@@ -26,6 +27,7 @@ namespace LastTrain.Release
         public bool DamageNumbersEnabled { get; private set; } = true;
         public bool CoinNumbersEnabled { get; private set; } = true;
         public bool LowFxMode { get; private set; }
+        public int BattleSpeed { get; private set; } = 1;
 
         public void Load()
         {
@@ -39,6 +41,7 @@ namespace LastTrain.Release
             DamageNumbersEnabled = PlayerPrefs.GetInt(DamageNumbersKey, 1) == 1;
             CoinNumbersEnabled = PlayerPrefs.GetInt(CoinNumbersKey, 1) == 1;
             LowFxMode = PlayerPrefs.GetInt(LowFxKey, 0) == 1;
+            BattleSpeed = LastTrain.Battle.BattleSpeedPreset.Clamp(PlayerPrefs.GetInt(BattleSpeedKey, 1));
             ApplyAudio();
         }
 
@@ -120,6 +123,13 @@ namespace LastTrain.Release
             PlayerPrefs.Save();
         }
 
+        public void SetBattleSpeed(int preset)
+        {
+            BattleSpeed = LastTrain.Battle.BattleSpeedPreset.Clamp(preset);
+            PlayerPrefs.SetInt(BattleSpeedKey, BattleSpeed);
+            PlayerPrefs.Save();
+        }
+
         public void ResetToDefaults()
         {
             BgmEnabled = true;
@@ -132,6 +142,7 @@ namespace LastTrain.Release
             DamageNumbersEnabled = true;
             CoinNumbersEnabled = true;
             LowFxMode = false;
+            BattleSpeed = 1;
             PlayerPrefs.DeleteKey(BgmKey);
             PlayerPrefs.DeleteKey(SfxKey);
             PlayerPrefs.DeleteKey(BgmVolumeKey);
@@ -142,6 +153,7 @@ namespace LastTrain.Release
             PlayerPrefs.DeleteKey(DamageNumbersKey);
             PlayerPrefs.DeleteKey(CoinNumbersKey);
             PlayerPrefs.DeleteKey(LowFxKey);
+            PlayerPrefs.DeleteKey(BattleSpeedKey);
             PlayerPrefs.Save();
             ApplyAudio();
         }

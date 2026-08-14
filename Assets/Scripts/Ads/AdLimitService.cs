@@ -13,6 +13,8 @@ namespace LastTrain.Ads
         public const int StationRewardDoublePerStation = 1;
         public const int FreeSummonPerDay = 3;
         public const int ShopRefreshPerRun = 3;
+        public const int AttendanceBonusPerDay = 1;
+        public const int SeasonPassTrackPerDay = 5;
         public static readonly TimeSpan DefaultCooldown = TimeSpan.FromSeconds(2);
 
         private readonly Dictionary<RewardedAdPlacement, int> _runUsage = new();
@@ -20,6 +22,8 @@ namespace LastTrain.Ads
         private int _currentStationIndex = -1;
         private string _dailyKey = string.Empty;
         private int _dailyFreeSummonUsed;
+        private int _dailyAttendanceBonusUsed;
+        private int _dailySeasonPassUsed;
         private int _dailyRewardedUsed;
         private int _rewardedDailyLimit = int.MaxValue;
         private int _revivePerRun = RevivePerRun;
@@ -102,6 +106,14 @@ namespace LastTrain.Ads
             {
                 _dailyFreeSummonUsed++;
             }
+            else if (placement == RewardedAdPlacement.AttendanceBonus)
+            {
+                _dailyAttendanceBonusUsed++;
+            }
+            else if (placement == RewardedAdPlacement.SeasonPassTrack)
+            {
+                _dailySeasonPassUsed++;
+            }
             else
             {
                 if (!_runUsage.TryGetValue(placement, out int used))
@@ -153,6 +165,16 @@ namespace LastTrain.Ads
                 return _dailyFreeSummonUsed;
             }
 
+            if (placement == RewardedAdPlacement.AttendanceBonus)
+            {
+                return _dailyAttendanceBonusUsed;
+            }
+
+            if (placement == RewardedAdPlacement.SeasonPassTrack)
+            {
+                return _dailySeasonPassUsed;
+            }
+
             return _runUsage.TryGetValue(placement, out int used) ? used : 0;
         }
 
@@ -167,6 +189,8 @@ namespace LastTrain.Ads
                 RewardedAdPlacement.StationRewardDouble => StationRewardDoublePerStation,
                 RewardedAdPlacement.FreeSummon => FreeSummonPerDay,
                 RewardedAdPlacement.ShopRefresh => ShopRefreshPerRun,
+                RewardedAdPlacement.AttendanceBonus => AttendanceBonusPerDay,
+                RewardedAdPlacement.SeasonPassTrack => SeasonPassTrackPerDay,
                 _ => 0,
             };
         }
@@ -181,6 +205,8 @@ namespace LastTrain.Ads
 
             _dailyKey = today;
             _dailyFreeSummonUsed = 0;
+            _dailyAttendanceBonusUsed = 0;
+            _dailySeasonPassUsed = 0;
             _dailyRewardedUsed = 0;
         }
     }

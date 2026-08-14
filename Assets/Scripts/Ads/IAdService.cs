@@ -11,6 +11,8 @@ namespace LastTrain.Ads
         FreeSummon = 4,
         ShopRefresh = 5,
         StationRewardDouble = 6,
+        AttendanceBonus = 7,
+        SeasonPassTrack = 8,
     }
 
     public enum AdResult
@@ -42,6 +44,7 @@ namespace LastTrain.Ads
 
         void ShowRewardedAd(AdRequest request, Action<AdResult> onFinished);
 
-        void ShowInterstitial(AdRequest request, Action<AdResult> onFinished);
+        /// <summary>전면 광고. placement와 무관하며 보상형 한도를 소비하지 않는다.</summary>
+        void ShowInterstitial(Action<AdResult> onFinished);
     }
 }

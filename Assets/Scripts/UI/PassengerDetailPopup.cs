@@ -29,6 +29,7 @@ namespace LastTrain.UI
         private Action<int> _onSold;
         private Action _onClosed;
         private readonly UiInputGuard _inputGuard = new();
+        private GameObject _sellConfirm;
 
         public bool IsOpen => root != null && root.activeSelf;
 
@@ -145,6 +146,17 @@ namespace LastTrain.UI
             {
                 _onClosed?.Invoke();
             }
+
+            DestroySellConfirm();
+        }
+
+        private void DestroySellConfirm()
+        {
+            if (_sellConfirm != null)
+            {
+                Destroy(_sellConfirm);
+                _sellConfirm = null;
+            }
         }
 
         private void ApplyEvenTextSpacing()
@@ -222,6 +234,10 @@ namespace LastTrain.UI
                 PassengerSkillIds.LowHpBonus => "저체력 보정",
                 PassengerSkillIds.BossInterrupt => "보스 방해",
                 PassengerSkillIds.LuckyCrit => "행운 치명타",
+                PassengerSkillIds.ChainZap => "환승 연쇄",
+                PassengerSkillIds.ScaldSplash => "핫 스플래시",
+                PassengerSkillIds.PerimeterPulse => "경계 펄스",
+                PassengerSkillIds.FocusShot => "집중 사격",
                 _ => skillId,
             };
         }
@@ -233,7 +249,83 @@ namespace LastTrain.UI
                 return;
             }
 
-            int slot = _slotIndex;
+            PassengerRuntime passenger = _runState.GetPassengerAtSlot(_slotIndex);
+            if (passenger == null)
+            {
+                return;
+            }
+
+            int price = PassengerSellService.GetSellPrice(passenger, _runState);
+            string name = passenger.Data != null ? passenger.Data.DisplayName : "승객";
+            ShowSellConfirm(name, price);
+        }
+
+        private void ShowSellConfirm(string passengerName, int coins)
+        {
+            DestroySellConfirm();
+
+            GameObject overlay = MenuOverlayUi.CreateRoot("SellConfirm", sortingOrder: 4300);
+            _sellConfirm = overlay;
+            MenuOverlayUi.CreateFullScreenDim(overlay.transform, new Color(0f, 0f, 0f, 0.7f), DestroySellConfirm);
+            RectTransform host = MenuOverlayUi.EnsureSafeAreaHost(overlay.transform);
+            GameObject box = MenuOverlayUi.CreateCenteredPanel(
+                host,
+                "Box",
+                new Vector2(680f, 360f),
+                MenuOverlayUi.OverlayFill);
+            MenuOverlayUi.EnableClipping(box);
+
+            Text title = MenuOverlayUi.CreateText(box.transform, "Title", "판매 확인", 32, TextAnchor.MiddleCenter);
+            title.verticalOverflow = VerticalWrapMode.Truncate;
+            RectTransform titleRect = title.rectTransform;
+            titleRect.anchorMin = new Vector2(0f, 1f);
+            titleRect.anchorMax = new Vector2(1f, 1f);
+            titleRect.pivot = new Vector2(0.5f, 1f);
+            titleRect.sizeDelta = new Vector2(-80f, 48f);
+            titleRect.anchoredPosition = new Vector2(0f, -36f);
+
+            Text body = MenuOverlayUi.CreateText(
+                box.transform,
+                "Body",
+                $"{passengerName}을(를) {coins} 코인에 판매할까요?",
+                24,
+                TextAnchor.MiddleCenter);
+            body.horizontalOverflow = HorizontalWrapMode.Wrap;
+            body.verticalOverflow = VerticalWrapMode.Truncate;
+            RectTransform bodyRect = body.rectTransform;
+            bodyRect.anchorMin = new Vector2(0f, 0f);
+            bodyRect.anchorMax = new Vector2(1f, 1f);
+            bodyRect.offsetMin = new Vector2(40f, 100f);
+            bodyRect.offsetMax = new Vector2(-40f, -92f);
+
+            MenuOverlayUi.CreateButton(
+                box.transform,
+                "Cancel",
+                "취소",
+                new Vector2(-140f, -118f),
+                new Vector2(220f, 56f),
+                () => DestroySellConfirm());
+            MenuOverlayUi.CreateButton(
+                box.transform,
+                "Confirm",
+                "판매",
+                new Vector2(140f, -118f),
+                new Vector2(220f, 56f),
+                () =>
+                {
+                    int slot = _slotIndex;
+                    DestroySellConfirm();
+                    ConfirmSell(slot);
+                });
+        }
+
+        private void ConfirmSell(int slot)
+        {
+            if (_runState == null || slot < 0)
+            {
+                return;
+            }
+
             if (!PassengerSellService.TrySell(_runState, slot, out int coins))
             {
                 GameAudio.PlaySfx(SfxId.UiError);
@@ -246,6 +338,7 @@ namespace LastTrain.UI
 
         private void OnDestroy()
         {
+            DestroySellConfirm();
             if (sellButton != null)
             {
                 sellButton.onClick.RemoveListener(OnSellClicked);

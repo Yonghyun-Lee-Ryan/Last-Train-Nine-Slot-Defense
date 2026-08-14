@@ -1,3 +1,4 @@
+using LastTrain.Ads;
 using LastTrain.Battle;
 using LastTrain.Core;
 using LastTrain.Data;
@@ -26,7 +27,9 @@ namespace LastTrain.UI
         private Button[] _choiceButtons = new Button[4];
         private Text[] _choiceLabels = new Text[4];
         private Button _leaveButton;
+        private Button _shopRefreshAdButton;
         private Text _status;
+        private readonly UiInputGuard _adInputGuard = new(0.25f);
 
         private RunState _runState;
         private ShopService _shop;
@@ -35,6 +38,13 @@ namespace LastTrain.UI
 
         private RunPhase _lastRenderedPhase = RunPhase.None;
         private string _lastRenderedKey = string.Empty;
+
+        public bool IsPanelActive => _root != null && _root.activeSelf;
+
+        public void EnsureBuiltHiddenForTests()
+        {
+            BuildUiIfNeeded();
+        }
 
         private void Start()
         {
@@ -76,9 +86,13 @@ namespace LastTrain.UI
 
                 ShowEvent();
             }
-            else if (_lastRenderedPhase == RunPhase.ShopOpen || _lastRenderedPhase == RunPhase.EventOpen)
+            else
             {
-                Hide();
+                if (_root != null && _root.activeSelf)
+                {
+                    Hide();
+                }
+
                 _lastRenderedPhase = phase;
                 _lastRenderedKey = string.Empty;
             }
@@ -131,6 +145,7 @@ namespace LastTrain.UI
         {
             if (_shop == null)
             {
+                Hide();
                 return;
             }
 
@@ -153,6 +168,7 @@ namespace LastTrain.UI
             _title.text = "상점";
             _body.text = "상품을 구매하거나 나갈 수 있습니다.";
             _leaveButton.gameObject.SetActive(true);
+            RefreshShopAdButton();
             _status.text = $"보유 코인: {_runState.Currency.CurrentCoins}";
 
             var offers = _runState.Shop.Offers;
@@ -208,10 +224,73 @@ namespace LastTrain.UI
             _lastRenderedKey = key;
         }
 
+        private void RefreshShopAdButton()
+        {
+            if (_shopRefreshAdButton == null)
+            {
+                return;
+            }
+
+            AdCoordinator ads = AppRoot.Instance?.Ads;
+            bool ready = ads != null && ads.IsReady(RewardedAdPlacement.ShopRefresh);
+            _shopRefreshAdButton.gameObject.SetActive(ready);
+            _shopRefreshAdButton.interactable = ready;
+            if (!ready)
+            {
+                return;
+            }
+
+            Text label = _shopRefreshAdButton.GetComponentInChildren<Text>();
+            if (label != null)
+            {
+                int remaining = ads.Limits.GetRemaining(RewardedAdPlacement.ShopRefresh);
+                label.text = $"광고 새로고침\n({remaining})";
+                ApplyFontTo(label);
+            }
+        }
+
+        private void OnShopRefreshAdClicked()
+        {
+            if (_shop == null || !_adInputGuard.TryAcquire())
+            {
+                return;
+            }
+
+            AdCoordinator ads = AppRoot.Instance?.Ads;
+            if (ads == null || !ads.IsReady(RewardedAdPlacement.ShopRefresh))
+            {
+                RefreshShopAdButton();
+                return;
+            }
+
+            UiInputGuard.SetInteractable(_shopRefreshAdButton, false);
+            ads.ShowRewarded(
+                RewardedAdPlacement.ShopRefresh,
+                () =>
+                {
+                    if (_shop.TryRefreshOffersFromAd())
+                    {
+                        GameAudio.PlaySfx(SfxId.Switch);
+                        _lastRenderedKey = string.Empty;
+                        _status.text = "광고 보상: 상점 상품을 새로 뽑았습니다.";
+                    }
+                },
+                result =>
+                {
+                    if (result != AdResult.Completed && _status != null)
+                    {
+                        _status.text = $"광고 {(result == AdResult.Cancelled ? "취소" : "실패")} — 새로고침 없음";
+                    }
+
+                    ShowShop();
+                });
+        }
+
         private void ShowEvent()
         {
             if (_events == null)
             {
+                Hide();
                 return;
             }
 
@@ -224,6 +303,10 @@ namespace LastTrain.UI
             _root.SetActive(true);
             EnsureKoreanFont();
             _leaveButton.gameObject.SetActive(false);
+            if (_shopRefreshAdButton != null)
+            {
+                _shopRefreshAdButton.gameObject.SetActive(false);
+            }
 
             if (eventData == null)
             {
@@ -510,31 +593,38 @@ namespace LastTrain.UI
             boxRect.SetParent(_root.transform, false);
             boxRect.anchorMin = new Vector2(0.5f, 0.5f);
             boxRect.anchorMax = new Vector2(0.5f, 0.5f);
-            boxRect.sizeDelta = new Vector2(960f, 1100f);
+            boxRect.sizeDelta = new Vector2(920f, 1180f);
             Image boxImage = box.GetComponent<Image>();
-            if (theme?.Panel != null)
-            {
-                boxImage.sprite = theme.Panel;
-                boxImage.type = Image.Type.Sliced;
-                boxImage.color = Color.white;
-            }
-            else
-            {
-                boxImage.color = new Color(0.1f, 0.14f, 0.2f, 0.96f);
-            }
+            boxImage.sprite = null;
+            boxImage.color = MenuOverlayUi.OverlayFill;
 
-            _title = CreateText(box.transform, "Title", "상점", 36, new Vector2(0f, 460f));
-            _body = CreateText(box.transform, "Body", string.Empty, 24, new Vector2(0f, 360f), new Vector2(860f, 100f));
-            _status = CreateText(box.transform, "Status", string.Empty, 22, new Vector2(0f, -460f));
+            _title = CreateText(box.transform, "Title", "상점", 36, new Vector2(0f, 500f));
+            _body = CreateText(box.transform, "Body", string.Empty, 24, new Vector2(0f, 400f), new Vector2(860f, 100f));
+            _status = CreateText(box.transform, "Status", string.Empty, 22, new Vector2(0f, -500f));
 
-            float[] xs = { -300f, -100f, 100f, 300f };
+            Vector2[] cardPositions =
+            {
+                new Vector2(-210f, 160f),
+                new Vector2(210f, 160f),
+                new Vector2(-210f, -90f),
+                new Vector2(210f, -90f),
+            };
             for (int i = 0; i < 4; i++)
             {
-                _choiceButtons[i] = CreateButton(box.transform, $"Choice{i}", "불러오는 중…", new Vector2(xs[i], 40f), theme, useCardFrame: true);
+                _choiceButtons[i] = CreateButton(
+                    box.transform,
+                    $"Choice{i}",
+                    string.Empty,
+                    cardPositions[i],
+                    theme,
+                    useCardFrame: true);
+                _choiceButtons[i].GetComponent<RectTransform>().sizeDelta = new Vector2(380f, 220f);
+                _choiceButtons[i].gameObject.SetActive(false);
                 _choiceLabels[i] = _choiceButtons[i].GetComponentInChildren<Text>();
                 if (_choiceLabels[i] != null)
                 {
-                    _choiceLabels[i].fontSize = 22;
+                    _choiceLabels[i].rectTransform.sizeDelta = new Vector2(340f, 200f);
+                    _choiceLabels[i].fontSize = 24;
                     _choiceLabels[i].resizeTextForBestFit = false;
                     _choiceLabels[i].horizontalOverflow = HorizontalWrapMode.Wrap;
                     _choiceLabels[i].verticalOverflow = VerticalWrapMode.Overflow;
@@ -542,10 +632,23 @@ namespace LastTrain.UI
                 }
             }
 
-            _leaveButton = CreateButton(box.transform, "LeaveButton", "나가기", new Vector2(0f, -340f), theme, useCardFrame: false);
+            _leaveButton = CreateButton(box.transform, "LeaveButton", "나가기", new Vector2(-160f, -380f), theme, useCardFrame: false);
             _leaveButton.GetComponent<RectTransform>().sizeDelta = new Vector2(280f, 88f);
             _leaveButton.onClick.AddListener(OnLeaveShop);
+
+            _shopRefreshAdButton = CreateButton(
+                box.transform,
+                "ShopRefreshAdButton",
+                "광고 새로고침",
+                new Vector2(160f, -380f),
+                theme,
+                useCardFrame: false);
+            _shopRefreshAdButton.GetComponent<RectTransform>().sizeDelta = new Vector2(280f, 88f);
+            _shopRefreshAdButton.onClick.AddListener(OnShopRefreshAdClicked);
+            _shopRefreshAdButton.gameObject.SetActive(false);
+
             EnsureKoreanFont();
+            _root.SetActive(false);
         }
 
         private void EnsureKoreanFont()
@@ -569,6 +672,11 @@ namespace LastTrain.UI
             if (_leaveButton != null)
             {
                 ApplyFontTo(_leaveButton.GetComponentInChildren<Text>());
+            }
+
+            if (_shopRefreshAdButton != null)
+            {
+                ApplyFontTo(_shopRefreshAdButton.GetComponentInChildren<Text>());
             }
         }
 

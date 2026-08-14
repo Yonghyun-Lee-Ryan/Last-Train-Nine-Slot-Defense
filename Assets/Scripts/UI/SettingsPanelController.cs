@@ -50,41 +50,15 @@ namespace LastTrain.UI
 
             RectTransform host = MenuOverlayUi.EnsureSafeAreaHost(_root.transform);
 
-            GameObject box = MenuOverlayUi.CreatePanel(host, "Box", new Color(0.12f, 0.16f, 0.22f, 0.98f));
-            RectTransform boxRect = box.GetComponent<RectTransform>();
-            boxRect.anchorMin = new Vector2(0.06f, 0.06f);
-            boxRect.anchorMax = new Vector2(0.94f, 0.94f);
-            boxRect.offsetMin = Vector2.zero;
-            boxRect.offsetMax = Vector2.zero;
-            if (theme?.Panel != null)
-            {
-                Image boxImage = box.GetComponent<Image>();
-                boxImage.sprite = theme.Panel;
-                boxImage.type = Image.Type.Sliced;
-                boxImage.color = Color.white;
-            }
+            GameObject box = MenuOverlayUi.CreateOverlayBox(host, MenuOverlayUi.OverlaySizeStandard);
+            MenuOverlayUi.CreateOverlayTitle(box.transform, "설정", 40);
+            MenuOverlayUi.CreateOverlayClose(box.transform, Hide);
 
-            var contentGo = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup));
-            RectTransform content = contentGo.GetComponent<RectTransform>();
-            content.SetParent(box.transform, false);
-            MenuOverlayUi.Stretch(content);
-            content.offsetMin = new Vector2(36f, 36f);
-            content.offsetMax = new Vector2(-36f, -36f);
-
-            VerticalLayoutGroup layout = contentGo.GetComponent<VerticalLayoutGroup>();
-            layout.childAlignment = TextAnchor.UpperCenter;
-            layout.spacing = 12f;
-            layout.padding = new RectOffset(8, 8, 8, 8);
-            layout.childControlWidth = true;
-            layout.childControlHeight = true;
-            layout.childForceExpandWidth = true;
-            layout.childForceExpandHeight = false;
-
-            Text title = MenuOverlayUi.CreateText(content, "Title", "설정", 40, TextAnchor.MiddleCenter);
-            UiLayoutUtility.EnsureLayoutElement(title.gameObject, 64f);
-            UiLayoutUtility.ResetForVerticalLayout(title.rectTransform, 64f);
-
-            AddFlexibleSpacer(content, "SpacerTop", 0.25f);
+            MenuOverlayUi.OverlayScroll scroll = MenuOverlayUi.CreateOverlayScroll(box.transform);
+            Transform content = scroll.Content;
+            VerticalLayoutGroup layout = content.GetComponent<VerticalLayoutGroup>();
+            layout.spacing = 10f;
+            layout.padding = new RectOffset(4, 4, 4, 4);
 
             if (_settings != null)
             {
@@ -138,6 +112,7 @@ namespace LastTrain.UI
                     _settings.SetLowFxMode(enabled);
                     _settings.Persist();
                 });
+                AddBattleSpeedRow(content, _settings);
                 AddToggleRow(content, "알림", _settings.NotificationsEnabled, enabled =>
                 {
                     _settings.SetNotificationsEnabled(enabled);
@@ -178,7 +153,7 @@ namespace LastTrain.UI
                 });
             }
 
-            AddFlexibleSpacer(content, "SpacerMid", 0.45f);
+            AddFlexibleSpacer(content, "SpacerMid", 0.1f);
 
             AddActionButton(content, "Policy", "개인정보처리방침", () =>
             {
@@ -190,14 +165,125 @@ namespace LastTrain.UI
 
             AddActionButton(content, "DeleteData", "앱 데이터 삭제", () =>
             {
-                PlayerDataDeletionService.DeleteAllLocalData(_privacy, _settings);
-                appRoot.ApplyPrivacyConsent(adsGranted: false, analyticsGranted: false);
-                Hide();
+                string notice = string.IsNullOrWhiteSpace(config.DataDeletionNotice)
+                    ? "앱 데이터 삭제 시 진행도, 메타 보상, 설정이 기기에서 제거됩니다."
+                    : config.DataDeletionNotice;
+                ShowDeleteConfirm(notice, () =>
+                {
+                    PlayerDataDeletionService.DeleteAllLocalData(_privacy, _settings);
+                    appRoot.ApplyPrivacyConsent(adsGranted: false, analyticsGranted: false);
+                    Hide();
+                });
             });
 
-            AddActionButton(content, "Close", "닫기", Hide);
-            AddFlexibleSpacer(content, "SpacerBottom", 0.2f);
-            UiLayoutUtility.ForceRebuild(content);
+            GameFontProvider.ApplyTo(_root);
+            UiLayoutUtility.ForceRebuild(scroll.Content);
+        }
+
+        private void ShowDeleteConfirm(string notice, System.Action onConfirm)
+        {
+            if (_root == null || onConfirm == null)
+            {
+                return;
+            }
+
+            Transform existing = _root.transform.Find("DeleteConfirm");
+            if (existing != null)
+            {
+                DestroyOverlay(existing.gameObject);
+            }
+
+            GameObject overlay = null;
+            overlay = MenuOverlayUi.CreateFullScreenDim(
+                _root.transform,
+                new Color(0f, 0f, 0f, 0.45f),
+                () => DestroyOverlay(overlay),
+                placeBehindContent: false);
+            overlay.name = "DeleteConfirm";
+
+            VisualTheme theme = VisualThemeLocator.Load();
+            GameObject box = MenuOverlayUi.CreateCenteredPanel(
+                overlay.transform,
+                "ConfirmBox",
+                new Vector2(680f, 360f),
+                new Color(0.16f, 0.12f, 0.14f, 0.98f));
+            MenuOverlayUi.EnableClipping(box);
+            if (theme?.Panel != null)
+            {
+                Image boxImage = box.GetComponent<Image>();
+                boxImage.sprite = theme.Panel;
+                boxImage.type = Image.Type.Sliced;
+                boxImage.color = Color.white;
+            }
+
+            Text title = MenuOverlayUi.CreateText(box.transform, "Title", "앱 데이터 삭제", 32, TextAnchor.MiddleCenter);
+            title.verticalOverflow = VerticalWrapMode.Truncate;
+            RectTransform titleRect = title.rectTransform;
+            titleRect.anchorMin = new Vector2(0f, 1f);
+            titleRect.anchorMax = new Vector2(1f, 1f);
+            titleRect.pivot = new Vector2(0.5f, 1f);
+            titleRect.sizeDelta = new Vector2(-40f, 48f);
+            titleRect.anchoredPosition = new Vector2(0f, -16f);
+
+            Text body = MenuOverlayUi.CreateText(
+                box.transform,
+                "Body",
+                notice + "\n\n이 작업은 되돌릴 수 없습니다.",
+                22,
+                TextAnchor.MiddleCenter);
+            body.horizontalOverflow = HorizontalWrapMode.Wrap;
+            body.verticalOverflow = VerticalWrapMode.Truncate;
+            RectTransform bodyRect = body.rectTransform;
+            bodyRect.anchorMin = new Vector2(0f, 0f);
+            bodyRect.anchorMax = new Vector2(1f, 1f);
+            bodyRect.offsetMin = new Vector2(24f, 84f);
+            bodyRect.offsetMax = new Vector2(-24f, -68f);
+
+            var rowGo = new GameObject("Buttons", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+            rowGo.transform.SetParent(box.transform, false);
+            RectTransform rowRect = rowGo.GetComponent<RectTransform>();
+            rowRect.anchorMin = new Vector2(0f, 0f);
+            rowRect.anchorMax = new Vector2(1f, 0f);
+            rowRect.pivot = new Vector2(0.5f, 0f);
+            rowRect.sizeDelta = new Vector2(-40f, 56f);
+            rowRect.anchoredPosition = new Vector2(0f, 20f);
+            HorizontalLayoutGroup row = rowGo.GetComponent<HorizontalLayoutGroup>();
+            row.spacing = 16f;
+            row.padding = new RectOffset(8, 8, 0, 0);
+            row.childAlignment = TextAnchor.MiddleCenter;
+            row.childControlWidth = true;
+            row.childControlHeight = true;
+            row.childForceExpandWidth = true;
+            row.childForceExpandHeight = false;
+
+            const float confirmButtonHeight = 56f;
+            MenuOverlayUi.CreateFixedSizeButton(
+                rowGo.transform,
+                "Cancel",
+                "취소",
+                new Vector2(260f, confirmButtonHeight),
+                () => DestroyOverlay(overlay),
+                fontSize: 24);
+            MenuOverlayUi.CreateFixedSizeButton(
+                rowGo.transform,
+                "Confirm",
+                "삭제",
+                new Vector2(260f, confirmButtonHeight),
+                () =>
+                {
+                    DestroyOverlay(overlay);
+                    onConfirm();
+                },
+                fontSize: 24);
+
+            GameFontProvider.ApplyTo(overlay);
+            overlay.transform.SetAsLastSibling();
+            UiLayoutUtility.ForceRebuild(box.GetComponent<RectTransform>());
+        }
+
+        private static void DestroyOverlay(GameObject overlay)
+        {
+            MenuOverlayUi.DestroyRoot(overlay);
         }
 
         private void RefreshVolumeLabels()
@@ -237,6 +323,40 @@ namespace LastTrain.UI
         {
             Toggle toggle = MenuOverlayUi.CreateLayoutToggle(parent, label, value, onChanged);
             UiLayoutUtility.EnsureLayoutElement(toggle.transform.parent.gameObject, 70f);
+        }
+
+        private static void AddBattleSpeedRow(Transform parent, GameSettingsService settings)
+        {
+            if (settings == null)
+            {
+                return;
+            }
+
+            Button button = MenuOverlayUi.CreateLayoutButton(
+                parent,
+                "BattleSpeed",
+                SpeedLabel(settings.BattleSpeed),
+                72f,
+                null,
+                fontSize: 26);
+            UiLayoutUtility.EnsureLayoutElement(button.gameObject, 72f);
+            button.onClick.AddListener(() =>
+            {
+                int next = LastTrain.Battle.BattleSpeedPreset.Cycle(settings.BattleSpeed);
+                settings.SetBattleSpeed(next);
+                Text label = button.GetComponentInChildren<Text>();
+                if (label != null)
+                {
+                    label.text = SpeedLabel(next);
+                }
+
+                GameAudio.PlaySfx(SfxId.Switch);
+            });
+        }
+
+        private static string SpeedLabel(int preset)
+        {
+            return $"전투 속도  {LastTrain.Battle.BattleSpeedPreset.Clamp(preset)}x";
         }
 
         private static Text AddVolumeSlider(
@@ -383,10 +503,11 @@ namespace LastTrain.UI
 
             _settings?.Persist();
             GameAudio.PlaySfx(SfxId.UiClose);
-            Destroy(_root);
+            GameObject root = _root;
             _root = null;
             _bgmVolumeLabel = null;
             _sfxVolumeLabel = null;
+            MenuOverlayUi.DestroyRoot(root);
         }
 
         private void OnDestroy()
