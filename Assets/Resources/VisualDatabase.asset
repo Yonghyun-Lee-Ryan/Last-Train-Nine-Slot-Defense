@@ -22,6 +22,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: f382fb5d8c5a3f442b37bee90acdb9b4, type: 2}
   - {fileID: 11400000, guid: 8c74f5910a48568448c27bf27b65002a, type: 2}
   - {fileID: 11400000, guid: beddcad6875d1264d831e956557f586e, type: 2}
+  - {fileID: 11400000, guid: ff26d2d4a6a7f4f4da97d6585ff53cae, type: 2}
+  - {fileID: 11400000, guid: d29af6e09cb3cab4ea80f6d9934b9e6c, type: 2}
+  - {fileID: 11400000, guid: bcdd22c19dedda84c8133590ea0e8ad8, type: 2}
+  - {fileID: 11400000, guid: 382d511c955302f4ba10a27ca8c5115a, type: 2}
   enemies:
   - {fileID: 11400000, guid: cf4e71d9d3304d34cae98beccb53c0aa, type: 2}
   - {fileID: 11400000, guid: 319af0e33a79c264b92f8b3ceaa47f37, type: 2}

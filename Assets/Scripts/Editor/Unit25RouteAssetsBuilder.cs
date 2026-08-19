@@ -25,8 +25,8 @@ namespace LastTrain.EditorTools
             EnemyData midBoss = LoadEnemy("Assets/Data/Enemies/Enemy_Boss_DrunkManager.asset");
             EnemyData finalBoss = CreateOrLoadFinalBoss();
 
-            WaveData wave0601 = CreateWave($"{WaveFolder}/Wave_06_01.asset", "wave_06_01", normal, 7, 0.85f);
-            WaveData wave0602 = CreateWave($"{WaveFolder}/Wave_06_02.asset", "wave_06_02", fast, 4, 0.75f);
+            CreateWave($"{WaveFolder}/Wave_06_01.asset", "wave_06_01", normal, 7, 0.85f);
+            CreateWave($"{WaveFolder}/Wave_06_02.asset", "wave_06_02", fast, 4, 0.75f);
             WaveData wave0701 = CreateWave($"{WaveFolder}/Wave_07_01.asset", "wave_07_01", tank, 3, 1.0f);
             WaveData wave0702 = CreateWave($"{WaveFolder}/Wave_07_02.asset", "wave_07_02", fast, 5, 0.7f);
             WaveData wave0901 = CreateWave($"{WaveFolder}/Wave_09_01.asset", "wave_09_01", normal, 6, 0.8f);
@@ -98,12 +98,12 @@ namespace LastTrain.EditorTools
             StationData station06 = UpdateStation(
                 $"{StationFolder}/Station_06.asset",
                 "line1_station_06",
-                "6번째 역",
-                StationType.Normal,
+                "6번째 역 (휴식)",
+                StationType.Rest,
                 6,
-                1.85f,
-                new[] { wave0601, wave0602 },
-                24,
+                1.0f,
+                System.Array.Empty<WaveData>(),
+                12,
                 false,
                 string.Empty);
 
@@ -223,8 +223,24 @@ namespace LastTrain.EditorTools
             }
 
             SerializedProperty routeProp = so.FindProperty("routes");
-            routeProp.arraySize = 1;
-            routeProp.GetArrayElementAtIndex(0).objectReferenceValue = route;
+            bool hasLine1 = false;
+            for (int i = 0; i < routeProp.arraySize; i++)
+            {
+                var existing = routeProp.GetArrayElementAtIndex(i).objectReferenceValue as RouteData;
+                if (existing != null && existing.Id == RouteIds.Default)
+                {
+                    routeProp.GetArrayElementAtIndex(i).objectReferenceValue = route;
+                    hasLine1 = true;
+                    break;
+                }
+            }
+
+            if (!hasLine1)
+            {
+                int index = routeProp.arraySize;
+                routeProp.arraySize++;
+                routeProp.GetArrayElementAtIndex(index).objectReferenceValue = route;
+            }
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(database);
         }

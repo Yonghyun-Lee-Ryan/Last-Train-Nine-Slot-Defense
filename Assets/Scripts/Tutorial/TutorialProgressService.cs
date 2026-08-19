@@ -37,6 +37,8 @@ namespace LastTrain.Tutorial
             meta.EnsureDefaults();
             meta.tutorialSkipped = true;
             meta.tutorialCompleted = true;
+            // 스킵 직후에는 첫 전투 가이드를 다시 보여준다.
+            meta.tutorialPostSkipGuideDone = false;
         }
 
         public static void ResetProgress(MetaSaveData meta)
@@ -50,6 +52,7 @@ namespace LastTrain.Tutorial
             meta.tutorialCompleted = false;
             meta.tutorialSkipped = false;
             meta.tutorialStepIndex = 0;
+            meta.tutorialPostSkipGuideDone = false;
         }
     }
 }

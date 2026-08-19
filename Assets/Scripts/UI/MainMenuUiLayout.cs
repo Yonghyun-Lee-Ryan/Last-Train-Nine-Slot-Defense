@@ -8,17 +8,58 @@ namespace LastTrain.UI
     /// <summary>메인 메뉴 SafeArea 레이아웃을 일관되게 정렬한다.</summary>
     public static class MainMenuUiLayout
     {
-        private const float TitleHeight = 96f;
-        private const float MetaHeight = 72f;
-        private const float DifficultyButtonHeight = 56f;
+        private const float TitleHeight = 100f;
+        private const float MetaHeight = 88f;
+        private const float GoalCardHeight = 136f;
+        private const float TabBarHeight = 72f;
+        private const float GrowthPlaceholderHeight = 120f;
         private const float DetailHeight = 72f;
-        private const float PrimaryActionHeight = 88f;
-        private const float SecondaryActionHeight = 76f;
         private const float SettingsInset = 48f;
+        private const float SettingsButtonHeight = 72f;
+        private const float ContentPadX = 80f;
+
+        /// <summary>호스트가 속한 메인 메뉴 Canvas의 SafeArea. 출석·동의 오버레이 Canvas는 고르지 않는다.</summary>
+        public static Transform FindOwnedSafeArea(Component host)
+        {
+            if (host == null)
+            {
+                return null;
+            }
+
+            Canvas canvas = host.GetComponent<Canvas>();
+            if (canvas == null)
+            {
+                canvas = host.GetComponentInParent<Canvas>();
+            }
+
+            if (canvas == null)
+            {
+                return null;
+            }
+
+            Transform safeArea = canvas.transform.Find("SafeArea");
+            return safeArea != null ? safeArea : canvas.transform;
+        }
+
+        public static bool IsMainMenuSafeArea(Transform safeArea)
+        {
+            if (safeArea == null)
+            {
+                return false;
+            }
+
+            if (safeArea.GetComponentInParent<MainMenuController>() != null)
+            {
+                return true;
+            }
+
+            return FindNamed(safeArea, "StartButton") != null
+                   || safeArea.Find("MainMenuScroll") != null;
+        }
 
         public static void Apply(Transform safeArea)
         {
-            if (safeArea == null)
+            if (!IsMainMenuSafeArea(safeArea))
             {
                 return;
             }
@@ -49,34 +90,53 @@ namespace LastTrain.UI
                 Place(root, title, TitleHeight, index++);
             }
 
-            EnsureSpacer(root, "SpacerAfterTitle", ref index, flexible: 0.1f);
+            EnsureSpacer(root, "SpacerAfterTitle", ref index, flexible: 0.08f);
             PlaceIfExists(root, safeArea, "MetaStatusLabel", MetaHeight, ref index);
-            EnsureSpacer(root, "SpacerAfterMeta", ref index, flexible: 0.1f);
+            EnsureSpacer(root, "SpacerAfterMeta", ref index, flexible: 0.06f);
+
+            PlaceIfExists(root, safeArea, "TodayGoalCard", GoalCardHeight, ref index);
+            PlaceIfExists(root, safeArea, "HomeTabBar", TabBarHeight, ref index);
+            EnsureSpacer(root, "SpacerAfterTabs", ref index, flexible: 0.08f);
 
             float difficultyHeight = ResolveDifficultyHeight(safeArea, root);
             PlaceIfExists(root, safeArea, "DifficultySelection", difficultyHeight, ref index);
             PlaceIfExists(root, safeArea, "DifficultyStatusLabel", DetailHeight, ref index);
-            EnsureSpacer(root, "SpacerBeforeActions", ref index, flexible: 0.25f);
+            EnsureSpacer(root, "SpacerBeforeActions", ref index, flexible: 0.18f);
 
-            PlaceIfExists(root, safeArea, "StartButton", PrimaryActionHeight, ref index);
-            PlaceIfExists(root, safeArea, "ContinueButton", PrimaryActionHeight, ref index);
-            PlaceIfExists(root, safeArea, "DailyRunButton", SecondaryActionHeight, ref index);
-            PlaceIfExists(root, safeArea, "EndlessRunButton", SecondaryActionHeight, ref index);
+            PlaceIfExists(root, safeArea, "StartButton", UiButtonStyler.MenuPrimaryHeight, ref index);
+            PlaceIfExists(root, safeArea, "ContinueButton", UiButtonStyler.MenuPrimaryHeight, ref index);
+            PlaceIfExists(root, safeArea, "DailyRunButton", UiButtonStyler.MenuSecondaryHeight, ref index);
+            PlaceIfExists(root, safeArea, "QuickRunButton", UiButtonStyler.MenuSecondaryHeight, ref index);
+            PlaceIfExists(root, safeArea, "EndlessRunButton", UiButtonStyler.MenuSecondaryHeight, ref index);
+            PlaceIfExists(root, safeArea, "GrowthPlaceholder", GrowthPlaceholderHeight, ref index);
+            PlaceIfExists(root, safeArea, "CodexButton", UiButtonStyler.MenuSecondaryHeight, ref index);
+            PlaceIfExists(root, safeArea, "AttendanceButton", UiButtonStyler.MenuSecondaryHeight, ref index);
+            PlaceIfExists(root, safeArea, "EndlessMilestoneButton", UiButtonStyler.MenuSecondaryHeight, ref index);
+            PlaceIfExists(root, safeArea, "AchievementButton", UiButtonStyler.MenuSecondaryHeight, ref index);
             // 비활성 버튼도 Content에 둔다(VLG가 inactive 자식을 무시). SafeArea에 빼 두면 재활성 시 중앙에 뜬다.
-            PlaceIfExists(root, safeArea, "LiveEventButton", SecondaryActionHeight, ref index);
-            PlaceIfExists(root, safeArea, "MissionButton", SecondaryActionHeight, ref index);
+            PlaceIfExists(root, safeArea, "LiveEventButton", UiButtonStyler.MenuSecondaryHeight, ref index);
+            PlaceIfExists(root, safeArea, "MissionButton", UiButtonStyler.MenuSecondaryHeight, ref index);
             EnsureSpacer(root, "SpacerBottom", ref index, flexible: 0.2f);
 
             ConfigureMetaLabel(root.Find("MetaStatusLabel") as RectTransform);
+            ConfigureGoalCard(root.Find("TodayGoalCard") as RectTransform);
+            ConfigureTabBar(root.Find("HomeTabBar") as RectTransform);
+            ConfigureGrowthPlaceholder(root.Find("GrowthPlaceholder") as RectTransform);
             ConfigureDifficultyArea(root.Find("DifficultySelection") as RectTransform);
             ConfigureDetailLabel(root.Find("DifficultyStatusLabel"));
-            ConfigureActionButton(FindNamed(root, "StartButton") as RectTransform, PrimaryActionHeight);
-            ConfigureActionButton(FindNamed(root, "ContinueButton") as RectTransform, PrimaryActionHeight);
-            ConfigureActionButton(FindNamed(root, "DailyRunButton") as RectTransform, SecondaryActionHeight);
-            ConfigureActionButton(FindNamed(root, "EndlessRunButton") as RectTransform, SecondaryActionHeight);
-            ConfigureActionButton(FindNamed(root, "LiveEventButton") as RectTransform, SecondaryActionHeight);
-            ConfigureActionButton(FindNamed(root, "MissionButton") as RectTransform, SecondaryActionHeight);
+            ConfigureActionButton(FindNamed(root, "StartButton") as RectTransform, UiButtonStyler.MenuPrimaryHeight);
+            ConfigureActionButton(FindNamed(root, "ContinueButton") as RectTransform, UiButtonStyler.MenuPrimaryHeight);
+            ConfigureActionButton(FindNamed(root, "DailyRunButton") as RectTransform, UiButtonStyler.MenuSecondaryHeight);
+            ConfigureActionButton(FindNamed(root, "QuickRunButton") as RectTransform, UiButtonStyler.MenuSecondaryHeight);
+            ConfigureActionButton(FindNamed(root, "EndlessRunButton") as RectTransform, UiButtonStyler.MenuSecondaryHeight);
+            ConfigureActionButton(FindNamed(root, "LiveEventButton") as RectTransform, UiButtonStyler.MenuSecondaryHeight);
+            ConfigureActionButton(FindNamed(root, "MissionButton") as RectTransform, UiButtonStyler.MenuSecondaryHeight);
+            ConfigureActionButton(FindNamed(root, "CodexButton") as RectTransform, UiButtonStyler.MenuSecondaryHeight);
+            ConfigureActionButton(FindNamed(root, "AttendanceButton") as RectTransform, UiButtonStyler.MenuSecondaryHeight);
+            ConfigureActionButton(FindNamed(root, "EndlessMilestoneButton") as RectTransform, UiButtonStyler.MenuSecondaryHeight);
+            ConfigureActionButton(FindNamed(root, "AchievementButton") as RectTransform, UiButtonStyler.MenuSecondaryHeight);
 
+            ApplyHomeSectionVisibility(root);
             CleanupOrphanDifficultyButtons(safeArea, root);
             Canvas.ForceUpdateCanvases();
             RedistributeVerticalSpace(root);
@@ -232,7 +292,7 @@ namespace LastTrain.UI
             buttonCount = Mathf.Max(1, buttonCount);
             const float padding = 24f;
             const float spacing = 10f;
-            return padding + (buttonCount * DifficultyButtonHeight) + ((buttonCount - 1) * spacing);
+            return padding + (buttonCount * UiButtonStyler.MenuDifficultyHeight) + ((buttonCount - 1) * spacing);
         }
 
         private static void PlaceSettingsButton(Transform safeArea)
@@ -249,7 +309,7 @@ namespace LastTrain.UI
             rect.anchorMax = new Vector2(1f, 1f);
             rect.pivot = new Vector2(1f, 1f);
             rect.anchoredPosition = new Vector2(-SettingsInset, -SettingsInset);
-            rect.sizeDelta = new Vector2(160f, 64f);
+            rect.sizeDelta = new Vector2(168f, SettingsButtonHeight);
             UiButtonStyler.ApplyStandardTheme(settings.GetComponent<Button>());
             CenterButtonLabel(settings.GetComponent<Button>());
         }
@@ -290,6 +350,11 @@ namespace LastTrain.UI
 
         public static RectTransform EnsureContentRoot(Transform safeArea)
         {
+            if (!IsMainMenuSafeArea(safeArea))
+            {
+                return null;
+            }
+
             RectTransform scrollRoot = EnsureScrollRoot(safeArea);
             Transform viewport = scrollRoot.Find("Viewport");
             if (viewport == null)
@@ -345,7 +410,7 @@ namespace LastTrain.UI
 
             layout.childAlignment = TextAnchor.UpperCenter;
             layout.spacing = 12f;
-            layout.padding = new RectOffset(36, 36, 24, 40);
+            layout.padding = new RectOffset((int)ContentPadX, (int)ContentPadX, 24, 40);
             layout.childControlWidth = true;
             layout.childControlHeight = true;
             layout.childForceExpandWidth = true;
@@ -391,7 +456,7 @@ namespace LastTrain.UI
 
             Stretch(scrollRoot);
             // 설정 버튼과 겹치지 않도록 상단 여백
-            scrollRoot.offsetMax = new Vector2(0f, -(SettingsInset + 72f));
+            scrollRoot.offsetMax = new Vector2(0f, -(SettingsInset + SettingsButtonHeight + 8f));
             scrollRoot.offsetMin = Vector2.zero;
 
             ScrollRect scroll = scrollRoot.GetComponent<ScrollRect>();
@@ -421,9 +486,9 @@ namespace LastTrain.UI
                 layout = rect.gameObject.AddComponent<VerticalLayoutGroup>();
             }
 
-            layout.spacing = 10f;
-            layout.padding = new RectOffset(12, 12, 12, 12);
             layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.spacing = 10f;
+            layout.padding = new RectOffset(0, 0, 12, 12);
             layout.childControlWidth = true;
             layout.childControlHeight = true;
             layout.childForceExpandWidth = true;
@@ -506,10 +571,10 @@ namespace LastTrain.UI
             {
                 title.enabled = true;
                 title.alignment = TextAnchor.MiddleCenter;
-                title.fontSize = 42;
+                title.fontSize = 36;
                 title.color = Color.white;
                 title.horizontalOverflow = HorizontalWrapMode.Wrap;
-                title.verticalOverflow = VerticalWrapMode.Overflow;
+                title.verticalOverflow = VerticalWrapMode.Truncate;
                 if (string.IsNullOrWhiteSpace(title.text))
                 {
                     title.text = "막차 생존: 9칸 디펜스";
@@ -531,9 +596,7 @@ namespace LastTrain.UI
                 VisualTheme theme = VisualThemeLocator.Load();
                 if (theme?.Panel != null)
                 {
-                    bg.sprite = theme.Panel;
-                    bg.type = Image.Type.Sliced;
-                    bg.color = Color.white;
+                    UiButtonStyler.ApplySlicedPanel(bg, theme.Panel);
                 }
                 else
                 {
@@ -546,14 +609,177 @@ namespace LastTrain.UI
             if (label != null)
             {
                 label.alignment = TextAnchor.MiddleCenter;
-                label.fontSize = 24;
+                label.fontSize = 22;
                 label.color = Color.white;
                 label.horizontalOverflow = HorizontalWrapMode.Wrap;
-                label.verticalOverflow = VerticalWrapMode.Overflow;
+                label.verticalOverflow = VerticalWrapMode.Truncate;
                 label.raycastTarget = false;
             }
 
             UiLayoutUtility.ResetForVerticalLayout(rect, MetaHeight);
+            UiButtonStyler.CapMenuWidth(UiLayoutUtility.EnsureLayoutElement(rect.gameObject, MetaHeight));
+        }
+
+        private static void ConfigureGoalCard(RectTransform rect)
+        {
+            if (rect == null)
+            {
+                return;
+            }
+
+            EnsureGraphicTextSplit(rect, out Image bg, out Text label);
+            VisualTheme theme = VisualThemeLocator.Load();
+            if (bg != null)
+            {
+                if (theme?.Panel != null)
+                {
+                    UiButtonStyler.ApplySlicedPanel(bg, theme.Panel);
+                }
+                else
+                {
+                    bg.color = new Color(0.16f, 0.22f, 0.34f, 0.96f);
+                }
+
+                bg.raycastTarget = true;
+            }
+
+            if (label != null)
+            {
+                label.alignment = TextAnchor.MiddleLeft;
+                label.fontSize = 22;
+                label.color = Color.white;
+                label.horizontalOverflow = HorizontalWrapMode.Wrap;
+                label.verticalOverflow = VerticalWrapMode.Truncate;
+                label.raycastTarget = false;
+            }
+
+            UiLayoutUtility.ResetForVerticalLayout(rect, GoalCardHeight);
+            UiButtonStyler.CapMenuWidth(UiLayoutUtility.EnsureLayoutElement(rect.gameObject, GoalCardHeight));
+        }
+
+        private static void ConfigureTabBar(RectTransform rect)
+        {
+            if (rect == null)
+            {
+                return;
+            }
+
+            HorizontalLayoutGroup layout = rect.GetComponent<HorizontalLayoutGroup>();
+            if (layout == null)
+            {
+                layout = rect.gameObject.AddComponent<HorizontalLayoutGroup>();
+            }
+
+            layout.spacing = 10f;
+            layout.padding = new RectOffset(4, 4, 4, 4);
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+            layout.childForceExpandWidth = true;
+            layout.childForceExpandHeight = true;
+
+            UiLayoutUtility.ResetForVerticalLayout(rect, TabBarHeight);
+            UiLayoutUtility.EnsureLayoutElement(rect.gameObject, TabBarHeight);
+
+            for (int i = 0; i < rect.childCount; i++)
+            {
+                Transform child = rect.GetChild(i);
+                Button button = child.GetComponent<Button>();
+                if (button != null)
+                {
+                    UiButtonStyler.ApplyStandardTheme(button);
+                    CenterButtonLabel(button, useBestFit: false);
+                    ApplyTabVisual(button, IsActiveHomeTab(child.name));
+                }
+
+                LayoutElement element = child.GetComponent<LayoutElement>();
+                if (element == null)
+                {
+                    element = child.gameObject.AddComponent<LayoutElement>();
+                }
+
+                element.flexibleWidth = 1f;
+                element.minHeight = TabBarHeight - 8f;
+                element.preferredHeight = TabBarHeight - 8f;
+            }
+        }
+
+        private static void ConfigureGrowthPlaceholder(RectTransform rect)
+        {
+            if (rect == null)
+            {
+                return;
+            }
+
+            EnsureGraphicTextSplit(rect, out Image bg, out Text label);
+            if (bg != null)
+            {
+                VisualTheme theme = VisualThemeLocator.Load();
+                if (theme?.Panel != null)
+                {
+                    UiButtonStyler.ApplySlicedPanel(bg, theme.Panel);
+                }
+                else
+                {
+                    bg.color = new Color(0.12f, 0.16f, 0.22f, 0.9f);
+                }
+
+                bg.raycastTarget = false;
+            }
+
+            if (label != null)
+            {
+                if (string.IsNullOrWhiteSpace(label.text))
+                {
+                    label.text = "성장\n도감·출석·업적에서 메타 보상을 확인하세요.";
+                }
+
+                label.alignment = TextAnchor.MiddleCenter;
+                label.fontSize = 24;
+                label.color = Color.white;
+                label.horizontalOverflow = HorizontalWrapMode.Wrap;
+                label.verticalOverflow = VerticalWrapMode.Truncate;
+                label.raycastTarget = false;
+            }
+
+            UiLayoutUtility.ResetForVerticalLayout(rect, GrowthPlaceholderHeight);
+            UiButtonStyler.CapMenuWidth(UiLayoutUtility.EnsureLayoutElement(rect.gameObject, GrowthPlaceholderHeight));
+        }
+
+        private static void ApplyHomeSectionVisibility(RectTransform root)
+        {
+            if (root == null)
+            {
+                return;
+            }
+
+            bool play = MainMenuHomeTabs.Active == MainMenuHomeSection.Play;
+            bool growth = MainMenuHomeTabs.Active == MainMenuHomeSection.Growth;
+            bool season = MainMenuHomeTabs.Active == MainMenuHomeSection.Season;
+
+            SetNamedActive(root, "DifficultySelection", play);
+            SetNamedActive(root, "DifficultyStatusLabel", play);
+            SetNamedActive(root, "StartButton", play);
+            SetNamedActive(root, "ContinueButton", play && MainMenuHomeTabs.ContinueAvailable);
+            SetNamedActive(root, "DailyRunButton", play);
+            SetNamedActive(root, "QuickRunButton", play);
+            SetNamedActive(root, "EndlessRunButton", play);
+            SetNamedActive(root, "GrowthPlaceholder", growth);
+            SetNamedActive(root, "CodexButton", growth);
+            SetNamedActive(root, "AttendanceButton", growth);
+            SetNamedActive(root, "EndlessMilestoneButton", growth);
+            SetNamedActive(root, "AchievementButton", growth);
+            SetNamedActive(root, "LiveEventButton", season && MainMenuHomeTabs.LiveEventAvailable);
+            SetNamedActive(root, "MissionButton", season);
+        }
+
+        private static void SetNamedActive(RectTransform root, string name, bool active)
+        {
+            Transform child = root.Find(name) ?? FindNamed(root, name);
+            if (child != null)
+            {
+                child.gameObject.SetActive(active);
+            }
         }
 
         private static void EnsureGraphicTextSplit(RectTransform root, out Image background, out Text label)
@@ -639,7 +865,7 @@ namespace LastTrain.UI
                 label.fontSize = 22;
                 label.color = Color.white;
                 label.horizontalOverflow = HorizontalWrapMode.Wrap;
-                label.verticalOverflow = VerticalWrapMode.Overflow;
+                label.verticalOverflow = VerticalWrapMode.Truncate;
             }
 
             UiLayoutUtility.ResetForVerticalLayout(rect, DetailHeight);
@@ -647,7 +873,7 @@ namespace LastTrain.UI
 
         private static void ConfigureActionButton(RectTransform rect, float height)
         {
-            if (rect == null || !rect.gameObject.activeSelf)
+            if (rect == null)
             {
                 return;
             }
@@ -657,6 +883,37 @@ namespace LastTrain.UI
             UiButtonStyler.ApplyStandardTheme(button);
             StripStrayIcons(rect);
             CenterButtonLabel(button);
+            LayoutElement layout = UiLayoutUtility.EnsureLayoutElement(rect.gameObject, height, 0f, UiButtonStyler.MenuActionMaxWidth);
+            UiButtonStyler.CapMenuWidth(layout);
+        }
+
+        private static bool IsActiveHomeTab(string childName)
+        {
+            return (childName == "TabPlay" && MainMenuHomeTabs.Active == MainMenuHomeSection.Play)
+                   || (childName == "TabGrowth" && MainMenuHomeTabs.Active == MainMenuHomeSection.Growth)
+                   || (childName == "TabSeason" && MainMenuHomeTabs.Active == MainMenuHomeSection.Season);
+        }
+
+        private static void ApplyTabVisual(Button button, bool active)
+        {
+            if (button == null)
+            {
+                return;
+            }
+
+            Text label = button.GetComponentInChildren<Text>();
+            if (label != null)
+            {
+                label.fontSize = active ? 28 : 24;
+                label.color = active ? Color.white : new Color(0.75f, 0.8f, 0.88f, 1f);
+                label.resizeTextForBestFit = false;
+            }
+
+            Image image = button.GetComponent<Image>();
+            if (image != null)
+            {
+                image.color = active ? Color.white : new Color(0.85f, 0.85f, 0.85f, 1f);
+            }
         }
 
         private static void StripStrayIcons(Transform buttonRoot)
@@ -671,7 +928,7 @@ namespace LastTrain.UI
             }
         }
 
-        private static void CenterButtonLabel(Button button)
+        private static void CenterButtonLabel(Button button, bool useBestFit = true)
         {
             if (button == null)
             {
@@ -687,14 +944,26 @@ namespace LastTrain.UI
             RectTransform textRect = label.rectTransform;
             textRect.anchorMin = Vector2.zero;
             textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = Vector2.zero;
-            textRect.offsetMax = Vector2.zero;
+            textRect.offsetMin = new Vector2(12f, 6f);
+            textRect.offsetMax = new Vector2(-12f, -6f);
             textRect.anchoredPosition = Vector2.zero;
             label.alignment = TextAnchor.MiddleCenter;
             label.color = Color.white;
-            if (label.fontSize < 30)
+            label.horizontalOverflow = HorizontalWrapMode.Wrap;
+            label.verticalOverflow = VerticalWrapMode.Truncate;
+            if (useBestFit)
             {
-                label.fontSize = 32;
+                label.resizeTextForBestFit = true;
+                label.resizeTextMinSize = 18;
+                label.resizeTextMaxSize = 32;
+                if (label.fontSize < 26)
+                {
+                    label.fontSize = 28;
+                }
+            }
+            else
+            {
+                label.resizeTextForBestFit = false;
             }
         }
 

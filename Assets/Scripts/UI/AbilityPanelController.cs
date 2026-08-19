@@ -64,8 +64,23 @@ namespace LastTrain.UI
             adRerollButton = adReroll;
         }
 
+        private void Awake()
+        {
+            if (root == null)
+            {
+                Transform overlay = transform.Find("SelectionOverlay");
+                if (overlay != null)
+                {
+                    root = overlay.gameObject;
+                }
+            }
+
+            HidePanel();
+        }
+
         private void Start()
         {
+            HidePanel();
             AppRoot appRoot = AppRoot.Instance;
             if (appRoot == null || !appRoot.GameSession.HasActiveRun)
             {
@@ -442,9 +457,11 @@ namespace LastTrain.UI
             if (adRerollButton != null)
             {
                 AdCoordinator ads = AppRoot.Instance?.Ads;
-                adRerollButton.interactable = _abilityManager != null
-                    && _abilityManager.RemainingAdRerolls > 0
-                    && (ads == null || ads.CanOfferReroll(RewardedAdPlacement.AbilityReroll));
+                bool remaining = _abilityManager != null && _abilityManager.RemainingAdRerolls > 0;
+                bool adOk = ads == null || ads.CanOfferReroll(RewardedAdPlacement.AbilityReroll);
+                bool show = remaining && adOk;
+                adRerollButton.gameObject.SetActive(show);
+                adRerollButton.interactable = show;
             }
         }
 

@@ -12,7 +12,8 @@ namespace LastTrain.Integrations
             resultRewardMultiplier: 1f,
             freeRevivePerRun: 1,
             liveEventEnabled: false,
-            loadedFromRemote: false);
+            loadedFromRemote: false,
+            quickRunRewardMultiplier: 1f);
 
         public RemoteConfigSnapshot(
             int interstitialIntervalSeconds,
@@ -23,7 +24,11 @@ namespace LastTrain.Integrations
             float resultRewardMultiplier,
             int freeRevivePerRun,
             bool liveEventEnabled,
-            bool loadedFromRemote)
+            bool loadedFromRemote,
+            float quickRunRewardMultiplier = 1f,
+            bool liveOpsUseRemoteCatalog = false,
+            string liveOpsCatalogJson = "",
+            string liveEventServerUtc = "")
         {
             InterstitialIntervalSeconds = interstitialIntervalSeconds;
             RewardedDailyLimit = rewardedDailyLimit;
@@ -34,6 +39,10 @@ namespace LastTrain.Integrations
             FreeRevivePerRun = freeRevivePerRun;
             LiveEventEnabled = liveEventEnabled;
             LoadedFromRemote = loadedFromRemote;
+            QuickRunRewardMultiplier = quickRunRewardMultiplier > 0.01f ? quickRunRewardMultiplier : 1f;
+            LiveOpsUseRemoteCatalog = liveOpsUseRemoteCatalog;
+            LiveOpsCatalogJson = liveOpsCatalogJson ?? string.Empty;
+            LiveEventServerUtc = liveEventServerUtc ?? string.Empty;
         }
 
         public int InterstitialIntervalSeconds { get; }
@@ -45,5 +54,9 @@ namespace LastTrain.Integrations
         public int FreeRevivePerRun { get; }
         public bool LiveEventEnabled { get; }
         public bool LoadedFromRemote { get; }
+        public float QuickRunRewardMultiplier { get; }
+        public bool LiveOpsUseRemoteCatalog { get; }
+        public string LiveOpsCatalogJson { get; }
+        public string LiveEventServerUtc { get; }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using LastTrain.Data;
 
 namespace LastTrain.Run
 {
@@ -11,6 +12,7 @@ namespace LastTrain.Run
         public int CurrentStationIndex { get; private set; }
         public int CurrentWaveIndex { get; private set; }
         public string CurrentStationId { get; private set; } = string.Empty;
+        public StationType CurrentStationType { get; private set; } = StationType.Normal;
         public int CompletedStationCount { get; private set; }
 
         public void Initialize(int startingStationIndex)
@@ -23,15 +25,17 @@ namespace LastTrain.Run
             CurrentStationIndex = startingStationIndex;
             CurrentWaveIndex = 0;
             CurrentStationId = string.Empty;
+            CurrentStationType = StationType.Normal;
             CompletedStationCount = 0;
             StationIndexChanged?.Invoke(CurrentStationIndex);
             WaveIndexChanged?.Invoke(CurrentWaveIndex);
         }
 
-        public void SetCurrentStation(string stationId, int stationIndex)
+        public void SetCurrentStation(string stationId, int stationIndex, StationType stationType = StationType.Normal)
         {
             CurrentStationId = stationId ?? string.Empty;
             CurrentStationIndex = stationIndex;
+            CurrentStationType = stationType;
             CurrentWaveIndex = 0;
             StationIndexChanged?.Invoke(CurrentStationIndex);
             WaveIndexChanged?.Invoke(CurrentWaveIndex);
@@ -76,6 +80,7 @@ namespace LastTrain.Run
 
             CurrentStationIndex = currentStationIndex;
             CurrentStationId = currentStationId ?? string.Empty;
+            CurrentStationType = InferStationType(CurrentStationId);
 
             if (currentWaveIndex < 0)
             {
@@ -93,6 +98,41 @@ namespace LastTrain.Run
 
             StationIndexChanged?.Invoke(CurrentStationIndex);
             WaveIndexChanged?.Invoke(CurrentWaveIndex);
+        }
+
+        private static StationType InferStationType(string stationId)
+        {
+            if (string.IsNullOrWhiteSpace(stationId))
+            {
+                return StationType.Normal;
+            }
+
+            if (stationId.IndexOf("boss", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return StationType.Boss;
+            }
+
+            if (stationId.IndexOf("elite", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return StationType.Elite;
+            }
+
+            if (stationId.IndexOf("shop", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return StationType.Shop;
+            }
+
+            if (stationId.IndexOf("rest", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return StationType.Rest;
+            }
+
+            if (stationId.IndexOf("event", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return StationType.Event;
+            }
+
+            return StationType.Normal;
         }
     }
 }

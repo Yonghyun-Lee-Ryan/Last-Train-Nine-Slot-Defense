@@ -51,6 +51,7 @@ namespace LastTrain.Passenger.Skills
             if (hits > 0)
             {
                 CombatVisualEvents.RaiseAreaAttack(context.AttackerPosition);
+                CombatVisualEvents.RaisePassengerSkillActivated(context.Runtime.InstanceId);
             }
 
             _cooldownRemaining = BaseCooldownSeconds;

@@ -216,6 +216,7 @@ namespace LastTrain.EditorTools
                     migrated++;
                 }
 
+                overlay.gameObject.SetActive(false);
                 return migrated;
             }
 
@@ -229,6 +230,7 @@ namespace LastTrain.EditorTools
             overlayImage.color = panelImage != null
                 ? panelImage.color
                 : new Color(0f, 0f, 0f, 0.72f);
+            overlayObject.SetActive(false);
 
             if (panelImage != null)
             {

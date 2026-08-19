@@ -41,6 +41,27 @@ namespace LastTrain.EditorTools
             }
         }
 
+        internal static void ImportPaths(IEnumerable<string> assetPaths)
+        {
+            if (assetPaths == null)
+            {
+                return;
+            }
+
+            foreach (string path in assetPaths)
+            {
+                if (string.IsNullOrWhiteSpace(path) || !path.EndsWith(".png"))
+                {
+                    continue;
+                }
+
+                ConfigureTexture(path);
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+
         public static Sprite LoadSprite(string assetPath)
         {
             return AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
@@ -88,6 +109,11 @@ namespace LastTrain.EditorTools
             importer.alphaIsTransparency = true;
             importer.filterMode = FilterMode.Bilinear;
             importer.textureCompression = TextureImporterCompression.Uncompressed;
+            if (TryGetUiNineSliceBorder(assetPath, out Vector4 border))
+            {
+                importer.spriteBorder = border;
+            }
+
             importer.SaveAndReimport();
 
             if (!assetPath.Contains("_sheet"))
@@ -144,6 +170,23 @@ namespace LastTrain.EditorTools
 
             dataProvider.Apply();
             importer.SaveAndReimport();
+        }
+
+        private static bool TryGetUiNineSliceBorder(string assetPath, out Vector4 border)
+        {
+            border = Vector4.zero;
+            string fileName = Path.GetFileName(assetPath);
+            if (fileName is "button_normal.png"
+                or "button_pressed.png"
+                or "button_disabled.png"
+                or "panel.png"
+                or "card_frame.png")
+            {
+                border = new Vector4(24f, 24f, 24f, 24f);
+                return true;
+            }
+
+            return false;
         }
 
         private static int GuessVfxFrameSize(int sheetWidth)

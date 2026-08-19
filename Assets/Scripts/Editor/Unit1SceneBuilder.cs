@@ -124,7 +124,7 @@ namespace LastTrain.EditorTools
             Button retryButton = CreateButton(safeArea, "RetryButton", "다시 시작", new Vector2(0, 40));
             Button menuButton = CreateButton(safeArea, "MainMenuButton", "메인 메뉴", new Vector2(0, -160));
 
-            var controller = canvas.gameObject.AddComponent<ResultPlaceholderController>();
+            var controller = canvas.gameObject.AddComponent<ResultController>();
             AssignPrivateField(controller, "retryButton", retryButton);
             AssignPrivateField(controller, "mainMenuButton", menuButton);
 

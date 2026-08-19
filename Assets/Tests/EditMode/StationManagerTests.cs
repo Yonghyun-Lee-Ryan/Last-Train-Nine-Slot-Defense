@@ -151,6 +151,45 @@ namespace LastTrain.Tests.EditMode
         }
 
         [Test]
+        public void Tick_ReducedPreparation_AutoStartsWave()
+        {
+            _runState.Dispose();
+            _runState = new RunState();
+            RunStartConfig config = RunStartConfig.CreateDailyRun(2);
+            config.DailyPreparationTimeSeconds = 2f;
+            _runState.Initialize(config);
+            _runState.Battle.StartRun();
+
+            StationData station = CreateStation(
+                "station_prep",
+                1,
+                CreateWave("wave_prep", _enemyData, count: 1, interval: 0f));
+            var manager = new StationManager(_ => null);
+            manager.Initialize(_runState, station);
+
+            Assert.AreEqual(RunPhase.Preparing, _runState.Battle.CurrentPhase);
+            Assert.Greater(manager.AutoStartRemainingSeconds, 1.5f);
+            manager.Tick(1.9f, _battleContext);
+            Assert.AreEqual(RunPhase.Preparing, _runState.Battle.CurrentPhase);
+
+            manager.Tick(0.2f, _battleContext);
+            Assert.AreEqual(RunPhase.Fighting, _runState.Battle.CurrentPhase);
+        }
+
+        [Test]
+        public void Tick_DefaultPreparation_DoesNotAutoStart()
+        {
+            StationData station = CreateStation(
+                "station_manual_prep",
+                1,
+                CreateWave("wave_manual", _enemyData, count: 1, interval: 0f));
+            var manager = new StationManager(_ => null);
+            manager.Initialize(_runState, station);
+            manager.Tick(6f, _battleContext);
+            Assert.AreEqual(RunPhase.Preparing, _runState.Battle.CurrentPhase);
+        }
+
+        [Test]
         public void TryAdvanceToNextStation_WhenNoNextStation_RequestsVictoryAndCountsCompleted()
         {
             StationData station = CreateStation(

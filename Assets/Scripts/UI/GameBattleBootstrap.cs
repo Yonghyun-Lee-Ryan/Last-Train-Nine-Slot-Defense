@@ -67,6 +67,7 @@ namespace LastTrain.UI
 
         private void Start()
         {
+            HideLeftoverMenuOverlays();
             if (battleManager == null)
             {
                 Debug.LogError("[GameBattleBootstrap] battleManager가 연결되지 않았습니다.", this);
@@ -141,12 +142,22 @@ namespace LastTrain.UI
 #endif
             var random = new RandomService(seed);
             var relicManager = new RelicManager(runState, gameDatabase);
+            if (runState.IsDailyRun && !string.IsNullOrWhiteSpace(runState.DailyStartingRelicId))
+            {
+                relicManager.TryAcquire(runState.DailyStartingRelicId);
+            }
+
             _nonCombatServices = new NonCombatStationServices(
                 new ShopService(runState, gameDatabase, relicManager, random),
                 new EventService(runState, gameDatabase, relicManager, random),
                 relicManager);
 
             _stationManager = new StationManager(ResolveStationByIndex, _nonCombatServices);
+            _stationManager.CanAutoStartPreparation = () =>
+            {
+                Tutorial.TutorialDirector director = GetComponent<Tutorial.TutorialDirector>();
+                return director == null || !director.IsTutorialActive;
+            };
             _stationManager.WaveManager.SetDifficulty(runState.Difficulty);
             _difficultyModifiers = new DifficultyModifierRunner();
             _difficultyModifiers.BeginRun(runState);
@@ -269,25 +280,13 @@ namespace LastTrain.UI
         private void HandleStationRewardGranted(StationData station, int rewardCoins)
         {
             AdCoordinator ads = AppRoot.Instance?.Ads;
-            if (ads == null || station == null || rewardCoins <= 0 || _gameSession?.RunState == null)
+            if (ads == null || station == null)
             {
                 return;
             }
 
-            // 능력 카드 선택 UI와 역 보상 2배 광고가 겹치면 광고 리롤 버튼이 잠시 비활성화된다.
-            if (station.GrantsAbilityChoice)
-            {
-                return;
-            }
-
+            // 역 클리어 시 광고 한도 추적만 한다. 전면/보상 광고는 Result(런 종료)나 UI 버튼에서만.
             ads.Limits.NotifyStationChanged(station.StationIndex);
-            if (!ads.IsReady(RewardedAdPlacement.StationRewardDouble))
-            {
-                return;
-            }
-
-            // Mock/실광고: 역 클리어 보상 2배 기회 (취소해도 게임 진행 유지)
-            ads.ShowStationRewardDouble(_gameSession.RunState, rewardCoins, null);
         }
 
         private void HandleStationStarted(StationData station)
@@ -400,6 +399,47 @@ namespace LastTrain.UI
 
             gameDatabase.TryGetStationByIndex(stationIndex, out StationData station);
             return station;
+        }
+
+        private static void HideLeftoverMenuOverlays()
+        {
+            string[] leftoverNames =
+            {
+                "PrivacyConsentDialog",
+                "AttendancePanel",
+                "SettingsPanel",
+                "DifficultyUnlockPopup",
+                "CodexPanel",
+                "MissionPanel",
+                "LiveEventPanel",
+                "AchievementPanel",
+                "EndlessMilestonePanel",
+            };
+
+            for (int i = 0; i < leftoverNames.Length; i++)
+            {
+                GameObject leftover = GameObject.Find(leftoverNames[i]);
+                if (leftover != null)
+                {
+                    leftover.SetActive(false);
+                    UnityEngine.Object.Destroy(leftover);
+                }
+            }
+
+            AbilityPanelController ability = UnityEngine.Object.FindAnyObjectByType<AbilityPanelController>();
+            Transform selection = ability != null ? ability.transform.Find("SelectionOverlay") : null;
+            if (selection != null && selection.gameObject.activeSelf)
+            {
+                bool hasOffers = AppRoot.Instance != null
+                                 && AppRoot.Instance.GameSession != null
+                                 && AppRoot.Instance.GameSession.HasActiveRun
+                                 && AppRoot.Instance.GameSession.RunState.Abilities != null
+                                 && AppRoot.Instance.GameSession.RunState.Abilities.HasActiveOffers;
+                if (!hasOffers)
+                {
+                    selection.gameObject.SetActive(false);
+                }
+            }
         }
     }
 }

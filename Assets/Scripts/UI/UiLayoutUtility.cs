@@ -20,7 +20,11 @@ namespace LastTrain.UI
             rect.localScale = Vector3.one;
         }
 
-        public static LayoutElement EnsureLayoutElement(GameObject target, float preferredHeight, float flexibleWidth = 1f)
+        public static LayoutElement EnsureLayoutElement(
+            GameObject target,
+            float preferredHeight,
+            float flexibleWidth = 1f,
+            float preferredWidth = -1f)
         {
             LayoutElement layout = target.GetComponent<LayoutElement>();
             if (layout == null)
@@ -31,6 +35,12 @@ namespace LastTrain.UI
             layout.preferredHeight = preferredHeight;
             layout.minHeight = preferredHeight;
             layout.flexibleWidth = flexibleWidth;
+            if (preferredWidth >= 0f)
+            {
+                layout.preferredWidth = preferredWidth;
+                layout.minWidth = 0f;
+            }
+
             return layout;
         }
 

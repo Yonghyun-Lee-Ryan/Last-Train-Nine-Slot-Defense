@@ -5,8 +5,10 @@ using LastTrain.Battle;
 using LastTrain.Core;
 using LastTrain.Data;
 using LastTrain.Enemy;
+using LastTrain.Mission;
 using LastTrain.Passenger;
 using LastTrain.Passenger.Skills;
+using LastTrain.Relic;
 using LastTrain.Run;
 using LastTrain.Synergy;
 using UnityEngine;
@@ -110,10 +112,56 @@ namespace LastTrain.Simulation
             startConfig.InitialTrainMaxHp = Math.Max(1, config.initialTrainHp);
             startConfig.InitialTrainCurrentHp = Math.Max(1, config.initialTrainHp);
             startConfig.InitialStationIndex = Math.Max(1, config.startingStationIndex);
+            if (!string.IsNullOrWhiteSpace(config.lineId))
+            {
+                startConfig.LineId = config.lineId;
+            }
+
+            if (!string.IsNullOrWhiteSpace(config.difficultyId))
+            {
+                startConfig.DifficultyId = config.difficultyId;
+            }
+
+            if (config.isEndlessRun)
+            {
+                startConfig.IsEndlessRun = true;
+                if (string.IsNullOrWhiteSpace(config.lineId))
+                {
+                    startConfig.LineId = RouteIds.Endless;
+                }
+            }
+
+            if (config.isDailyRun)
+            {
+                startConfig.IsDailyRun = true;
+                startConfig.RandomSeed = seed == 0 ? 1 : seed;
+                DailyRuleData rule = null;
+                if (!string.IsNullOrWhiteSpace(config.dailyRuleId))
+                {
+                    database.TryGetDailyRule(config.dailyRuleId, out rule);
+                }
+
+                if (rule == null)
+                {
+                    rule = DailyRunService.ResolveRule(database.DailyRules, startConfig.RandomSeed);
+                }
+
+                DailyRunService.BindRule(
+                    startConfig,
+                    rule,
+                    startConfig.RandomSeed,
+                    database.DailyRules != null ? database.DailyRules.Count : 0);
+            }
 
             var runState = new RunState();
             runState.Initialize(startConfig);
             runState.Battle.StartRun();
+
+            if (runState.IsDailyRun && !string.IsNullOrWhiteSpace(runState.DailyStartingRelicId))
+            {
+                var relicManager = new RelicManager(runState, database);
+                relicManager.TryAcquire(runState.DailyStartingRelicId);
+            }
 
             PlacePassengers(runState, database, config);
             ApplyAbilities(runState, database, config);
@@ -224,9 +272,16 @@ namespace LastTrain.Simulation
                     if (stationManager.CurrentPhase == RunPhase.Preparing
                         && !stationManager.IsWaitingForAbilityReward
                         && !victory
-                        && runState.Battle.IsRunActive)
+                        && runState.Battle.IsRunActive
+                        && runState.Station.CurrentStationIndex <= maxStation)
                     {
                         stationManager.TryActivateStation();
+                    }
+
+                    if (runState.Station.CurrentStationIndex > maxStation && !victory)
+                    {
+                        victory = true;
+                        break;
                     }
 
                     elapsed += dt;
@@ -237,7 +292,8 @@ namespace LastTrain.Simulation
                 result.RemainingTrainHp = runState.Train.CurrentHp;
                 result.TrainMaxHp = runState.Train.MaxHp;
                 result.RemainingCoins = runState.Currency.CurrentCoins;
-                result.ReachedStationIndex = runState.Station.CurrentStationIndex;
+                int reached = runState.Station.CurrentStationIndex;
+                result.ReachedStationIndex = victory && reached > maxStation ? maxStation : reached;
                 result.DifficultyId = config.difficultyId ?? string.Empty;
                 result.EnemiesKilled = runState.History.EnemiesKilled;
                 result.BossesKilled = runState.History.BossesKilled;
@@ -395,7 +451,7 @@ namespace LastTrain.Simulation
             for (int i = 0; i < count; i++)
             {
                 BattleSimulationSlotConfig slot = config.slots[i];
-                if (slot == null || string.IsNullOrWhiteSpace(slot.passengerId))
+                if (slot == null || string.IsNullOrWhiteSpace(slot.passengerId) || runState.IsSlotLocked(i))
                 {
                     continue;
                 }

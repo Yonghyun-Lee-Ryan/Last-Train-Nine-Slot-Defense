@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LastTrain.Data;
 using LastTrain.Integrations;
 using LastTrain.Run;
 
@@ -86,6 +87,17 @@ namespace LastTrain.Save
             }
 
             float multiplier = result.DifficultyRewardMultiplier * RemoteConfigRuntime.Current.ResultRewardMultiplier;
+            if (string.Equals(result.LineId, RouteIds.Quick, StringComparison.Ordinal))
+            {
+                float routeMul = 1f;
+                GameDatabase database = GameDatabaseLocator.Load();
+                if (database != null && database.TryGetRoute(RouteIds.Quick, out RouteData quick) && quick != null)
+                {
+                    routeMul = quick.RewardMultiplier;
+                }
+
+                multiplier *= routeMul * RemoteConfigRuntime.Current.QuickRunRewardMultiplier;
+            }
             if (Math.Abs(multiplier - 1f) < 0.001f)
             {
                 return;
@@ -358,6 +370,38 @@ namespace LastTrain.Save
                 if (TryUnlockPassenger(meta, MetaProgressionDefaults.PassengerCatId))
                 {
                     newlyUnlocked.Add(MetaProgressionDefaults.PassengerCatId);
+                }
+            }
+
+            if (meta.accountLevel >= MetaProgressionDefaults.ConductorUnlockAccountLevel)
+            {
+                if (TryUnlockPassenger(meta, MetaProgressionDefaults.PassengerConductorId))
+                {
+                    newlyUnlocked.Add(MetaProgressionDefaults.PassengerConductorId);
+                }
+            }
+
+            if (meta.accountLevel >= MetaProgressionDefaults.BaristaUnlockAccountLevel)
+            {
+                if (TryUnlockPassenger(meta, MetaProgressionDefaults.PassengerBaristaId))
+                {
+                    newlyUnlocked.Add(MetaProgressionDefaults.PassengerBaristaId);
+                }
+            }
+
+            if (meta.accountLevel >= MetaProgressionDefaults.SecurityUnlockAccountLevel)
+            {
+                if (TryUnlockPassenger(meta, MetaProgressionDefaults.PassengerSecurityId))
+                {
+                    newlyUnlocked.Add(MetaProgressionDefaults.PassengerSecurityId);
+                }
+            }
+
+            if (meta.accountLevel >= MetaProgressionDefaults.StudentUnlockAccountLevel)
+            {
+                if (TryUnlockPassenger(meta, MetaProgressionDefaults.PassengerStudentId))
+                {
+                    newlyUnlocked.Add(MetaProgressionDefaults.PassengerStudentId);
                 }
             }
         }

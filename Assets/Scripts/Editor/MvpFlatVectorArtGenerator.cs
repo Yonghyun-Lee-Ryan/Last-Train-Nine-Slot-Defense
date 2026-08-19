@@ -147,11 +147,13 @@ namespace LastTrain.EditorTools
 
         private static void GenerateUi()
         {
-            SaveRounded("Assets/Art/Sprites/UI/panel.png", 256, 128, VisualThemePalette.PanelMid, VisualThemePalette.Outline, 18);
-            SaveRounded("Assets/Art/Sprites/UI/button_normal.png", 240, 80, VisualThemePalette.FluorescentTealDim, VisualThemePalette.Outline, 16);
-            SaveRounded("Assets/Art/Sprites/UI/button_pressed.png", 240, 80, VisualThemePalette.FluorescentTeal, VisualThemePalette.Outline, 16);
-            SaveRounded("Assets/Art/Sprites/UI/button_disabled.png", 240, 80, VisualThemePalette.PanelMid, VisualThemePalette.SeatFrame, 16);
-            SaveRounded("Assets/Art/Sprites/UI/card_frame.png", 280, 360, VisualThemePalette.PanelDark, VisualThemePalette.WarningOrange, 20);
+            const int slice = 96;
+            const int radius = 20;
+            SaveRounded("Assets/Art/Sprites/UI/panel.png", slice, slice, VisualThemePalette.PanelMid, VisualThemePalette.Outline, radius);
+            SaveRounded("Assets/Art/Sprites/UI/button_normal.png", slice, slice, VisualThemePalette.FluorescentTealDim, VisualThemePalette.Outline, radius);
+            SaveRounded("Assets/Art/Sprites/UI/button_pressed.png", slice, slice, VisualThemePalette.FluorescentTeal, VisualThemePalette.Outline, radius);
+            SaveRounded("Assets/Art/Sprites/UI/button_disabled.png", slice, slice, VisualThemePalette.PanelMid, VisualThemePalette.SeatFrame, radius);
+            SaveRounded("Assets/Art/Sprites/UI/card_frame.png", slice, slice, VisualThemePalette.PanelDark, VisualThemePalette.WarningOrange, radius);
             SaveRounded("Assets/Art/Sprites/UI/popup_dim.png", 64, 64, VisualThemePalette.WithAlpha(VisualThemePalette.Outline, 0.72f), Color.clear, 0);
             SaveBar("Assets/Art/Sprites/UI/hp_bar_bg.png", VisualThemePalette.PanelDark);
             SaveBar("Assets/Art/Sprites/UI/hp_bar_fill.png", VisualThemePalette.VictoryGreen);
@@ -179,6 +181,14 @@ namespace LastTrain.EditorTools
             SaveBanner("Assets/Art/Sprites/UI/result_defeat_banner.png", VisualThemePalette.DefeatRed);
         }
 
+        /// <summary>기존 슬라이스 GUID를 유지한 채 PNG만 덮어쓴다.</summary>
+        internal static void RegeneratePassengerAndEnemySprites()
+        {
+            EnsureFolders();
+            GeneratePassengers();
+            GenerateEnemies();
+        }
+
         private static void GeneratePassengers()
         {
             var defs = new[]
@@ -190,12 +200,40 @@ namespace LastTrain.EditorTools
                 ("passenger_developer", 4, new Color(0.9f, 0.8f, 0.66f), VisualThemePalette.PassengerAccent[4]),
                 ("passenger_graduate", 5, new Color(0.93f, 0.8f, 0.7f), VisualThemePalette.PassengerAccent[5]),
                 ("passenger_police", 6, new Color(0.9f, 0.78f, 0.65f), VisualThemePalette.PassengerAccent[6]),
-                ("passenger_cat", 7, new Color(0.98f, 0.9f, 0.75f), VisualThemePalette.PassengerAccent[7])
+                ("passenger_cat", 7, new Color(0.98f, 0.9f, 0.75f), VisualThemePalette.PassengerAccent[7]),
+                ("passenger_conductor", 8, new Color(0.91f, 0.8f, 0.66f), VisualThemePalette.PassengerAccent[8]),
+                ("passenger_barista", 9, new Color(0.94f, 0.82f, 0.7f), VisualThemePalette.PassengerAccent[9]),
+                ("passenger_security", 10, new Color(0.88f, 0.76f, 0.62f), VisualThemePalette.PassengerAccent[10]),
+                ("passenger_student", 11, new Color(0.96f, 0.84f, 0.72f), VisualThemePalette.PassengerAccent[11])
             };
 
             for (int i = 0; i < defs.Length; i++)
             {
                 (string id, _, Color skin, Color accent) = defs[i];
+                Color clothes = Color.Lerp(accent, VisualThemePalette.PanelDark, 0.25f);
+                SaveCharacterPortrait(id, skin, clothes, accent);
+                SaveCharacterSheet($"Assets/Art/Sprites/Characters/{id}_idle_sheet.png", id, skin, clothes, accent, PassengerPose.Idle, true);
+                SaveCharacterSheet($"Assets/Art/Sprites/Characters/{id}_attack_sheet.png", id, skin, clothes, accent, PassengerPose.Attack, false);
+                SaveCharacterSheet($"Assets/Art/Sprites/Characters/{id}_skill_sheet.png", id, skin, clothes, accent, PassengerPose.Skill, false);
+                SaveCharacterSheet($"Assets/Art/Sprites/Characters/{id}_merge_sheet.png", id, skin, clothes, accent, PassengerPose.Merge, false);
+                SaveCharacterSheet($"Assets/Art/Sprites/Characters/{id}_hit_sheet.png", id, skin, clothes, accent, PassengerPose.Hit, false);
+            }
+        }
+
+        internal static void GenerateUnit46Passengers()
+        {
+            EnsureFolders();
+            var defs = new[]
+            {
+                ("passenger_conductor", new Color(0.91f, 0.8f, 0.66f), VisualThemePalette.PassengerAccent[8]),
+                ("passenger_barista", new Color(0.94f, 0.82f, 0.7f), VisualThemePalette.PassengerAccent[9]),
+                ("passenger_security", new Color(0.88f, 0.76f, 0.62f), VisualThemePalette.PassengerAccent[10]),
+                ("passenger_student", new Color(0.96f, 0.84f, 0.72f), VisualThemePalette.PassengerAccent[11])
+            };
+
+            for (int i = 0; i < defs.Length; i++)
+            {
+                (string id, Color skin, Color accent) = defs[i];
                 Color clothes = Color.Lerp(accent, VisualThemePalette.PanelDark, 0.25f);
                 SaveCharacterPortrait(id, skin, clothes, accent);
                 SaveCharacterSheet($"Assets/Art/Sprites/Characters/{id}_idle_sheet.png", id, skin, clothes, accent, PassengerPose.Idle, true);

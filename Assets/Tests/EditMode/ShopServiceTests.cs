@@ -67,13 +67,56 @@ namespace LastTrain.Tests.EditMode
             Assert.IsTrue(_shopService.TryOpenShop(_station));
             Assert.AreEqual(ShopService.OfferCount, _runState.Shop.Offers.Count);
 
+            int index = FindPurchasableOfferIndex();
+            Assert.GreaterOrEqual(index, 0, "테스트 DB로 구매 가능한 상품이 없습니다.");
+
             int coinsBefore = _runState.Currency.CurrentCoins;
-            ShopPurchaseResult first = _shopService.TryPurchase(0);
+            ShopPurchaseResult first = _shopService.TryPurchase(index);
             Assert.AreEqual(ShopPurchaseResult.Success, first);
             Assert.Less(_runState.Currency.CurrentCoins, coinsBefore);
 
-            ShopPurchaseResult second = _shopService.TryPurchase(0);
+            ShopPurchaseResult second = _shopService.TryPurchase(index);
             Assert.AreEqual(ShopPurchaseResult.AlreadyPurchased, second);
+        }
+
+        [Test]
+        public void TryRefreshOffersFromAd_RebuildsOffers_AndClearsPurchase()
+        {
+            _runState.Currency.AddCoins(200);
+            Assert.IsTrue(_shopService.TryOpenShop(_station));
+            int index = FindPurchasableOfferIndex();
+            Assert.GreaterOrEqual(index, 0);
+            Assert.AreEqual(ShopPurchaseResult.Success, _shopService.TryPurchase(index));
+            Assert.IsTrue(_runState.Shop.Offers[index].purchased);
+
+            Assert.IsTrue(_shopService.TryRefreshOffersFromAd());
+            Assert.AreEqual(ShopService.OfferCount, _runState.Shop.Offers.Count);
+            Assert.IsFalse(_runState.Shop.Offers[0].purchased);
+            Assert.IsTrue(_runState.Shop.IsActive);
+        }
+
+        private int FindPurchasableOfferIndex()
+        {
+            var offers = _runState.Shop.Offers;
+            for (int i = 0; i < offers.Count; i++)
+            {
+                ShopOffer offer = offers[i];
+                if (offer == null || offer.purchased)
+                {
+                    continue;
+                }
+
+                // 테스트 DB에는 Relic/빈 그리드 Duplicate가 없어 실패할 수 있다.
+                if (offer.itemType == ShopItemType.Relic
+                    || offer.itemType == ShopItemType.DuplicatePassenger)
+                {
+                    continue;
+                }
+
+                return i;
+            }
+
+            return -1;
         }
 
         private static GameDatabase CreateDatabase()

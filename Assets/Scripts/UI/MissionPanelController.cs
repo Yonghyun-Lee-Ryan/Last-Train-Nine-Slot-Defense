@@ -93,7 +93,8 @@ namespace LastTrain.UI
                     label,
                     70f,
                     () => OnClaimClicked(captured),
-                    fontSize: 22);
+                    fontSize: 22,
+                    preferredWidth: UiButtonStyler.OverlayActionWidth);
                 button.interactable = view.CanClaim;
                 Text detail = MenuOverlayUi.CreateText(
                     parent,

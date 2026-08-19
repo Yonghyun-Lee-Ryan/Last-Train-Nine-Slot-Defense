@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using LastTrain.Integrations;
 using LastTrain.Release;
 using UnityEditor;
 using UnityEngine;
@@ -21,6 +22,7 @@ namespace LastTrain.EditorTools
         private string _keyAliasPass = string.Empty;
         private bool _samePasswordForKey = true;
         private bool _bumpVersionCode = true;
+        private bool _confirmTestAdIds;
         private bool _isBuilding;
         private string _status = string.Empty;
         private Vector2 _scroll;
@@ -29,7 +31,7 @@ namespace LastTrain.EditorTools
         public static void Open()
         {
             var window = GetWindow<AndroidReleaseAabWizard>(true, "Release AAB 빌드", true);
-            window.minSize = new Vector2(520f, 460f);
+            window.minSize = new Vector2(520f, 560f);
             window.LoadDefaults();
             window.Show();
         }
@@ -52,6 +54,7 @@ namespace LastTrain.EditorTools
 
             _samePasswordForKey = true;
             _bumpVersionCode = true;
+            _confirmTestAdIds = false;
             _status = string.Empty;
         }
 
@@ -121,6 +124,25 @@ namespace LastTrain.EditorTools
                     }
                 }
 
+                EditorGUILayout.Space(8f);
+                using (new EditorGUILayout.VerticalScope("box"))
+                {
+                    EditorGUILayout.LabelField("광고 ID (Play 미출시)", EditorStyles.boldLabel);
+                    EditorGUILayout.HelpBox(
+                        "이 AAB는 Google 공식 테스트 광고 ID만 넣어야 합니다.\n" +
+                        "App ID: " + AdMobIdPolicy.GoogleSampleAppId + "\n" +
+                        "보상형: " + AdMobIdPolicy.GoogleSampleRewardedAndroid + "\n" +
+                        "전면: " + AdMobIdPolicy.GoogleSampleInterstitialAndroid,
+                        MessageType.Warning);
+                    _confirmTestAdIds = EditorGUILayout.ToggleLeft(
+                        "테스트용 광고 ID만 넣었음을 확인합니다",
+                        _confirmTestAdIds);
+                    if (_confirmTestAdIds && !AdMobPrelaunchGuard.TryValidateTrackedAssets(out string adError))
+                    {
+                        EditorGUILayout.HelpBox(adError, MessageType.Error);
+                    }
+                }
+
                 EditorGUILayout.Space(12f);
                 bool canBuild = CanBuild(out string reason);
                 using (new EditorGUI.DisabledScope(!canBuild))
@@ -184,6 +206,18 @@ namespace LastTrain.EditorTools
             if (!_samePasswordForKey && string.IsNullOrEmpty(_keyAliasPass))
             {
                 reason = "Key Alias 비밀번호를 입력하세요.";
+                return false;
+            }
+
+            if (!_confirmTestAdIds)
+            {
+                reason = "테스트용 광고 ID 확인 체크박스를 켜야 Release AAB를 빌드할 수 있습니다.";
+                return false;
+            }
+
+            if (!AdMobPrelaunchGuard.TryValidateTrackedAssets(out string adError))
+            {
+                reason = adError;
                 return false;
             }
 
@@ -336,7 +370,8 @@ namespace LastTrain.EditorTools
                 $"Version Name: {config.VersionName}\n" +
                 $"Bundle Version Code: {next}\n" +
                 $"Keystore: {NormalizeKeystorePath(_keystorePath)}\n" +
-                $"Alias: {_keyAlias}\n\n" +
+                $"Alias: {_keyAlias}\n" +
+                "광고: Google 테스트 ID만 사용 (확인됨)\n\n" +
                 "Release AAB를 빌드할까요?";
         }
 

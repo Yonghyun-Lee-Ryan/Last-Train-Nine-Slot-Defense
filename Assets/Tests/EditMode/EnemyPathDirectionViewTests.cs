@@ -1,4 +1,5 @@
 using LastTrain.Battle;
+using LastTrain.Run;
 using LastTrain.UI;
 using NUnit.Framework;
 using UnityEngine;
@@ -47,6 +48,14 @@ namespace LastTrain.Tests.EditMode
             view.SetVisible(true);
             Assert.IsTrue(view.IsShowing);
             Assert.Greater(view.ArrowCount, 0);
+        }
+
+        [Test]
+        public void ShouldShow_OnlyDuringPreparing()
+        {
+            Assert.IsTrue(EnemyPathDirectionView.ShouldShow(RunPhase.Preparing));
+            Assert.IsFalse(EnemyPathDirectionView.ShouldShow(RunPhase.Fighting));
+            Assert.IsFalse(EnemyPathDirectionView.ShouldShow(RunPhase.None));
         }
 
         [Test]

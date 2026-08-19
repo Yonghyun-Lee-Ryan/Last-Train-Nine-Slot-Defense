@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 489e4401cebad924c965cc8c37614843, type: 3}
+  m_Name: Relic_relic_night_coffee
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Data.RelicData
+  id: relic_night_coffee
+  displayName: "\uC2EC\uC57C \uCE94\uCEE4\uD53C"
+  description: "\uC9C1\uC7A5\uC778 \uACF5\uACA9\uC18D\uB3C4 +10%"
+  rarity: 0
+  effectType: 2
+  effectValue: 10

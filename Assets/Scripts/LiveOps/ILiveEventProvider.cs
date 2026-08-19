@@ -13,7 +13,7 @@ namespace LastTrain.LiveOps
         public DateTime UtcNow => DateTime.UtcNow;
     }
 
-    /// <summary>서버 시간 연동용. 초기에는 로컬과 동일하게 동작한다.</summary>
+    /// <summary>서버 시간 연동용. 파싱 실패 시 로컬 시각과 동일하다.</summary>
     public sealed class ServerSyncedLiveEventClock : ILiveEventClock
     {
         private readonly ILiveEventClock _fallback;
@@ -25,6 +25,8 @@ namespace LastTrain.LiveOps
         }
 
         public DateTime UtcNow => _fallback.UtcNow + _offset;
+
+        public bool HasServerOffset => _offset != TimeSpan.Zero;
 
         public void SetServerUtc(DateTime serverUtc)
         {
@@ -75,17 +77,123 @@ namespace LastTrain.LiveOps
         }
     }
 
-    /// <summary>Remote Config / JSON 교체용 Provider 골격.</summary>
+    /// <summary>Remote Config JSON 오버레이. 파싱 실패·빈 JSON이면 로컬 카탈로그.</summary>
     public sealed class JsonLiveEventProvider : ILiveEventProvider
     {
         private readonly ILiveEventProvider _fallback;
+        private readonly Func<string> _jsonSource;
+        private readonly string _inlineJson;
 
-        public JsonLiveEventProvider(ILiveEventProvider fallback = null)
+        public JsonLiveEventProvider(ILiveEventProvider fallback = null, Func<string> jsonSource = null)
         {
             _fallback = fallback ?? new LocalLiveEventProvider();
+            _jsonSource = jsonSource;
         }
 
-        public SeasonData[] LoadSeasons() => _fallback.LoadSeasons();
-        public LiveEventData[] LoadEvents() => _fallback.LoadEvents();
+        public JsonLiveEventProvider(ILiveEventProvider fallback, string json)
+            : this(fallback, jsonSource: null)
+        {
+            _inlineJson = json ?? string.Empty;
+        }
+
+        public SeasonData[] LoadSeasons() => FilterSeasons(_fallback.LoadSeasons());
+        public LiveEventData[] LoadEvents() => FilterEvents(_fallback.LoadEvents());
+
+        public bool LastRemoteParseSucceeded { get; private set; } = true;
+
+        private LiveEventData[] FilterEvents(LiveEventData[] local)
+        {
+            local ??= Array.Empty<LiveEventData>();
+            if (!TryReadDto(out RemoteLiveOpsCatalogDto dto))
+            {
+                return local;
+            }
+
+            if (dto.disableAll)
+            {
+                return Array.Empty<LiveEventData>();
+            }
+
+            if (dto.enabledEventIds == null || dto.enabledEventIds.Length == 0)
+            {
+                return local;
+            }
+
+            var filtered = new System.Collections.Generic.List<LiveEventData>(local.Length);
+            for (int i = 0; i < local.Length; i++)
+            {
+                LiveEventData data = local[i];
+                if (data == null)
+                {
+                    continue;
+                }
+
+                for (int j = 0; j < dto.enabledEventIds.Length; j++)
+                {
+                    if (string.Equals(data.Id, dto.enabledEventIds[j], StringComparison.Ordinal))
+                    {
+                        filtered.Add(data);
+                        break;
+                    }
+                }
+            }
+
+            return filtered.ToArray();
+        }
+
+        private SeasonData[] FilterSeasons(SeasonData[] local)
+        {
+            local ??= Array.Empty<SeasonData>();
+            if (!TryReadDto(out RemoteLiveOpsCatalogDto dto))
+            {
+                return local;
+            }
+
+            return dto.disableAll ? Array.Empty<SeasonData>() : local;
+        }
+
+        private bool TryReadDto(out RemoteLiveOpsCatalogDto dto)
+        {
+            dto = null;
+            LastRemoteParseSucceeded = true;
+            string json = _jsonSource != null ? _jsonSource.Invoke() : _inlineJson;
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                LastRemoteParseSucceeded = false;
+                return false;
+            }
+
+            json = json.Trim();
+            if (json.Length < 2 || json[0] != '{' || json[json.Length - 1] != '}')
+            {
+                LastRemoteParseSucceeded = false;
+                return false;
+            }
+
+            try
+            {
+                dto = JsonUtility.FromJson<RemoteLiveOpsCatalogDto>(json);
+                if (dto == null)
+                {
+                    LastRemoteParseSucceeded = false;
+                    return false;
+                }
+
+                return true;
+            }
+            catch (Exception)
+            {
+                LastRemoteParseSucceeded = false;
+                dto = null;
+                return false;
+            }
+        }
+
+        [Serializable]
+        private sealed class RemoteLiveOpsCatalogDto
+        {
+            public bool disableAll;
+            public string[] enabledEventIds;
+        }
     }
 }

@@ -83,10 +83,31 @@ Unity:
 | Missing privacy policy | 스토어 설정에 HTTPS 정책 URL 등록 |
 | Deobfuscation / symbols | Il2CPP 심볼 업로드는 선택(크래시 분석용) |
 
-## 8. Checkpoint I와의 관계
+이 문서는 **Unit 22 빌드·업로드 세팅**과 **Unit 55 Soft Launch 트랙**까지입니다.
 
-이 문서는 **Unit 22 빌드·업로드 세팅**까지입니다.
-
-- 실제 AdMob / Firebase / Crashlytics 배선 → **Unit 21 / Checkpoint I** 잔여
+- 실제 AdMob / Firebase / Crashlytics 배선 → **Unit 35–37** 잔여(SDK/기기)
 - 내부 테스트는 Mock/NoOp로도 플레이 검증 가능
 - 실광고를 켠 뒤에는 AdUnitConfig 운영 ID·데이터 안전 설정을 다시 맞추세요
+
+---
+
+# Soft Launch (Unit 55)
+
+후보 버전: **0.5.0** / Bundle Version Code **7+**
+
+## 절차
+
+1. Unity **6000.5.4f1**: `Tools → 막차 생존 → 개발 단위 55 Soft Launch 버전 동기화`
+2. `Tools → 막차 생존 → Release → Validate Release Build` ERROR 0 확인 (SDK WARN 허용)
+3. `Tools → 막차 생존 → Release → 서명·버전업 후 Release AAB 빌드`
+4. 출력 `Builds/Android/LastTrain-v0_5_0-b{N}.aab` 및 `LastTrain.aab`
+5. Play Console → **내부 테스트(또는 비공개 테스트)** 트랙에 업로드
+6. 테스터 기기에서 1사이클: MainMenu → 전투 → Result 클리어
+
+## 잔여 (코드 게이트와 분리)
+
+- [ ] 서명 Keystore로 Release AAB 생성
+- [ ] Play Console 내부/비공개 트랙 업로드
+- [ ] 실기기 1사이클 클리어
+
+이 항목은 계정·키스토어·기기가 필요하며, Unit 56(EN 로컬라이즈)은 Soft Launch KO KPI 확인 후에만 착수한다.

@@ -29,6 +29,12 @@ namespace LastTrain.Run
         public string[] LiveEventRestrictedPassengerIds { get; private set; } = System.Array.Empty<string>();
         public float LiveEventBoostAttackMultiplier { get; private set; } = 1f;
         public bool AdsUsedThisRun { get; private set; }
+        public string DailyRuleId { get; private set; } = string.Empty;
+        public string DailyRuleDisplayName { get; private set; } = string.Empty;
+        public float DailySummonCostMultiplier { get; private set; } = 1f;
+        public float DailyEnemySpeedMultiplier { get; private set; } = 1f;
+        public int LockedSlotIndex { get; private set; } = -1;
+        public string DailyStartingRelicId { get; private set; } = string.Empty;
         public TrainState Train { get; private set; }
         public CurrencyState Currency { get; private set; }
         public BattleState Battle { get; private set; }
@@ -80,6 +86,31 @@ namespace LastTrain.Run
             {
                 Difficulty = Difficulty.WithAdditionalModifiers(config.ExtraDifficultyModifiers);
             }
+
+            DailyRuleId = string.Empty;
+            DailyRuleDisplayName = string.Empty;
+            DailySummonCostMultiplier = 1f;
+            DailyEnemySpeedMultiplier = 1f;
+            LockedSlotIndex = -1;
+            DailyStartingRelicId = string.Empty;
+            if (config.IsDailyRun)
+            {
+                DailyRuleId = config.DailyRuleId ?? string.Empty;
+                DailyRuleDisplayName = config.DailyRuleDisplayName ?? string.Empty;
+                LockedSlotIndex = config.DailyLockedSlotIndex;
+                DailyStartingRelicId = config.DailyStartingRelicId ?? string.Empty;
+                DailySummonCostMultiplier = config.DailySummonCostMultiplier > 0.01f
+                    ? config.DailySummonCostMultiplier
+                    : 1f;
+                DailyEnemySpeedMultiplier = config.DailyEnemySpeedMultiplier > 0.01f
+                    ? config.DailyEnemySpeedMultiplier
+                    : 1f;
+                Difficulty = Difficulty.WithDailyOverlays(
+                    DailySummonCostMultiplier,
+                    DailyEnemySpeedMultiplier,
+                    config.DailyPreparationTimeSeconds);
+            }
+
             DifficultyModifiers.Reset();
 
             int trainMaxHp = DifficultyCalculator.ApplyStartingTrainHealth(config.InitialTrainMaxHp, Difficulty);
@@ -132,6 +163,18 @@ namespace LastTrain.Run
             DifficultyModifiers.Reset();
         }
 
+        public void RestoreLiveEvent(
+            string liveEventId,
+            string[] boostedPassengerIds,
+            string[] restrictedPassengerIds,
+            float boostAttackMultiplier)
+        {
+            LiveEventId = liveEventId ?? string.Empty;
+            LiveEventBoostedPassengerIds = boostedPassengerIds ?? System.Array.Empty<string>();
+            LiveEventRestrictedPassengerIds = restrictedPassengerIds ?? System.Array.Empty<string>();
+            LiveEventBoostAttackMultiplier = boostAttackMultiplier > 0.01f ? boostAttackMultiplier : 1f;
+        }
+
         public PassengerRuntime GetPassengerAtSlot(int slotIndex)
         {
             ValidateSlotIndex(slotIndex);
@@ -144,11 +187,16 @@ namespace LastTrain.Run
             return _gridSlots[slotIndex] == null;
         }
 
+        public bool IsSlotLocked(int slotIndex)
+        {
+            return LockedSlotIndex >= 0 && slotIndex == LockedSlotIndex;
+        }
+
         public int FindFirstEmptySlot()
         {
             for (int i = 0; i < GridSlotCount; i++)
             {
-                if (_gridSlots[i] == null)
+                if (_gridSlots[i] == null && !IsSlotLocked(i))
                 {
                     return i;
                 }
@@ -220,7 +268,7 @@ namespace LastTrain.Run
                 throw new ArgumentNullException(nameof(passenger));
             }
 
-            if (_gridSlots[slotIndex] != null)
+            if (_gridSlots[slotIndex] != null || IsSlotLocked(slotIndex))
             {
                 return false;
             }
@@ -359,6 +407,12 @@ namespace LastTrain.Run
                 return true;
             }
 
+            if ((IsSlotLocked(slotA) && _gridSlots[slotA] == null)
+                || (IsSlotLocked(slotB) && _gridSlots[slotB] == null))
+            {
+                return false;
+            }
+
             PassengerRuntime passengerA = _gridSlots[slotA];
             PassengerRuntime passengerB = _gridSlots[slotB];
 
@@ -450,7 +504,8 @@ namespace LastTrain.Run
                 Difficulty?.RewardMultiplier ?? 1f,
                 RunElapsedSeconds,
                 IsEndlessRun,
-                AdsUsedThisRun);
+                AdsUsedThisRun,
+                Station.CurrentStationType);
         }
 
         private void RecordBossKillParticipationFromGrid()

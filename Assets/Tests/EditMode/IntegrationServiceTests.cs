@@ -104,12 +104,95 @@ namespace LastTrain.Tests.EditMode
         }
 
         [Test]
+        public void AdServiceFactory_EditorWithConsent_UsesMockInEditMode()
+        {
+            var privacy = new PrivacyConsentService();
+            privacy.Initialize(autoGrantInEditor: true);
+            IAdService ads = AdServiceFactory.Create(privacy, ScriptableObject.CreateInstance<AdUnitConfig>());
+            Assert.IsNotNull(ads);
+            Assert.IsFalse(ads is NoOpAdService);
+#if LASTTRAIN_ADMOB
+            Assert.IsInstanceOf<MockAdService>(ads);
+#else
+            Assert.IsInstanceOf<MockAdService>(ads);
+            Assert.IsTrue(ads.IsRewardedReady(RewardedAdPlacement.Revive));
+#endif
+        }
+
+        [Test]
+        public void AnalyticsEventNames_CoreLoop_AreStableSnakeCase()
+        {
+            Assert.AreEqual("app_started", AnalyticsEventNames.AppStarted);
+            Assert.AreEqual("tutorial_started", AnalyticsEventNames.TutorialStarted);
+            Assert.AreEqual("tutorial_skipped", AnalyticsEventNames.TutorialSkipped);
+            Assert.AreEqual("tutorial_completed", AnalyticsEventNames.TutorialCompleted);
+            Assert.AreEqual("tutorial_post_skip_guide_shown", AnalyticsEventNames.TutorialPostSkipGuideShown);
+            Assert.AreEqual("run_started", AnalyticsEventNames.RunStarted);
+            Assert.AreEqual("run_completed", AnalyticsEventNames.RunCompleted);
+            Assert.AreEqual("run_failed", AnalyticsEventNames.RunFailed);
+            Assert.AreEqual("rewarded_ad_offered", AnalyticsEventNames.RewardedAdOffered);
+            Assert.AreEqual("rewarded_ad_completed", AnalyticsEventNames.RewardedAdCompleted);
+            Assert.AreEqual("meta_reward_received", AnalyticsEventNames.MetaRewardReceived);
+        }
+
+        [Test]
+        public void AnalyticsServiceFactory_WithoutFirebaseDefine_NeverThrows()
+        {
+            var privacy = new PrivacyConsentService();
+            privacy.Initialize(autoGrantInEditor: true);
+            IAnalyticsService analytics = AnalyticsServiceFactory.Create(privacy);
+            Assert.IsNotNull(analytics);
+            Assert.DoesNotThrow(() => analytics.Track(AnalyticsEventNames.RunStarted, null));
+        }
+
+        [Test]
+        public void FirebaseAnalyticsService_TryCreate_WithoutDefine_ReturnsNull()
+        {
+#if LASTTRAIN_FIREBASE
+            Assert.Ignore("LASTTRAIN_FIREBASE defined — SDK path is active.");
+#else
+            Assert.IsNull(FirebaseAnalyticsService.TryCreate());
+            var privacy = new PrivacyConsentService();
+            privacy.Initialize(autoGrantInEditor: true);
+            Assert.IsNull(FirebaseCrashReporter.TryCreate(privacy));
+#endif
+        }
+
+        [Test]
         public void AdUnitConfig_UsesTestIdsInDevelopment()
         {
             var config = ScriptableObject.CreateInstance<AdUnitConfig>();
             string testId = config.GetRewardedUnitId(useTestIds: true);
             Assert.IsFalse(string.IsNullOrWhiteSpace(testId));
             Assert.IsTrue(testId.Contains("3940256099942544"));
+        }
+
+        [Test]
+        public void AdUnitConfig_ReleaseAsset_RequestsGoogleTestIdsUntilStoreLaunch()
+        {
+            var config = UnityEditor.AssetDatabase.LoadAssetAtPath<AdUnitConfig>(
+                "Assets/Data/Integration/AdUnitConfig.asset");
+            Assume.That(config, Is.Not.Null);
+            Assert.IsTrue(config.UseGoogleTestAdUnits);
+            Assert.IsTrue(AdServiceFactory.UseTestAdUnitIds);
+
+            string rewarded = config.GetRewardedUnitId(useTestIds: false);
+            string interstitial = config.GetInterstitialUnitId(useTestIds: false);
+
+            Assert.AreEqual("ca-app-pub-3940256099942544/5224354917", rewarded);
+            Assert.AreEqual("ca-app-pub-3940256099942544/1033173712", interstitial);
+
+            var so = new UnityEditor.SerializedObject(config);
+            Assert.IsTrue(string.IsNullOrWhiteSpace(so.FindProperty("androidRewardedProductionId").stringValue));
+            Assert.IsTrue(string.IsNullOrWhiteSpace(so.FindProperty("androidInterstitialProductionId").stringValue));
+
+            var gmaSettings = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.ScriptableObject>(
+                "Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset");
+            Assume.That(gmaSettings, Is.Not.Null);
+            var gmaSo = new UnityEditor.SerializedObject(gmaSettings);
+            Assert.AreEqual(
+                "ca-app-pub-3940256099942544~3347511713",
+                gmaSo.FindProperty("adMobAndroidAppId").stringValue);
         }
 
         private sealed class CountingAnalytics : IAnalyticsService

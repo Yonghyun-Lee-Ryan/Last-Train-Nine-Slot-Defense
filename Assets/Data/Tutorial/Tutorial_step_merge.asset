@@ -14,10 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Tutorial.TutorialStepData
   id: step_merge
   stepKind: 3
-  title: "\uC2B9\uAC1D \uD569\uC131"
-  body: "\uAC19\uC740 \uC2B9\uAC1D\uC744 \uACB9\uCE58\uBA74 \uB4F1\uAE09\uC774 \uC62C\uB77C\uAC11\uB2C8\uB2E4.
-    \uCD08\uB85D\uC73C\uB85C \uAC15\uC870\uB41C \uCE78\uC744 \uD569\uC131\uD574 \uBCF4\uC138\uC694."
+  title: "\uD569\uC131"
+  body: "\uAC19\uC740 \uC2B9\uAC1D\uC744 \uACB9\uCE58\uBA74 \uB4F1\uAE09\uC774 \uC624\uB985\uB2C8\uB2E4."
   waitEvent: 4
   uiTargetId: PassengerGrid
-  allowedInputs: 3
+  allowedInputs: 67
   showSkipButton: 1

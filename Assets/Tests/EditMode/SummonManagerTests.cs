@@ -2,7 +2,9 @@ using System.Collections.Generic;
 using LastTrain.Core;
 using LastTrain.Data;
 using LastTrain.Passenger;
+using LastTrain.Relic;
 using LastTrain.Run;
+using LastTrain.UI;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -83,6 +85,16 @@ namespace LastTrain.Tests.EditMode
             Assert.AreEqual(1, _runState.Summon.PaidSummonCount);
             Assert.AreEqual(12, manager.CurrentSummonCost);
             Assert.IsFalse(manager.HasActiveOffers);
+        }
+
+        [Test]
+        public void SummonCostLabel_FirstRelicSummon_ReadsAsFree()
+        {
+            GameDatabase database = GameDatabaseLocator.Load();
+            Assume.That(database, Is.Not.Null);
+            var relics = new RelicManager(_runState, database);
+            Assume.That(relics.TryAcquire("relic_broken_card"));
+            Assert.AreEqual("첫 소환 무료", SummonPanelController.FormatSummonCostLabel(10, _runState));
         }
 
         [Test]

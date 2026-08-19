@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using LastTrain.Audio;
 using LastTrain.Battle;
 using LastTrain.Core;
@@ -46,6 +47,7 @@ namespace LastTrain.UI
         [Header("Actions")]
         [SerializeField] private Button readyButton;
         [SerializeField] private Button speedButton;
+        [SerializeField] private Button undoMergeButton;
         [SerializeField] private Button pauseButton;
         [SerializeField] private GameObject pauseOverlay;
         [SerializeField] private Button resumeButton;
@@ -66,6 +68,33 @@ namespace LastTrain.UI
         private int _totalStations = 5;
         private SummonPanelController _summonPanel;
         private EnemyPathDirectionView _pathDirectionView;
+        private WaveThreatTickerView _threatTicker;
+        private Coroutine _restoreSpeedCoroutine;
+
+        private void OnEnable()
+        {
+            BattleSpeedRuntime.TimeScaleRestoreRequested += HandleTimeScaleRestoreRequested;
+        }
+
+        private void OnDisable()
+        {
+            BattleSpeedRuntime.TimeScaleRestoreRequested -= HandleTimeScaleRestoreRequested;
+            if (_restoreSpeedCoroutine != null)
+            {
+                StopCoroutine(_restoreSpeedCoroutine);
+                _restoreSpeedCoroutine = null;
+            }
+        }
+
+        private void HandleTimeScaleRestoreRequested()
+        {
+            if (_paused || _runEndHandled || _runState == null)
+            {
+                return;
+            }
+
+            ApplyBattleSpeedFromSettings();
+        }
 
         private void Start()
         {
@@ -109,6 +138,8 @@ namespace LastTrain.UI
             Subscribe();
             EnsurePauseOverlayButtons();
             WireButtons();
+            ApplyBattleSpeedFromSettings();
+            EnsureUndoMergeButton();
             ApplyHudTheme();
             HideTopCoinDisplay();
             BindCameraShakeTarget();
@@ -130,6 +161,55 @@ namespace LastTrain.UI
             }
         }
 
+        private void Update()
+        {
+            RefreshAutoStartCountdown();
+        }
+
+        private void OnApplicationPause(bool pause)
+        {
+            if (!pause)
+            {
+                RestoreBattleSpeedAfterExternalOverlay();
+            }
+        }
+
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            if (hasFocus)
+            {
+                RestoreBattleSpeedAfterExternalOverlay();
+            }
+        }
+
+        private void RestoreBattleSpeedAfterExternalOverlay()
+        {
+            if (_paused || _runEndHandled || _runState == null)
+            {
+                return;
+            }
+
+            if (_restoreSpeedCoroutine != null)
+            {
+                StopCoroutine(_restoreSpeedCoroutine);
+            }
+
+            _restoreSpeedCoroutine = StartCoroutine(RestoreBattleSpeedAfterExternalOverlayRoutine());
+        }
+
+        private IEnumerator RestoreBattleSpeedAfterExternalOverlayRoutine()
+        {
+            // AdMob/OS 오버레이가 timeScale을 0·1로 바꾼 뒤 한 프레임 늦게 복구한다.
+            yield return null;
+            yield return null;
+
+            _restoreSpeedCoroutine = null;
+            if (!_paused && !_runEndHandled && _runState != null)
+            {
+                ApplyBattleSpeedFromSettings();
+            }
+        }
+
         private void ApplyHudTheme()
         {
             VisualTheme theme = VisualThemeLocator.Load();
@@ -140,6 +220,7 @@ namespace LastTrain.UI
 
             UiButtonStyler.ApplyStandardTheme(readyButton);
             UiButtonStyler.ApplyStandardTheme(speedButton);
+            UiButtonStyler.ApplyStandardTheme(undoMergeButton);
             UiButtonStyler.ApplyStandardTheme(pauseButton);
             UiButtonStyler.ApplyStandardTheme(resumeButton);
 
@@ -184,6 +265,12 @@ namespace LastTrain.UI
                     fillImage.sprite = fill;
                     fillImage.type = Image.Type.Sliced;
                     fillImage.color = Color.white;
+                }
+
+                Transform fillArea = slider.fillRect.parent;
+                if (fillArea != null && fillArea.GetComponent<RectMask2D>() == null)
+                {
+                    fillArea.gameObject.AddComponent<RectMask2D>();
                 }
             }
         }
@@ -304,6 +391,7 @@ namespace LastTrain.UI
             {
                 gridManager.PassengerSelected += HandlePassengerSelected;
                 gridManager.PassengerDragStarted += HandlePassengerDragStarted;
+                gridManager.MergeCompleted += HandleMergeCompleted;
             }
 
             if (_battleManager != null)
@@ -352,6 +440,7 @@ namespace LastTrain.UI
             {
                 gridManager.PassengerSelected -= HandlePassengerSelected;
                 gridManager.PassengerDragStarted -= HandlePassengerDragStarted;
+                gridManager.MergeCompleted -= HandleMergeCompleted;
             }
 
             if (_battleManager != null)
@@ -373,6 +462,11 @@ namespace LastTrain.UI
             if (speedButton != null)
             {
                 speedButton.onClick.AddListener(OnSpeedClicked);
+            }
+
+            if (undoMergeButton != null)
+            {
+                undoMergeButton.onClick.AddListener(OnUndoMergeClicked);
             }
 
             if (pauseButton != null)
@@ -406,6 +500,11 @@ namespace LastTrain.UI
             if (speedButton != null)
             {
                 speedButton.onClick.RemoveListener(OnSpeedClicked);
+            }
+
+            if (undoMergeButton != null)
+            {
+                undoMergeButton.onClick.RemoveListener(OnUndoMergeClicked);
             }
 
             if (pauseButton != null)
@@ -499,17 +598,118 @@ namespace LastTrain.UI
                 return;
             }
 
-            _speedScale = Mathf.Approximately(_speedScale, 1f) ? 2f : 1f;
-            Time.timeScale = _speedScale;
+            GameSettingsService settings = AppRoot.Instance?.GameSettings;
+            int current = settings != null
+                ? settings.BattleSpeed
+                : Mathf.RoundToInt(_speedScale);
+            int next = BattleSpeedPreset.Cycle(current);
+            settings?.SetBattleSpeed(next);
+            ApplyBattleSpeed(next);
             GameAudio.PlaySfx(SfxId.Switch);
+        }
+
+        private void ApplyBattleSpeedFromSettings()
+        {
+            int preset = AppRoot.Instance?.GameSettings?.BattleSpeed ?? 1;
+            ApplyBattleSpeed(preset);
+        }
+
+        private void ApplyBattleSpeed(int preset)
+        {
+            _speedScale = BattleSpeedPreset.ToTimeScale(preset);
+            if (!_paused)
+            {
+                Time.timeScale = _speedScale;
+            }
+
             if (speedButton != null)
             {
                 Text label = speedButton.GetComponentInChildren<Text>();
                 if (label != null)
                 {
-                    label.text = $"{_speedScale:0}x";
+                    label.text = $"{BattleSpeedPreset.Clamp(preset)}x";
                 }
             }
+        }
+
+        private void EnsureUndoMergeButton()
+        {
+            if (undoMergeButton == null && speedButton != null && speedButton.transform.parent != null)
+            {
+                GameObject go = Instantiate(speedButton.gameObject, speedButton.transform.parent);
+                go.name = "UndoMergeButton";
+                undoMergeButton = go.GetComponent<Button>();
+                undoMergeButton.onClick.RemoveAllListeners();
+                undoMergeButton.onClick.AddListener(OnUndoMergeClicked);
+                Text label = go.GetComponentInChildren<Text>();
+                if (label != null)
+                {
+                    label.text = "되돌리기";
+                }
+
+                RectTransform rt = go.GetComponent<RectTransform>();
+                RectTransform readyRt = readyButton != null ? readyButton.GetComponent<RectTransform>() : null;
+                RectTransform speedRt = speedButton.GetComponent<RectTransform>();
+                if (rt != null)
+                {
+                    Vector2 source = readyRt != null ? readyRt.anchoredPosition : speedRt.anchoredPosition;
+                    rt.anchoredPosition = BattleHudLayout.UndoMergeAnchoredPosition(source);
+                }
+            }
+
+            RefreshUndoMergeButton();
+        }
+
+        private void OnUndoMergeClicked()
+        {
+            if (!_inputGuard.TryAcquire() || _paused)
+            {
+                return;
+            }
+
+            if (Tutorial.TutorialDirector.Instance != null
+                && Tutorial.TutorialDirector.Instance.IsTutorialActive
+                && !Tutorial.TutorialDirector.Instance.Allows(Tutorial.TutorialInputMask.MergeUndo))
+            {
+                GameAudio.PlaySfx(SfxId.UiError);
+                SetStatus("튜토리얼 중에는 합성을 되돌릴 수 없습니다.");
+                return;
+            }
+
+            if (!MergeUndoService.TryUndo(_runState))
+            {
+                GameAudio.PlaySfx(SfxId.UiError);
+                SetStatus("되돌릴 합성이 없습니다.");
+                RefreshUndoMergeButton();
+                return;
+            }
+
+            GameAudio.PlaySfx(SfxId.UiConfirm);
+            gridManager?.RefreshViews();
+            // Undo 직후에는 드래그 종료 경로처럼 MergeHighlightService가 갱신되지 않아서,
+            // 합성 가능 쌍(초록 테두리)을 강제로 다시 계산해 표시한다.
+            LastTrain.Ux.MergeHighlightService.Refresh(gridManager, _runState);
+            SetStatus("합성을 되돌렸습니다.");
+            RefreshAll();
+        }
+
+        private void RefreshUndoMergeButton()
+        {
+            if (undoMergeButton == null)
+            {
+                return;
+            }
+
+            bool preparing = _runState?.Battle != null
+                             && _runState.Battle.CurrentPhase == RunPhase.Preparing;
+            bool canUndo = preparing && MergeUndoService.CanUndo(_runState) && !_paused && !_runEndHandled;
+            undoMergeButton.gameObject.SetActive(canUndo);
+            undoMergeButton.interactable = canUndo;
+        }
+
+        private void HandleMergeCompleted(MergeResult _)
+        {
+            RefreshUndoMergeButton();
         }
 
         private void OnPauseClicked()
@@ -543,7 +743,7 @@ namespace LastTrain.UI
             }
 
             _paused = false;
-            Time.timeScale = _speedScale;
+            ApplyBattleSpeedFromSettings();
             battleBootstrap?.SetPaused(false);
             GameAudio.PlaySfx(SfxId.Resume);
             if (pauseOverlay != null)
@@ -834,7 +1034,17 @@ namespace LastTrain.UI
                 return;
             }
 
-            _pathDirectionView = EnemyPathDirectionView.Ensure(safeArea);
+            DestroyMisplacedThreatOverlays(safeArea);
+            DestroyAllBossBriefingCards();
+
+            Transform existingPath = safeArea.Find(EnemyPathDirectionView.RootName);
+            _pathDirectionView = existingPath != null
+                ? existingPath.GetComponent<EnemyPathDirectionView>()
+                : EnemyPathDirectionView.Ensure(safeArea);
+            SyncPathDirectionVisibility();
+
+            RectTransform hudHost = transform as RectTransform ?? safeArea;
+            _threatTicker = WaveThreatTickerView.Ensure(hudHost);
             if (rangeOverlay == null)
             {
                 rangeOverlay = PassengerRangeOverlay.Ensure(safeArea);
@@ -843,16 +1053,115 @@ namespace LastTrain.UI
             {
                 rangeOverlay.Hide();
             }
+        }
 
-            SyncPathDirectionVisibility();
+        private void DestroyMisplacedThreatOverlays(RectTransform combatSpace)
+        {
+            RectTransform hudHost = transform as RectTransform;
+            WaveThreatTickerView[] tickers = FindObjectsByType<WaveThreatTickerView>(FindObjectsInactive.Include);
+            for (int i = 0; i < tickers.Length; i++)
+            {
+                WaveThreatTickerView ticker = tickers[i];
+                if (ticker == null)
+                {
+                    continue;
+                }
+
+                if (hudHost != null && ticker.transform.IsChildOf(hudHost) && ticker.transform.parent == hudHost)
+                {
+                    continue;
+                }
+
+                DestroyUiObject(ticker.gameObject);
+            }
+
+            if (combatSpace != null)
+            {
+                DestroyChildIfPresent(combatSpace, WaveThreatTickerView.RootName);
+            }
+        }
+
+        private static void DestroyAllBossBriefingCards()
+        {
+            BossBriefingCardView[] cards = FindObjectsByType<BossBriefingCardView>(FindObjectsInactive.Include);
+            for (int i = 0; i < cards.Length; i++)
+            {
+                if (cards[i] != null)
+                {
+                    DestroyUiObject(cards[i].gameObject);
+                }
+            }
+        }
+
+        private static void DestroyChildIfPresent(Transform parent, string childName)
+        {
+            Transform child = parent.Find(childName);
+            if (child == null)
+            {
+                return;
+            }
+
+            DestroyUiObject(child.gameObject);
+        }
+
+        private static void DestroyUiObject(GameObject go)
+        {
+            if (go == null)
+            {
+                return;
+            }
+
+            if (Application.isPlaying)
+            {
+                Destroy(go);
+            }
+            else
+            {
+                DestroyImmediate(go);
+            }
         }
 
         private void SyncPathDirectionVisibility()
         {
-            bool showInPrep = _runState != null
-                              && _runState.Battle != null
-                              && _runState.Battle.CurrentPhase == RunPhase.Preparing;
-            _pathDirectionView?.SetVisible(showInPrep);
+            RunPhase phase = _runState?.Battle != null ? _runState.Battle.CurrentPhase : RunPhase.None;
+            bool show = EnemyPathDirectionView.ShouldShow(phase);
+            if (show && _pathDirectionView == null)
+            {
+                RectTransform safeArea = ResolveCombatSpace();
+                _pathDirectionView = EnemyPathDirectionView.Ensure(safeArea);
+            }
+
+            _pathDirectionView?.SetVisible(show);
+        }
+
+        private void RefreshThreatPreview()
+        {
+            StationManager stationManager = battleBootstrap != null ? battleBootstrap.StationManager : null;
+            StationData station = stationManager != null ? stationManager.CurrentStation : null;
+            RunPhase phase = _runState?.Battle != null ? _runState.Battle.CurrentPhase : RunPhase.None;
+            int waveIndex = stationManager != null
+                ? stationManager.CurrentWaveIndex
+                : (_runState?.Station != null ? _runState.Station.CurrentWaveIndex : 0);
+
+            var entries = ThreatPreviewResolver.ResolveUpcoming(station, waveIndex, phase);
+            if (!CombatTopHudLayout.ShouldShowThreatTicker(phase, entries.Count > 0))
+            {
+                _threatTicker?.Hide();
+                NotifySynergyLayoutChanged();
+                return;
+            }
+
+            string caption = phase == RunPhase.Preparing || phase == RunPhase.WaveStarting
+                ? "이번 웨이브"
+                : "다음 웨이브";
+            _threatTicker?.Bind(entries, VisualDatabaseLocator.Load(), caption);
+            NotifySynergyLayoutChanged();
+        }
+
+        private static void NotifySynergyLayoutChanged()
+        {
+            SynergyHudController synergy = FindAnyObjectByType<SynergyHudController>();
+            synergy?.RefreshLayout();
         }
 
         private RectTransform ResolveCombatSpace()
@@ -891,12 +1200,19 @@ namespace LastTrain.UI
             }
 
             _runEndHandled = true;
+            MergeUndoService.Clear();
             _paused = true;
             battleBootstrap?.SetPaused(true);
             Time.timeScale = 1f;
+            _threatTicker?.Hide();
 
             if (readyButton != null) readyButton.interactable = false;
             if (speedButton != null) speedButton.interactable = false;
+            if (undoMergeButton != null)
+            {
+                undoMergeButton.interactable = false;
+                undoMergeButton.gameObject.SetActive(false);
+            }
             if (pauseButton != null) pauseButton.interactable = false;
             if (resumeButton != null) resumeButton.interactable = false;
 
@@ -917,6 +1233,7 @@ namespace LastTrain.UI
             SpawnCoinGainText(coins);
             SetStatus($"판매 완료 (+{coins})");
             RefreshAll();
+            RefreshUndoMergeButton();
         }
 
         private void HandleCoinsChanged(int coins)
@@ -1000,38 +1317,69 @@ namespace LastTrain.UI
             RefreshTrainHp();
         }
 
-        private void HandlePhaseChanged(RunPhase _)
+        private void HandlePhaseChanged(RunPhase phase)
         {
+            if (phase != RunPhase.Preparing)
+            {
+                MergeUndoService.Clear();
+            }
+
             RefreshPhase();
             RefreshReadyButton();
+            RefreshUndoMergeButton();
             SyncPathDirectionVisibility();
+            RefreshThreatPreview();
         }
 
         private void HandleStationChanged(int _)
         {
             RefreshStationWave();
             SyncPathDirectionVisibility();
+            RefreshThreatPreview();
         }
 
         private void HandleStationStarted(StationData station)
         {
             StationManager stationManager = battleBootstrap != null ? battleBootstrap.StationManager : null;
-            if (stationManager == null)
+            if (stationManager == null || station == null)
             {
                 return;
             }
 
             StationBriefing briefing = stationManager.GetCurrentBriefing();
-            SetStatus(briefing.BuildDisplayText());
+            SetStatus(BuildStationStatusLine(briefing));
             GameAudio.PlaySfx(SfxId.Switch);
             RefreshStationWave();
             RefreshReadyButton();
             SyncPathDirectionVisibility();
+            RefreshThreatPreview();
+        }
+
+        private static string BuildStationStatusLine(StationBriefing briefing)
+        {
+            if (briefing == null)
+            {
+                return "준비 완료를 눌러 전투를 시작하세요.";
+            }
+
+            if (!string.IsNullOrWhiteSpace(briefing.StationName)
+                && !string.IsNullOrWhiteSpace(briefing.StationTypeLabel))
+            {
+                return $"{briefing.StationName} · {briefing.StationTypeLabel}";
+            }
+
+            if (!string.IsNullOrWhiteSpace(briefing.StationName))
+            {
+                return briefing.StationName;
+            }
+
+            return "준비 완료를 눌러 전투를 시작하세요.";
         }
 
         private void HandleWaveChanged(int _)
         {
             RefreshStationWave();
+            RefreshThreatPreview();
         }
 
         private void HandleBossSpawned(Enemy.EnemyRuntime boss)
@@ -1110,6 +1458,8 @@ namespace LastTrain.UI
             RefreshStationWave();
             RefreshPhase();
             RefreshReadyButton();
+            RefreshUndoMergeButton();
+            RefreshThreatPreview();
         }
 
         private void RefreshTrainHp()
@@ -1259,6 +1609,34 @@ namespace LastTrain.UI
             {
                 statusLabel.text = message ?? string.Empty;
             }
+        }
+
+        private void RefreshAutoStartCountdown()
+        {
+            if (_runEndHandled || _paused || _runState?.Battle == null)
+            {
+                return;
+            }
+
+            if (_runState.Battle.CurrentPhase != RunPhase.Preparing)
+            {
+                return;
+            }
+
+            StationManager stationManager = battleBootstrap != null ? battleBootstrap.StationManager : null;
+            if (stationManager == null)
+            {
+                return;
+            }
+
+            float remaining = stationManager.AutoStartRemainingSeconds;
+            if (remaining < 0f)
+            {
+                return;
+            }
+
+            int seconds = Mathf.CeilToInt(remaining);
+            SetStatus($"{seconds}초 후 출발");
         }
 
         private static string PhaseToText(RunPhase phase)

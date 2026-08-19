@@ -37,6 +37,10 @@ namespace LastTrain.EditorTools
             CreatePassengerVisual(passengers, "passenger_graduate", 5);
             CreatePassengerVisual(passengers, "passenger_police", 6);
             CreatePassengerVisual(passengers, "passenger_cat", 7);
+            CreatePassengerVisual(passengers, "passenger_conductor", 8);
+            CreatePassengerVisual(passengers, "passenger_barista", 9);
+            CreatePassengerVisual(passengers, "passenger_security", 10);
+            CreatePassengerVisual(passengers, "passenger_student", 11);
 
             var enemies = new List<EnemyVisualSet>();
             CreateEnemyVisual(enemies, "enemy_normal", 128, 0);
@@ -142,9 +146,58 @@ namespace LastTrain.EditorTools
             AssignClip(so, "skill", $"Assets/Art/Sprites/Characters/{id}_skill_sheet.png", 256, 256, false);
             AssignClip(so, "merge", $"Assets/Art/Sprites/Characters/{id}_merge_sheet.png", 256, 256, false);
             AssignClip(so, "hit", $"Assets/Art/Sprites/Characters/{id}_hit_sheet.png", 256, 256, false);
-            so.FindProperty("accentColor").colorValue = VisualThemePalette.PassengerAccent[accentIndex];
+            so.FindProperty("accentColor").colorValue = VisualThemePalette.PassengerAccent[
+                accentIndex % VisualThemePalette.PassengerAccent.Length];
             so.ApplyModifiedPropertiesWithoutUndo();
             list.Add(visual);
+        }
+
+        /// <summary>Unit 46: 신규 4종 비주얼만 VisualDatabase에 병합한다.</summary>
+        public static void EnsurePassengerVisualsForUnit46()
+        {
+            EnsureFolder("Assets/Data/Visual");
+            EnsureFolder("Assets/Resources");
+            VisualTheme theme = CreateOrLoad<VisualTheme>(ThemePath);
+            AssignTheme(theme);
+
+            var extras = new List<PassengerVisualSet>();
+            CreatePassengerVisual(extras, "passenger_conductor", 8);
+            CreatePassengerVisual(extras, "passenger_barista", 9);
+            CreatePassengerVisual(extras, "passenger_security", 10);
+            CreatePassengerVisual(extras, "passenger_student", 11);
+
+            VisualDatabase database = CreateOrLoad<VisualDatabase>(DatabasePath);
+            var so = new SerializedObject(database);
+            so.FindProperty("theme").objectReferenceValue = theme;
+            SerializedProperty array = so.FindProperty("passengers");
+            var known = new HashSet<string>();
+            for (int i = 0; i < array.arraySize; i++)
+            {
+                var set = array.GetArrayElementAtIndex(i).objectReferenceValue as PassengerVisualSet;
+                if (set != null && !string.IsNullOrWhiteSpace(set.Id))
+                {
+                    known.Add(set.Id);
+                }
+            }
+
+            for (int i = 0; i < extras.Count; i++)
+            {
+                PassengerVisualSet visual = extras[i];
+                if (visual == null || known.Contains(visual.Id))
+                {
+                    continue;
+                }
+
+                int index = array.arraySize;
+                array.arraySize++;
+                array.GetArrayElementAtIndex(index).objectReferenceValue = visual;
+                known.Add(visual.Id);
+            }
+
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(database);
+            CopyDatabaseToResources(database);
+            CopyThemeToResources(theme);
         }
 
         private static void CreateEnemyVisual(List<EnemyVisualSet> list, string id, int size, int accentIndex)

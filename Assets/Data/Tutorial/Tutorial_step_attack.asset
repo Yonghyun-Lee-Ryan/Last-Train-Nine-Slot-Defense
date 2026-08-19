@@ -14,10 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Tutorial.TutorialStepData
   id: step_attack
   stepKind: 2
-  title: "\uC790\uB3D9 \uACF5\uACA9"
-  body: "\uC900\uBE44 \uC644\uB8CC\uB97C \uB204\uB974\uBA74 \uC2B9\uAC1D\uC774 \uC790\uB3D9\uC73C\uB85C
-    \uACF5\uACA9\uD569\uB2C8\uB2E4. \uC804\uD22C\uB97C \uC2DC\uC791\uD574 \uBCF4\uC138\uC694."
+  title: "\uC804\uD22C \uC2DC\uC791"
+  body: "\uC900\uBE44 \uC644\uB8CC\uB85C \uC804\uD22C\uB97C \uC2DC\uC791\uD569\uB2C8\uB2E4.
+    \uAC1D\uCC28 \uCCB4\uB825\uC774 0\uC774\uBA74 \uD328\uBC30\uD569\uB2C8\uB2E4."
   waitEvent: 3
   uiTargetId: ReadyButton
-  allowedInputs: 22
+  allowedInputs: 150
   showSkipButton: 1

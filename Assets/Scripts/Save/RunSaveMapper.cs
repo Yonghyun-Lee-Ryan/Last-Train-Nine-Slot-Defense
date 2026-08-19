@@ -31,6 +31,12 @@ namespace LastTrain.Save
             config.IsDailyRun = data.isDailyRun;
             config.IsEndlessRun = data.isEndlessRun;
             config.RandomSeed = data.randomSeed;
+            config.LiveEventId = data.liveEventId ?? string.Empty;
+            config.LiveEventBoostedPassengerIds = CopyIds(data.liveEventBoostedPassengerIds);
+            config.LiveEventRestrictedPassengerIds = CopyIds(data.liveEventRestrictedPassengerIds);
+            config.LiveEventBoostAttackMultiplier = data.liveEventBoostAttackMultiplier > 0.01f
+                ? data.liveEventBoostAttackMultiplier
+                : 1f;
             if (config.IsEndlessRun)
             {
                 EndlessRouteData endless = GameDatabaseLocator.Load()?.EndlessRoute;
@@ -86,6 +92,12 @@ namespace LastTrain.Save
                 isDailyRun = runState.IsDailyRun,
                 isEndlessRun = runState.IsEndlessRun,
                 randomSeed = runState.RandomSeed,
+                liveEventId = runState.LiveEventId ?? string.Empty,
+                liveEventBoostedPassengerIds = CopyIds(runState.LiveEventBoostedPassengerIds),
+                liveEventRestrictedPassengerIds = CopyIds(runState.LiveEventRestrictedPassengerIds),
+                liveEventBoostAttackMultiplier = runState.LiveEventBoostAttackMultiplier > 0.01f
+                    ? runState.LiveEventBoostAttackMultiplier
+                    : 1f,
             };
 
             data.slots = new RunSaveData.SlotSave[RunState.GridSlotCount];
@@ -224,6 +236,11 @@ namespace LastTrain.Save
             }
 
             runState.RestoreDifficulty(data.difficultyId);
+            runState.RestoreLiveEvent(
+                data.liveEventId,
+                CopyIds(data.liveEventBoostedPassengerIds),
+                CopyIds(data.liveEventRestrictedPassengerIds),
+                data.liveEventBoostAttackMultiplier);
 
             // 1) Station / Currency / History
             runState.Station.RestoreFromSave(
@@ -359,6 +376,18 @@ namespace LastTrain.Save
             var relicManager = new Relic.RelicManager(runState, gameDatabase);
             relicManager.ApplyPersistentEffects();
             return true;
+        }
+
+        private static string[] CopyIds(string[] source)
+        {
+            if (source == null || source.Length == 0)
+            {
+                return Array.Empty<string>();
+            }
+
+            var copy = new string[source.Length];
+            Array.Copy(source, copy, source.Length);
+            return copy;
         }
     }
 }

@@ -42,6 +42,7 @@ namespace LastTrain.Passenger.Skills
                            * BonusDamageMultiplier
                            * context.SkillValueMultiplier;
             DamageService.ApplyDamage(target, damage);
+            CombatVisualEvents.RaisePassengerSkillActivated(context.Runtime.InstanceId);
             _cooldownRemaining = BaseCooldownSeconds;
         }
 

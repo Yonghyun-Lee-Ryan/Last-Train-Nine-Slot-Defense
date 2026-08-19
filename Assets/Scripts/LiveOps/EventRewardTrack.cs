@@ -3,6 +3,12 @@ using UnityEngine;
 
 namespace LastTrain.LiveOps
 {
+    public enum RewardTrackLane
+    {
+        Free = 0,
+        Ad = 1,
+    }
+
     [Serializable]
     public sealed class EventRewardStep
     {
@@ -11,6 +17,7 @@ namespace LastTrain.LiveOps
         public int ticketFragments;
         public int accountXp;
         public string unlockPassengerId = string.Empty;
+        public RewardTrackLane lane = RewardTrackLane.Free;
     }
 
     [CreateAssetMenu(fileName = "EventRewardTrack_", menuName = "LastTrain/LiveOps/Event Reward Track")]

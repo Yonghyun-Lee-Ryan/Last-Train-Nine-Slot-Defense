@@ -28,18 +28,61 @@ Firebase Console과 AdMob Console에서 Android 앱을 등록하고 `google-serv
 3. `Assets/google-services.json`을 프로젝트 루트 `Assets/`에 배치합니다.
 4. **External Dependency Manager**가 Android Resolver를 실행하도록 `Assets → External Dependency Manager → Android Resolver → Resolve`를 실행합니다.
 
-### Google Mobile Ads (AdMob)
+### Firebase (Analytics + Crashlytics + Remote Config) — Unit 36
 
-1. [Google Mobile Ads Unity Plugin](https://github.com/googleads/googleads-mobile-unity/releases)에서 Unity 6000 호환 릴리스를 확인합니다.
-2. `.unitypackage` Import 후 Android Resolver를 다시 실행합니다.
-3. `Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset`에서 Android App ID를 설정합니다.
-   - 테스트: Google 문서의 테스트 App ID
+**현재 Release AAB에는 Firebase SDK / `LASTTRAIN_FIREBASE`를 넣지 않습니다.**  
+`google-services.json` 없이 SDK만 넣으면 Gradle 실패 또는 기동 크래시가 납니다. define OFF일 때:
+
+- Analytics: Editor/Dev → `DebugAnalyticsService`, Release → `NoOpAnalyticsService` (동의 없으면 동일)
+- Crashlytics: `DebugCrashReporter`
+- Remote Config: `RemoteConfigDefaults` ScriptableObject
+
+Soft Launch 직전:
+
+1. [Firebase Unity SDK](https://firebase.google.com/docs/unity/setup)에서 Analytics / Crashlytics / Remote Config Import (또는 `.tgz` UPM)
+2. `Assets/google-services.json` 배치
+3. External Dependency Manager Resolve
+4. **Tools → 막차 생존 → Integration → Enable LASTTRAIN_FIREBASE**
+
+어댑터:
+
+- `FirebaseAppBootstrap` — `CheckAndFixDependenciesAsync`
+- `FirebaseAnalyticsService` — `LogEvent` + 파라미터 변환
+- `FirebaseCrashReporter` — Log / LogException
+- `RemoteConfigService` — Fetch/Activate 실패 시 ScriptableObject 기본값
+
+---
+
+### Google Mobile Ads (AdMob) — Unit 35
+
+**현재 Release AAB에는 `com.google.ads.mobile`을 넣지 않습니다.** App ID·설정 에셋 없이 패키지만 넣으면 Gradle 실패 또는 기동 크래시가 납니다. 코드는 `#if LASTTRAIN_ADMOB`로 가드되어 define 없이 NoOp로 플레이됩니다.
+
+OpenUPM 스코프는 `Packages/manifest.json`에 이미 있습니다. Soft Launch 직전에만 의존성을 추가합니다:
+
+```json
+"dependencies": {
+  "com.google.ads.mobile": "11.3.0"
+}
+```
+
+1. Unity가 `com.google.ads.mobile`을 resolve할 때까지 기다립니다.
+2. `Assets → External Dependency Manager → Android Resolver → Resolve` 실행.
+3. `Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset`에서 Android App ID 설정
+   - 테스트: `ca-app-pub-3940256099942544~3347511713` (Google 샘플 App ID)
    - 운영: AdMob Console App ID
+4. **Tools → 막차 생존 → Integration → Enable LASTTRAIN_ADMOB**  
+   (패키지 미설치 시 define을 켜지 않음 — 컴파일 보호)
+
+대안: [GitHub Releases](https://github.com/googleads/googleads-mobile-unity/releases) `.unitypackage` Import.
+
+`AdMobAdService`는 Load → Show → Destroy → 재Load, 실패 시 `NotReady`/`Failed`만 반환해 게임 루프를 막지 않습니다.
+Editor/Dev는 테스트 광고 단위 ID, Release는 `AdUnitConfig` 운영 ID(비어 있으면 테스트 ID fallback).
 
 ---
 
 ## 3. Scripting Define Symbols
 
+**Tools → 막차 생존 → Integration → Enable LASTTRAIN_ADMOB** 또는  
 **Edit → Project Settings → Player → Android → Scripting Define Symbols**에 추가:
 
 ```
@@ -47,8 +90,12 @@ LASTTRAIN_ADMOB
 LASTTRAIN_FIREBASE
 ```
 
-Editor 전용 테스트는 `DEVELOPMENT_BUILD`와 함께 **테스트 광고 단위 ID**를 사용합니다 (`AdUnitConfig` 기본값).
+SDK 미설치 상태에서 define만 켜면 컴파일이 실패합니다. 패키지 resolve 후 define을 켭니다.
 
+Editor 전용 테스트는 `DEVELOPMENT_BUILD`와 함께 **테스트 광고 단위 ID**를 사용합니다 (`AdServiceFactory.UseTestAdUnitIds`).
+
+보상형 플레이스: Revive / DoubleResult / StationDouble / PassengerReroll / AbilityReroll / FreeSummon / ShopRefresh.  
+NoOp·미준비 시 관련 버튼은 숨깁니다.
 ---
 
 ## 4. ScriptableObject 에셋

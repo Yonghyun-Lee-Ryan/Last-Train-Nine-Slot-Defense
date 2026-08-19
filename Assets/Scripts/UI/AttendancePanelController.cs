@@ -12,8 +12,8 @@ namespace LastTrain.UI
     /// <summary>7일 출석 보상 패널. Growth 탭·자동 팝업 진입.</summary>
     public sealed class AttendancePanelController : MonoBehaviour
     {
-        private const float DayRowHeight = 56f;
-        private const float DayRowSpacing = 8f;
+        private const float DayRowHeight = 76f;
+        private const float DayRowSpacing = 10f;
         private const float FooterHeight = 264f;
 
         private GameObject _root;
@@ -90,16 +90,25 @@ namespace LastTrain.UI
                 "오늘 보상 받기",
                 64f,
                 OnClaimClicked,
-                fontSize: 26);
+                fontSize: 26,
+                preferredWidth: UiButtonStyler.OverlayActionWidth);
             _adBonusButton = MenuOverlayUi.CreateLayoutButton(
                 footer,
                 "AdBonusButton",
                 "광고로 추가 보상",
                 52f,
                 OnAdBonusClicked,
-                fontSize: 22);
+                fontSize: 22,
+                preferredWidth: UiButtonStyler.OverlayActionWidth);
             _adBonusLabel = _adBonusButton.GetComponentInChildren<Text>();
-            MenuOverlayUi.CreateLayoutButton(footer, "Close", "닫기", 64f, Hide);
+            MenuOverlayUi.CreateLayoutButton(
+                footer,
+                "Close",
+                "닫기",
+                64f,
+                Hide,
+                30,
+                UiButtonStyler.OverlayActionWidth);
 
             MenuOverlayUi.OverlayScroll scroll = MenuOverlayUi.CreateOverlayScroll(
                 box.transform,
@@ -216,7 +225,7 @@ namespace LastTrain.UI
 
         private static void AddDayRow(Transform parent, int day, string rewardText, bool completed, bool today)
         {
-            var row = new GameObject($"Day{day + 1}", typeof(RectTransform), typeof(Image), typeof(HorizontalLayoutGroup), typeof(LayoutElement));
+            var row = new GameObject($"Day{day + 1}", typeof(RectTransform), typeof(Image), typeof(RectMask2D), typeof(HorizontalLayoutGroup), typeof(LayoutElement));
             row.transform.SetParent(parent, false);
             Image bg = row.GetComponent<Image>();
             bg.color = completed
@@ -229,33 +238,46 @@ namespace LastTrain.UI
             rowLayout.minHeight = DayRowHeight;
             rowLayout.preferredHeight = DayRowHeight;
             rowLayout.flexibleWidth = 1f;
+            rowLayout.flexibleHeight = 0f;
 
             HorizontalLayoutGroup hlg = row.GetComponent<HorizontalLayoutGroup>();
-            hlg.padding = new RectOffset(12, 12, 6, 6);
+            hlg.padding = new RectOffset(14, 14, 10, 10);
             hlg.spacing = 10f;
             hlg.childAlignment = TextAnchor.MiddleCenter;
             hlg.childControlWidth = true;
             hlg.childControlHeight = true;
             hlg.childForceExpandWidth = false;
-            hlg.childForceExpandHeight = true;
+            hlg.childForceExpandHeight = false;
 
+            float innerHeight = DayRowHeight - 20f;
             Text dayLabel = MenuOverlayUi.CreateText(row.transform, "DayLabel", $"{day + 1}일", 22, TextAnchor.MiddleCenter);
             dayLabel.verticalOverflow = VerticalWrapMode.Truncate;
-            LayoutElement dayElement = UiLayoutUtility.EnsureLayoutElement(dayLabel.gameObject, DayRowHeight - 12f, 0f);
+            dayLabel.horizontalOverflow = HorizontalWrapMode.Overflow;
+            LayoutElement dayElement = UiLayoutUtility.EnsureLayoutElement(dayLabel.gameObject, innerHeight, 0f);
+            dayElement.minHeight = innerHeight;
+            dayElement.preferredHeight = innerHeight;
             dayElement.minWidth = 72f;
             dayElement.preferredWidth = 72f;
             dayElement.flexibleWidth = 0f;
 
-            Text rewardLabel = MenuOverlayUi.CreateText(row.transform, "Reward", rewardText, 20, TextAnchor.MiddleLeft);
+            Text rewardLabel = MenuOverlayUi.CreateText(row.transform, "Reward", rewardText, 18, TextAnchor.MiddleLeft);
             rewardLabel.horizontalOverflow = HorizontalWrapMode.Wrap;
             rewardLabel.verticalOverflow = VerticalWrapMode.Truncate;
-            LayoutElement rewardElement = UiLayoutUtility.EnsureLayoutElement(rewardLabel.gameObject, DayRowHeight - 12f);
+            rewardLabel.resizeTextForBestFit = true;
+            rewardLabel.resizeTextMinSize = 14;
+            rewardLabel.resizeTextMaxSize = 18;
+            LayoutElement rewardElement = UiLayoutUtility.EnsureLayoutElement(rewardLabel.gameObject, innerHeight);
+            rewardElement.minHeight = innerHeight;
+            rewardElement.preferredHeight = innerHeight;
             rewardElement.flexibleWidth = 1f;
 
             string state = completed ? "완료" : today ? "오늘" : "대기";
             Text stateLabel = MenuOverlayUi.CreateText(row.transform, "State", state, 20, TextAnchor.MiddleCenter);
             stateLabel.verticalOverflow = VerticalWrapMode.Truncate;
-            LayoutElement stateElement = UiLayoutUtility.EnsureLayoutElement(stateLabel.gameObject, DayRowHeight - 12f, 0f);
+            stateLabel.horizontalOverflow = HorizontalWrapMode.Overflow;
+            LayoutElement stateElement = UiLayoutUtility.EnsureLayoutElement(stateLabel.gameObject, innerHeight, 0f);
+            stateElement.minHeight = innerHeight;
+            stateElement.preferredHeight = innerHeight;
             stateElement.minWidth = 72f;
             stateElement.preferredWidth = 72f;
             stateElement.flexibleWidth = 0f;

@@ -4,5 +4,6 @@ namespace LastTrain.Data
     {
         public const string Default = "line1";
         public const string Endless = "endless";
+        public const string Quick = "quick";
     }
 }

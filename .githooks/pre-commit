@@ -1,0 +1,18 @@
+#!/bin/sh
+# Staged 내용에 Google 샘플이 아닌 ca-app-pub- ID가 있으면 커밋을 거부한다.
+
+sample_publisher="3940256099942544"
+ids=$(git diff --cached --diff-filter=ACMR | grep '^+' | grep -oE 'ca-app-pub-[0-9]+[~\/][A-Za-z0-9_-]+' || true)
+if [ -z "$ids" ]; then
+  exit 0
+fi
+
+bad=$(echo "$ids" | grep -v "$sample_publisher" || true)
+if [ -n "$bad" ]; then
+  echo "pre-commit: GitHub에 올릴 수 없는 AdMob ID가 staged 파일에 있습니다."
+  echo "$bad" | sort -u
+  echo "Google 테스트 ID(ca-app-pub-${sample_publisher}/...)만 커밋하세요."
+  exit 1
+fi
+
+exit 0

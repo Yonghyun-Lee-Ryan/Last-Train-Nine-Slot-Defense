@@ -7,7 +7,7 @@ namespace LastTrain.Save
     [Serializable]
     public sealed class RunSaveData
     {
-        public const int CurrentVersion = 2;
+        public const int CurrentVersion = 3;
 
         public int version = CurrentVersion;
 
@@ -63,6 +63,12 @@ namespace LastTrain.Save
 
         /// <summary>슬롯이 가득 차 대기 중인 지급 승객.</summary>
         public SlotSave[] pendingPassengers = Array.Empty<SlotSave>();
+
+        /// <summary>회차 시작 시 고정된 라이브 이벤트. 카탈로그/시계가 지나도 이어하기 배율을 유지한다.</summary>
+        public string liveEventId = string.Empty;
+        public string[] liveEventBoostedPassengerIds = Array.Empty<string>();
+        public string[] liveEventRestrictedPassengerIds = Array.Empty<string>();
+        public float liveEventBoostAttackMultiplier = 1f;
 
         [Serializable]
         public struct SlotSave

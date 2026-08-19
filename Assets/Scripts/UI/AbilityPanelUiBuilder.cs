@@ -113,8 +113,8 @@ namespace LastTrain.UI
             rect.anchorMin = new Vector2(0.5f, 1f);
             rect.anchorMax = new Vector2(0.5f, 1f);
             rect.pivot = new Vector2(0.5f, 1f);
-            rect.anchoredPosition = new Vector2(0f, -250f);
-            rect.sizeDelta = new Vector2(1000f, 40f);
+            rect.anchoredPosition = new Vector2(0f, CombatTopHudLayout.OwnedAbilityY);
+            rect.sizeDelta = new Vector2(720f, CombatTopHudLayout.OwnedAbilityHeight);
         }
 
         private static Button CreateCardButton(Transform parent, string name, string label, Vector2 pos, Vector2 size, VisualTheme theme)
@@ -127,9 +127,7 @@ namespace LastTrain.UI
             Image image = go.GetComponent<Image>();
             if (theme?.CardFrame != null)
             {
-                image.sprite = theme.CardFrame;
-                image.type = Image.Type.Sliced;
-                image.color = Color.white;
+                UiButtonStyler.ApplySlicedPanel(image, theme.CardFrame);
             }
             else
             {

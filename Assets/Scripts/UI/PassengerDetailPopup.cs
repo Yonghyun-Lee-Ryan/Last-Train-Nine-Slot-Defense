@@ -303,14 +303,14 @@ namespace LastTrain.UI
                 "Cancel",
                 "취소",
                 new Vector2(-140f, -118f),
-                new Vector2(220f, 56f),
+                new Vector2(220f, 64f),
                 () => DestroySellConfirm());
             MenuOverlayUi.CreateButton(
                 box.transform,
                 "Confirm",
                 "판매",
                 new Vector2(140f, -118f),
-                new Vector2(220f, 56f),
+                new Vector2(220f, 64f),
                 () =>
                 {
                     int slot = _slotIndex;

@@ -104,6 +104,43 @@ namespace LastTrain.Difficulty
                 merged);
         }
 
+        public DifficultyRuntime WithDailyOverlays(
+            float summonCostMultiplier,
+            float enemyMoveSpeedMultiplier,
+            float preparationTimeSeconds)
+        {
+            float summon = summonCostMultiplier > 0.01f ? SummonCostMultiplier * summonCostMultiplier : SummonCostMultiplier;
+            float speed = enemyMoveSpeedMultiplier > 0.01f
+                ? EnemyMoveSpeedMultiplier * enemyMoveSpeedMultiplier
+                : EnemyMoveSpeedMultiplier;
+            float prep = preparationTimeSeconds >= 0f ? preparationTimeSeconds : PreparationTimeSeconds;
+            if (Math.Abs(summon - SummonCostMultiplier) < 0.0001f
+                && Math.Abs(speed - EnemyMoveSpeedMultiplier) < 0.0001f
+                && Math.Abs(prep - PreparationTimeSeconds) < 0.0001f)
+            {
+                return this;
+            }
+
+            return new DifficultyRuntime(
+                Id,
+                DisplayName,
+                EnemyHealthMultiplier,
+                speed,
+                EnemyTrainDamageMultiplier,
+                EnemyCountMultiplier,
+                SpawnIntervalMultiplier,
+                EliteSpawnRate,
+                BossHealthMultiplier,
+                BossAbilityCount,
+                StartingCoins,
+                StartingTrainHealth,
+                summon,
+                ShopPriceMultiplier,
+                RewardMultiplier,
+                prep,
+                Modifiers);
+        }
+
         public static DifficultyRuntime FromData(DifficultyData data)
         {
             if (data == null)

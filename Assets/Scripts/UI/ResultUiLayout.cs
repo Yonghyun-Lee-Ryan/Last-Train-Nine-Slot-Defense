@@ -6,8 +6,8 @@ namespace LastTrain.UI
     /// <summary>결과 화면 헤더·통계 스크롤·하단 버튼 정렬.</summary>
     public static class ResultUiLayout
     {
-        private const float ButtonHeight = 120f;
-        private const float ButtonSpacing = 24f;
+        private const float ButtonHeight = UiButtonStyler.ResultButtonHeight;
+        private const float ButtonSpacing = 20f;
         private const float BottomMargin = 120f;
 
         public static void ApplyContent(Text titleLabel, Text messageLabel, Text statsLabel)
@@ -74,7 +74,7 @@ namespace LastTrain.UI
                 groupRect.anchorMax = new Vector2(0.5f, 0f);
                 groupRect.pivot = new Vector2(0.5f, 0f);
                 groupRect.anchoredPosition = new Vector2(0f, bottomMargin);
-                groupRect.sizeDelta = new Vector2(600f, 0f);
+                groupRect.sizeDelta = new Vector2(UiButtonStyler.ResultButtonGroupWidth, 0f);
 
                 VerticalLayoutGroup layout = groupGo.AddComponent<VerticalLayoutGroup>();
                 layout.childAlignment = TextAnchor.MiddleCenter;
@@ -91,6 +91,7 @@ namespace LastTrain.UI
             else if (group is RectTransform existingGroup)
             {
                 existingGroup.anchoredPosition = new Vector2(0f, bottomMargin);
+                existingGroup.sizeDelta = new Vector2(UiButtonStyler.ResultButtonGroupWidth, existingGroup.sizeDelta.y);
             }
 
             retryButton.transform.SetParent(group, false);
@@ -101,13 +102,13 @@ namespace LastTrain.UI
 
             mainMenuButton.transform.SetParent(group, false);
 
-            UiButtonStyler.EnsureLayoutElement(retryButton, ButtonHeight);
+            UiButtonStyler.EnsureLayoutElement(retryButton, ButtonHeight, UiButtonStyler.ResultButtonGroupWidth);
             if (doubleRewardButton != null)
             {
-                UiButtonStyler.EnsureLayoutElement(doubleRewardButton, ButtonHeight);
+                UiButtonStyler.EnsureLayoutElement(doubleRewardButton, ButtonHeight, UiButtonStyler.ResultButtonGroupWidth);
             }
 
-            UiButtonStyler.EnsureLayoutElement(mainMenuButton, ButtonHeight);
+            UiButtonStyler.EnsureLayoutElement(mainMenuButton, ButtonHeight, UiButtonStyler.ResultButtonGroupWidth);
 
             UiButtonStyler.ApplyStandardTheme(retryButton);
             UiButtonStyler.ApplyStandardTheme(mainMenuButton);

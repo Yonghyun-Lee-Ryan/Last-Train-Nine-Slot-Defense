@@ -30,7 +30,11 @@ namespace LastTrain.Data
             Hex("#6366F1"), // developer
             Hex("#8B5CF6"), // graduate
             Hex("#3B82F6"), // police
-            Hex("#F59E0B")  // cat
+            Hex("#F59E0B"), // cat
+            Hex("#14B8A6"), // conductor
+            Hex("#D97706"), // barista
+            Hex("#475569"), // security
+            Hex("#0EA5E9")  // student
         };
 
         public static readonly Color[] EnemyAccent =

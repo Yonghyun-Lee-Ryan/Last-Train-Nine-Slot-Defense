@@ -1,4 +1,3 @@
-using System.Text;
 using LastTrain.Core;
 using LastTrain.Data;
 using LastTrain.Run;
@@ -7,10 +6,13 @@ using UnityEngine.UI;
 
 namespace LastTrain.UI
 {
-    /// <summary>활성 시너지 목록 표시. SynergyProgress.Changed를 구독한다.</summary>
+    /// <summary>시너지 카탈로그 전체 표시(활성/비활성 대비). SynergyProgress.Changed 구독.</summary>
     [DefaultExecutionOrder(70)]
     public sealed class SynergyHudController : MonoBehaviour
     {
+        public const float LabelMinHeight = 200f;
+        public const int LabelFontSize = 16;
+
         [SerializeField] private Text synergyLabel;
         [SerializeField] private GameBattleBootstrap battleBootstrap;
 
@@ -30,6 +32,8 @@ namespace LastTrain.UI
                 EnsureLabel();
             }
 
+            ApplyLabelStyle(synergyLabel);
+
             if (battleBootstrap == null)
             {
                 battleBootstrap = FindAnyObjectByType<GameBattleBootstrap>();
@@ -38,6 +42,11 @@ namespace LastTrain.UI
             if (_runState.Synergies != null)
             {
                 _runState.Synergies.Changed += Refresh;
+            }
+
+            if (_runState.Battle != null)
+            {
+                _runState.Battle.PhaseChanged += HandlePhaseChanged;
             }
 
             Refresh();
@@ -49,6 +58,21 @@ namespace LastTrain.UI
             {
                 _runState.Synergies.Changed -= Refresh;
             }
+
+            if (_runState?.Battle != null)
+            {
+                _runState.Battle.PhaseChanged -= HandlePhaseChanged;
+            }
+        }
+
+        public void RefreshLayout()
+        {
+            ApplyLayout();
+        }
+
+        private void HandlePhaseChanged(RunPhase _)
+        {
+            Refresh();
         }
 
         private void Refresh()
@@ -58,31 +82,36 @@ namespace LastTrain.UI
                 return;
             }
 
-            var active = _runState.Synergies.Active;
-            if (active.Count == 0)
+            RunPhase phase = _runState.Battle != null ? _runState.Battle.CurrentPhase : RunPhase.None;
+            bool show = CombatTopHudLayout.ShouldShowSideChrome(phase);
+            synergyLabel.gameObject.SetActive(show);
+            if (!show)
             {
-                synergyLabel.text = "시너지: 없음";
                 return;
             }
 
-            var sb = new StringBuilder("시너지: ");
-            for (int i = 0; i < active.Count; i++)
+            synergyLabel.supportRichText = true;
+            synergyLabel.text = SynergyHudFormatter.Format(_runState.Synergies.Catalog, _runState);
+            ApplyLayout();
+        }
+
+        private void ApplyLayout()
+        {
+            if (synergyLabel == null)
             {
-                SynergyData data = active[i];
-                if (data == null)
-                {
-                    continue;
-                }
-
-                if (i > 0)
-                {
-                    sb.Append(", ");
-                }
-
-                sb.Append(data.DisplayName);
+                return;
             }
 
-            synergyLabel.text = sb.ToString();
+            WaveThreatTickerView ticker = FindAnyObjectByType<WaveThreatTickerView>();
+            bool threatVisible = ticker != null && ticker.IsShowing;
+            float top = CombatTopHudLayout.GetSynergyTop(threatVisible);
+
+            RectTransform rect = synergyLabel.rectTransform;
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = new Vector2(CombatTopHudLayout.SynergyLeftX, top);
+            rect.sizeDelta = new Vector2(CombatTopHudLayout.SynergyWidth, CombatTopHudLayout.SynergyMaxHeight);
         }
 
         private void EnsureLabel()
@@ -98,24 +127,35 @@ namespace LastTrain.UI
             if (existing != null)
             {
                 synergyLabel = existing.GetComponent<Text>();
+                ApplyLabelStyle(synergyLabel);
                 return;
             }
 
             var go = new GameObject("SynergyListLabel", typeof(RectTransform), typeof(Text));
             var rect = go.GetComponent<RectTransform>();
             rect.SetParent(parent, false);
-            rect.anchorMin = new Vector2(0.5f, 1f);
-            rect.anchorMax = new Vector2(0.5f, 1f);
-            rect.pivot = new Vector2(0.5f, 1f);
-            rect.anchoredPosition = new Vector2(0f, -120f);
-            rect.sizeDelta = new Vector2(1000f, 40f);
 
             synergyLabel = go.GetComponent<Text>();
-            synergyLabel.fontSize = 22;
-            synergyLabel.alignment = TextAnchor.MiddleCenter;
-            synergyLabel.color = Color.white;
-            synergyLabel.font = GameFontProvider.Get();
-            synergyLabel.raycastTarget = false;
+            ApplyLabelStyle(synergyLabel);
+            ApplyLayout();
+        }
+
+        private static void ApplyLabelStyle(Text label)
+        {
+            if (label == null)
+            {
+                return;
+            }
+
+            label.fontSize = LabelFontSize;
+            label.alignment = TextAnchor.UpperLeft;
+            label.color = Color.white;
+            label.font = GameFontProvider.Get();
+            label.raycastTarget = false;
+            label.supportRichText = true;
+            label.horizontalOverflow = HorizontalWrapMode.Wrap;
+            label.verticalOverflow = VerticalWrapMode.Truncate;
+            label.lineSpacing = 1f;
         }
     }
 }

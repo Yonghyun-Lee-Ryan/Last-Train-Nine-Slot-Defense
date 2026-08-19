@@ -129,7 +129,7 @@ namespace LastTrain.UI
                         MetaSaveSystem.Save(meta);
                         GameAudio.PlaySfx(SfxId.UiConfirm);
                         Hide();
-                    }, fontSize: 26);
+                    }, fontSize: 26, preferredWidth: UiButtonStyler.OverlayActionWidth);
                 }
 
                 RefreshVolumeLabels();
@@ -211,9 +211,7 @@ namespace LastTrain.UI
             if (theme?.Panel != null)
             {
                 Image boxImage = box.GetComponent<Image>();
-                boxImage.sprite = theme.Panel;
-                boxImage.type = Image.Type.Sliced;
-                boxImage.color = Color.white;
+                UiButtonStyler.ApplySlicedPanel(boxImage, theme.Panel);
             }
 
             Text title = MenuOverlayUi.CreateText(box.transform, "Title", "앱 데이터 삭제", 32, TextAnchor.MiddleCenter);
@@ -338,7 +336,8 @@ namespace LastTrain.UI
                 SpeedLabel(settings.BattleSpeed),
                 72f,
                 null,
-                fontSize: 26);
+                fontSize: 26,
+                preferredWidth: UiButtonStyler.OverlayActionWidth);
             UiLayoutUtility.EnsureLayoutElement(button.gameObject, 72f);
             button.onClick.AddListener(() =>
             {
@@ -377,8 +376,7 @@ namespace LastTrain.UI
             VisualTheme theme = VisualThemeLocator.Load();
             if (theme?.Panel != null)
             {
-                bg.sprite = theme.Panel;
-                bg.type = Image.Type.Sliced;
+                UiButtonStyler.ApplySlicedPanel(bg, theme.Panel);
                 bg.color = new Color(1f, 1f, 1f, 0.45f);
             }
             else
@@ -484,7 +482,7 @@ namespace LastTrain.UI
             {
                 GameAudio.PlaySfx(SfxId.UiConfirm);
                 onClick?.Invoke();
-            }, fontSize: 30);
+            }, fontSize: 30, preferredWidth: UiButtonStyler.OverlayActionWidth);
             UiButtonStyler.ApplyStandardTheme(button);
             Text text = button.GetComponentInChildren<Text>();
             if (text != null)

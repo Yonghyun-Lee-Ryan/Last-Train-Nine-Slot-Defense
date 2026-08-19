@@ -32,6 +32,10 @@ namespace LastTrain.Battle
         private bool _stationCompleteReported;
         private bool _runCancelled;
         private bool _waitingForAbilityReward;
+        private float _preparationElapsed;
+
+        /// <summary>false면 준비 시간 자동 시작을 건너뛴다(튜토리얼 등).</summary>
+        public Func<bool> CanAutoStartPreparation { get; set; }
 
         public StationManager(
             Func<int, StationData> stationLookup,
@@ -43,6 +47,19 @@ namespace LastTrain.Battle
         }
 
         public WaveManager WaveManager => _waveManager;
+        public float AutoStartRemainingSeconds
+        {
+            get
+            {
+                if (!ShouldAutoStartPreparation())
+                {
+                    return -1f;
+                }
+
+                float limit = _runState.DifficultyModifiers.ResolvePreparationTime(_runState.Difficulty);
+                return Math.Max(0f, limit - _preparationElapsed);
+            }
+        }
         public StationData CurrentStation => _currentStation;
         public int CurrentWaveIndex => _currentWaveIndex;
         public bool UsesWaveManager => _currentHandler?.UsesWaveManager ?? true;
@@ -60,7 +77,7 @@ namespace LastTrain.Battle
                 return new StationBriefing();
             }
 
-            return StationBriefingBuilder.Build(_currentStation, _runState.Difficulty);
+            return StationBriefingBuilder.Build(_currentStation, _runState?.Difficulty, _runState);
         }
 
         public void Initialize(RunState runState, StationData startingStation)
@@ -83,6 +100,7 @@ namespace LastTrain.Battle
             _stationCompleteReported = false;
             _waitingForAbilityReward = false;
             _runCancelled = false;
+            _preparationElapsed = 0f;
             _currentHandler = StationHandlerFactory.Create(station.StationType);
             _handlerContext = new StationHandlerContext(
                 _runState,
@@ -90,7 +108,7 @@ namespace LastTrain.Battle
                 CompleteStation,
                 _nonCombatServices);
             _currentHandler.OnStationEntered(_handlerContext);
-            _runState.Station.SetCurrentStation(station.Id, station.StationIndex);
+            _runState.Station.SetCurrentStation(station.Id, station.StationIndex, station.StationType);
             _runState.Battle.SetPhase(RunPhase.Preparing);
             StationStarted?.Invoke(station);
         }
@@ -148,13 +166,17 @@ namespace LastTrain.Battle
                 || _waitingForAbilityReward
                 || _runState == null
                 || !_runState.Battle.IsRunActive
-                || battleContext == null
                 || !UsesWaveManager)
             {
                 return;
             }
 
-            if (_runState.Battle.CurrentPhase != RunPhase.Fighting)
+            if (_runState.Battle.CurrentPhase == RunPhase.Preparing)
+            {
+                TickPreparation(deltaTime);
+            }
+
+            if (_runState.Battle.CurrentPhase != RunPhase.Fighting || battleContext == null)
             {
                 return;
             }
@@ -163,6 +185,38 @@ namespace LastTrain.Battle
                 deltaTime,
                 battleContext.TrySpawnEnemy,
                 battleContext.GetAliveEnemyCount);
+        }
+
+        private void TickPreparation(float deltaTime)
+        {
+            if (!ShouldAutoStartPreparation())
+            {
+                return;
+            }
+
+            float limit = _runState.DifficultyModifiers.ResolvePreparationTime(_runState.Difficulty);
+            if (limit < 0f)
+            {
+                return;
+            }
+
+            _preparationElapsed += Math.Max(0f, deltaTime);
+            if (_preparationElapsed + 0.0001f >= limit)
+            {
+                TryActivateStation();
+            }
+        }
+
+        private bool ShouldAutoStartPreparation()
+        {
+            if (CanAutoStartPreparation != null && !CanAutoStartPreparation())
+            {
+                return false;
+            }
+
+            float prep = _runState.DifficultyModifiers.ResolvePreparationTime(_runState.Difficulty);
+            float baseline = DifficultyRuntime.Identity.PreparationTimeSeconds;
+            return prep >= 0f && prep + 0.001f < baseline;
         }
 
         public void Cancel()

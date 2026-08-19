@@ -26,6 +26,7 @@ namespace LastTrain.Save
                 new ISaveMigration[]
                 {
                     new RunSaveMigrationV1ToV2(),
+                    new RunSaveMigrationV2ToV3(),
                 });
         }
 
@@ -37,6 +38,8 @@ namespace LastTrain.Save
                 new ISaveMigration[]
                 {
                     new MetaSaveMigrationV1ToV2(),
+                    new MetaSaveMigrationV2ToV3(),
+                    new MetaSaveMigrationV3ToV4(),
                 });
         }
 

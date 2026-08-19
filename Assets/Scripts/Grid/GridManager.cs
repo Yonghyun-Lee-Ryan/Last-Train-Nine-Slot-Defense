@@ -129,6 +129,7 @@ namespace LastTrain.Grid
             }
 
             RemoveInactiveViews(activeIds);
+            ApplyLockedSlotVisuals();
             GridCompositionChanged?.Invoke();
         }
 
@@ -165,6 +166,7 @@ namespace LastTrain.Grid
             {
                 view.RevertToOriginalTransform();
                 ClearDragState();
+                ApplyLockedSlotVisuals();
                 MergeHighlightService.Refresh(this, _runState);
                 return;
             }
@@ -172,6 +174,7 @@ namespace LastTrain.Grid
             int targetSlot = FindSlotIndexAtScreenPoint(screenPosition, eventCamera);
             ApplyDrop(_dragOriginSlotIndex, targetSlot);
             ClearDragState();
+            ApplyLockedSlotVisuals();
             MergeHighlightService.Refresh(this, _runState);
         }
 
@@ -336,6 +339,22 @@ namespace LastTrain.Grid
                 if (slots[i] != null)
                 {
                     slots[i].SetHighlightActive(active);
+                }
+            }
+        }
+
+        private void ApplyLockedSlotVisuals()
+        {
+            if (slots == null || _runState == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < slots.Length; i++)
+            {
+                if (slots[i] != null)
+                {
+                    slots[i].SetLocked(_runState.IsSlotLocked(i));
                 }
             }
         }

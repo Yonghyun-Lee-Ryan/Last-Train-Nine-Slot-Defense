@@ -13,13 +13,11 @@ MonoBehaviour:
   m_Name: Station_06
   m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Data.StationData
   id: line1_station_06
-  displayName: "6\uBC88\uC9F8 \uC5ED"
-  stationType: 1
+  displayName: "6\uBC88\uC9F8 \uC5ED (\uD734\uC2DD)"
+  stationType: 6
   stationIndex: 6
-  difficultyMultiplier: 1.85
-  waves:
-  - {fileID: 11400000, guid: 3270be0f1f8e9404ab86a722af3f6bf7, type: 2}
-  - {fileID: 11400000, guid: 5f45b20f066fa714d9aa0a1158ad4271, type: 2}
-  rewardCoins: 24
+  difficultyMultiplier: 1
+  waves: []
+  rewardCoins: 12
   grantsAbilityChoice: 0
   bossPatternHint: 

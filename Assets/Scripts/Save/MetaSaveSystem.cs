@@ -54,12 +54,12 @@ namespace LastTrain.Save
 
             if (result != null && result.IsEndlessRun)
             {
-                var mock = new Leaderboard.MockLeaderboardService();
+                var localBoard = new Leaderboard.LocalLeaderboardService();
                 Endless.EndlessProgressService.TrySubmitRun(
                     meta,
                     result,
                     AppRoot.Instance?.GameSession?.RunState,
-                    mock,
+                    localBoard,
                     out _,
                     out _);
             }
@@ -102,6 +102,26 @@ namespace LastTrain.Save
         {
             MetaSaveData meta = LoadOrCreate();
             meta.pendingNewDiscoveryIds = Array.Empty<string>();
+            Save(meta);
+        }
+
+        /// <summary>출석 등 메타 보상으로 쌓인 회차 보너스를 적용한다.</summary>
+        public static void ApplyPendingRunBonuses(RunState runState)
+        {
+            if (runState == null)
+            {
+                return;
+            }
+
+            MetaSaveData meta = LoadOrCreate();
+            meta.EnsureDefaults();
+            if (meta.metaPendingFreeSummonCharges <= 0)
+            {
+                return;
+            }
+
+            runState.ShopTokens.AddFreeSummon(meta.metaPendingFreeSummonCharges);
+            meta.metaPendingFreeSummonCharges = 0;
             Save(meta);
         }
 

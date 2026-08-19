@@ -250,5 +250,68 @@ namespace LastTrain.Tests.EditMode
             Assert.IsTrue(limits.CanUse(RewardedAdPlacement.PassengerReroll));
             Assert.AreEqual(1, limits.GetRemaining(RewardedAdPlacement.PassengerReroll));
         }
+
+        [Test]
+        public void FreeSummon_DailyLimit_Three()
+        {
+            DateTime now = new DateTime(2026, 8, 13, 12, 0, 0, DateTimeKind.Utc);
+            var limits = new AdLimitService
+            {
+                Cooldown = TimeSpan.Zero,
+                UtcNowProvider = () => now,
+            };
+            limits.BeginRun();
+            var mock = new MockAdService { AutoResult = AdResult.Completed };
+            var coordinator = new AdCoordinator(mock, limits, new AdRewardService(limits));
+
+            int grants = 0;
+            for (int i = 0; i < AdLimitService.FreeSummonPerDay; i++)
+            {
+                coordinator.ShowRewarded(RewardedAdPlacement.FreeSummon, () => grants++);
+            }
+
+            Assert.AreEqual(AdLimitService.FreeSummonPerDay, grants);
+            Assert.AreEqual(0, limits.GetRemaining(RewardedAdPlacement.FreeSummon));
+
+            AdResult? last = null;
+            coordinator.ShowRewarded(RewardedAdPlacement.FreeSummon, () => grants++, r => last = r);
+            Assert.AreEqual(AdResult.NotReady, last);
+            Assert.AreEqual(AdLimitService.FreeSummonPerDay, grants);
+        }
+
+        [Test]
+        public void ShopRefresh_PerRunLimit_Three()
+        {
+            var limits = new AdLimitService { Cooldown = TimeSpan.Zero };
+            limits.BeginRun();
+            var mock = new MockAdService { AutoResult = AdResult.Completed };
+            var coordinator = new AdCoordinator(mock, limits, new AdRewardService(limits));
+
+            int grants = 0;
+            for (int i = 0; i < AdLimitService.ShopRefreshPerRun; i++)
+            {
+                coordinator.ShowRewarded(RewardedAdPlacement.ShopRefresh, () => grants++);
+            }
+
+            Assert.AreEqual(AdLimitService.ShopRefreshPerRun, grants);
+            Assert.IsFalse(limits.CanUse(RewardedAdPlacement.ShopRefresh));
+        }
+
+        [Test]
+        public void NoOpAdService_NeverReady()
+        {
+            var noop = new NoOpAdService();
+            foreach (RewardedAdPlacement placement in Enum.GetValues(typeof(RewardedAdPlacement)))
+            {
+                Assert.IsFalse(noop.IsRewardedReady(placement), placement.ToString());
+                AdResult? rewarded = null;
+                noop.ShowRewardedAd(new AdRequest(placement), r => rewarded = r);
+                Assert.AreEqual(AdResult.NotReady, rewarded, placement.ToString());
+            }
+
+            AdResult? interstitial = null;
+            noop.ShowInterstitial(r => interstitial = r);
+            Assert.AreEqual(AdResult.NotReady, interstitial);
+        }
     }
 }

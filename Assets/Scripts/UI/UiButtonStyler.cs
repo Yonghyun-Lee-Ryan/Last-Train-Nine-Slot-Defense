@@ -7,6 +7,15 @@ namespace LastTrain.UI
     /// <summary>VisualTheme 기반 공통 버튼 스타일.</summary>
     public static class UiButtonStyler
     {
+        public const float MenuActionMaxWidth = 720f;
+        public const float MenuPrimaryHeight = 100f;
+        public const float MenuSecondaryHeight = 88f;
+        public const float MenuDifficultyHeight = 72f;
+        public const float OverlayActionWidth = 640f;
+        public const float ResultButtonHeight = 100f;
+        public const float ResultButtonGroupWidth = 640f;
+        public const float SlicePixelsPerUnitMultiplier = 1.15f;
+
         public static void ApplyStandardTheme(Button button)
         {
             if (button == null)
@@ -23,6 +32,8 @@ namespace LastTrain.UI
 
             image.sprite = theme.ButtonNormal;
             image.type = Image.Type.Sliced;
+            image.pixelsPerUnitMultiplier = SlicePixelsPerUnitMultiplier;
+            image.fillCenter = true;
             image.color = Color.white;
             button.transition = Selectable.Transition.SpriteSwap;
 
@@ -33,14 +44,41 @@ namespace LastTrain.UI
             button.spriteState = state;
         }
 
-        public static void EnsureLayoutElement(Button button, float preferredHeight = 120f)
+        public static void ApplySlicedPanel(Image image, Sprite sprite)
+        {
+            if (image == null || sprite == null)
+            {
+                return;
+            }
+
+            image.sprite = sprite;
+            image.type = Image.Type.Sliced;
+            image.pixelsPerUnitMultiplier = SlicePixelsPerUnitMultiplier;
+            image.fillCenter = true;
+            image.color = Color.white;
+        }
+
+        public static void CapMenuWidth(LayoutElement layout, float maxWidth = MenuActionMaxWidth)
+        {
+            if (layout == null)
+            {
+                return;
+            }
+
+            layout.preferredWidth = maxWidth;
+            layout.minWidth = 0f;
+            layout.flexibleWidth = 0f;
+        }
+
+        public static void EnsureLayoutElement(Button button, float preferredHeight = 120f, float preferredWidth = -1f)
         {
             if (button == null)
             {
                 return;
             }
 
-            UiLayoutUtility.EnsureLayoutElement(button.gameObject, preferredHeight);
+            float flex = preferredWidth >= 0f ? 0f : 1f;
+            UiLayoutUtility.EnsureLayoutElement(button.gameObject, preferredHeight, flex, preferredWidth);
             UiLayoutUtility.ResetForVerticalLayout(button.GetComponent<RectTransform>(), preferredHeight);
         }
 

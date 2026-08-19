@@ -51,6 +51,27 @@ namespace LastTrain.Tests.EditMode
         }
 
         [Test]
+        public void RunMigration_V2Json_LoadsAsCurrentVersion()
+        {
+            string v2 = JsonUtility.ToJson(new RunSaveData
+            {
+                version = 2,
+                stationIndex = 4,
+                trainHp = 55,
+                trainMaxHp = 100,
+                difficultyId = DifficultyIds.Normal,
+            });
+
+            File.WriteAllText(_runPath, v2);
+            var service = new JsonSaveService(_runPath, _metaPath);
+            Assert.IsTrue(service.TryLoadRun(out RunSaveData loaded));
+            Assert.AreEqual(RunSaveData.CurrentVersion, loaded.version);
+            Assert.AreEqual(4, loaded.stationIndex);
+            Assert.AreEqual(string.Empty, loaded.liveEventId);
+            Assert.AreEqual(1f, loaded.liveEventBoostAttackMultiplier);
+        }
+
+        [Test]
         public void MetaMigration_V1Json_LoadsAsCurrentVersion()
         {
             string v1 = "{\"version\":1,\"ticketFragments\":7,\"accountLevel\":2}";
@@ -60,6 +81,33 @@ namespace LastTrain.Tests.EditMode
             Assert.AreEqual(MetaSaveData.CurrentVersion, loaded.version);
             Assert.AreEqual(7, loaded.ticketFragments);
             Assert.AreEqual(2, loaded.accountLevel);
+        }
+
+        [Test]
+        public void MetaMigration_V2Json_LoadsAsCurrentVersion()
+        {
+            string v2 = "{\"version\":2,\"ticketFragments\":12,\"attendanceCycleDay\":3}";
+            File.WriteAllText(_metaPath, v2);
+            var service = new JsonSaveService(_runPath, _metaPath);
+            Assert.IsTrue(service.TryLoadMeta(out MetaSaveData loaded));
+            Assert.AreEqual(MetaSaveData.CurrentVersion, loaded.version);
+            Assert.AreEqual(12, loaded.ticketFragments);
+            Assert.AreEqual(3, loaded.attendanceCycleDay);
+            Assert.AreEqual(string.Empty, loaded.attendanceLastClaimLocalDate);
+        }
+
+        [Test]
+        public void MetaMigration_V3Json_LoadsAsCurrentVersion()
+        {
+            string v3 = "{\"version\":3,\"ticketFragments\":21,\"endlessBestScore\":400}";
+            File.WriteAllText(_metaPath, v3);
+            var service = new JsonSaveService(_runPath, _metaPath);
+            Assert.IsTrue(service.TryLoadMeta(out MetaSaveData loaded));
+            Assert.AreEqual(MetaSaveData.CurrentVersion, loaded.version);
+            Assert.AreEqual(21, loaded.ticketFragments);
+            Assert.AreEqual(400, loaded.endlessBestScore);
+            Assert.IsNotNull(loaded.endlessClaimedMilestoneIds);
+            Assert.AreEqual(0, loaded.endlessClaimedMilestoneIds.Length);
         }
 
         [Test]

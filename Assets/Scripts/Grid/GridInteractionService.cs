@@ -58,7 +58,11 @@ namespace LastTrain.Grid
             PassengerRuntime targetPassenger = runState.GetPassengerAtSlot(toSlot);
             if (targetPassenger == null)
             {
-                runState.TrySwapSlots(fromSlot, toSlot);
+                if (runState.IsSlotLocked(toSlot) || !runState.TrySwapSlots(fromSlot, toSlot))
+                {
+                    return GridDropResult.Reverted;
+                }
+
                 RefreshPlacementBuffs(runState);
                 return GridDropResult.Moved;
             }

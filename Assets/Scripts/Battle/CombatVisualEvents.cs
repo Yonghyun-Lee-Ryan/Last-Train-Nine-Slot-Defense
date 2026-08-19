@@ -10,6 +10,7 @@ namespace LastTrain.Battle
         public static event Action<EnemyRuntime, float, bool> EnemyDamaged;
         public static event Action<EnemyRuntime> EnemyKilled;
         public static event Action<string> PassengerAttacked;
+        public static event Action<string> PassengerSkillActivated;
         public static event Action<Vector2> TrainHealed;
         public static event Action<Vector2> AreaAttack;
         public static event Action<Vector2> KnockbackApplied;
@@ -43,6 +44,16 @@ namespace LastTrain.Battle
             }
 
             PassengerAttacked?.Invoke(passengerInstanceId);
+        }
+
+        public static void RaisePassengerSkillActivated(string passengerInstanceId)
+        {
+            if (string.IsNullOrWhiteSpace(passengerInstanceId))
+            {
+                return;
+            }
+
+            PassengerSkillActivated?.Invoke(passengerInstanceId);
         }
 
         public static void RaiseTrainHealed(Vector2 worldPosition)

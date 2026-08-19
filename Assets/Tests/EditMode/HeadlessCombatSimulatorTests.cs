@@ -61,6 +61,19 @@ namespace LastTrain.Tests.EditMode
             StringAssert.Contains("run_index", text);
         }
 
+        [Test]
+        public void RunOnce_DoesNotPlayPastMaxStationIndex()
+        {
+            var config = CreateMinimalConfig(iterations: 1);
+            config.maxStationIndex = 1;
+            config.maxSimulatedSeconds = 90f;
+            var sim = new HeadlessCombatSimulator();
+            BattleSimulationRunResult run = sim.RunOnce(config, _database, seed: 19);
+
+            Assert.Greater(run.SimulatedSeconds, 0.01f);
+            Assert.LessOrEqual(run.ReachedStationIndex, 1);
+        }
+
         private static BattleSimulationConfig CreateMinimalConfig(int iterations)
         {
             var slots = new BattleSimulationSlotConfig[9];

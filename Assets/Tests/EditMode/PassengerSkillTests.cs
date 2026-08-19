@@ -44,6 +44,10 @@ namespace LastTrain.Tests.EditMode
             IPassengerSkill lowHp = PassengerSkillResolver.Create(PassengerSkillIds.LowHpBonus);
             IPassengerSkill interrupt = PassengerSkillResolver.Create(PassengerSkillIds.BossInterrupt);
             IPassengerSkill lucky = PassengerSkillResolver.Create(PassengerSkillIds.LuckyCrit);
+            IPassengerSkill chain = PassengerSkillResolver.Create(PassengerSkillIds.ChainZap);
+            IPassengerSkill scald = PassengerSkillResolver.Create(PassengerSkillIds.ScaldSplash);
+            IPassengerSkill pulse = PassengerSkillResolver.Create(PassengerSkillIds.PerimeterPulse);
+            IPassengerSkill focus = PassengerSkillResolver.Create(PassengerSkillIds.FocusShot);
             IPassengerSkill unknown = PassengerSkillResolver.Create("unknown_skill");
 
             Assert.IsInstanceOf<KnockbackSkill>(knockback);
@@ -54,6 +58,10 @@ namespace LastTrain.Tests.EditMode
             Assert.IsInstanceOf<LowHpBonusSkill>(lowHp);
             Assert.IsInstanceOf<BossInterruptSkill>(interrupt);
             Assert.IsInstanceOf<LuckyCritSkill>(lucky);
+            Assert.IsInstanceOf<ChainZapSkill>(chain);
+            Assert.IsInstanceOf<ScaldSplashSkill>(scald);
+            Assert.IsInstanceOf<PerimeterPulseSkill>(pulse);
+            Assert.IsInstanceOf<FocusShotSkill>(focus);
             Assert.AreSame(NullPassengerSkill.Instance, unknown);
         }
 

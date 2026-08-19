@@ -16,7 +16,8 @@ namespace LastTrain.Release
 
         [Header("Legal")]
         [TextArea(2, 6)]
-        [SerializeField] private string privacyPolicyUrl = "https://example.com/lasttrain/privacy";
+        [SerializeField] private string privacyPolicyUrl =
+            "https://github.com/Yonghyun-Lee-Ryan/Last-Train-Nine-Slot-Defense/blob/develop/Docs/privacy-policy.md";
         [TextArea(2, 6)]
         [SerializeField] private string dataDeletionNotice =
             "앱 데이터 삭제 시 진행도, 메타 보상, 설정이 기기에서 제거됩니다.";

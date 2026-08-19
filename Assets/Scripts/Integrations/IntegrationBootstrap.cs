@@ -2,6 +2,7 @@ using System;
 using LastTrain.Ads;
 using LastTrain.Analytics;
 using LastTrain.Core;
+using LastTrain.Run;
 using UnityEngine;
 
 namespace LastTrain.Integrations
@@ -76,9 +77,9 @@ namespace LastTrain.Integrations
             return coordinator;
         }
 
-        public void NotifyRunCompleted()
+        public void NotifyRunCompleted(RunResult result)
         {
-            Interstitials?.NotifyRunCompleted();
+            Interstitials?.NotifyRunCompleted(result);
         }
 
         public void RefreshRemoteConfig(Action<bool> onFinished = null)

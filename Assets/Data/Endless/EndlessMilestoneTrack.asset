@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 14555f169e6352e40a7bdb7d17488f24, type: 3}
+  m_Name: EndlessMilestoneTrack
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Endless.EndlessMilestoneTrack
+  steps:
+  - id: ms_station_5
+    requiredStation: 5
+    requiredScore: 0
+    ticketFragments: 20
+    accountXp: 0
+  - id: ms_station_10
+    requiredStation: 10
+    requiredScore: 0
+    ticketFragments: 30
+    accountXp: 0
+  - id: ms_station_15
+    requiredStation: 15
+    requiredScore: 0
+    ticketFragments: 40
+    accountXp: 0
+  - id: ms_station_20
+    requiredStation: 20
+    requiredScore: 0
+    ticketFragments: 50
+    accountXp: 0
+  - id: ms_station_30
+    requiredStation: 30
+    requiredScore: 0
+    ticketFragments: 80
+    accountXp: 0
+  - id: ms_score_500
+    requiredStation: 0
+    requiredScore: 500
+    ticketFragments: 20
+    accountXp: 0
+  - id: ms_score_1000
+    requiredStation: 0
+    requiredScore: 1000
+    ticketFragments: 40
+    accountXp: 0
+  - id: ms_score_2000
+    requiredStation: 0
+    requiredScore: 2000
+    ticketFragments: 60
+    accountXp: 0
+  - id: ms_score_4000
+    requiredStation: 0
+    requiredScore: 4000
+    ticketFragments: 80
+    accountXp: 0
+  - id: ms_score_8000
+    requiredStation: 0
+    requiredScore: 8000
+    ticketFragments: 100
+    accountXp: 0

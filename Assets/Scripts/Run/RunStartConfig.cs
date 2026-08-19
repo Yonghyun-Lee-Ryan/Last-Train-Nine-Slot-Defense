@@ -37,6 +37,19 @@ namespace LastTrain.Run
         /// <summary>무한 모드 깊이 Modifier 등 추가 규칙.</summary>
         public Difficulty.DifficultyModifierData[] ExtraDifficultyModifiers { get; set; }
 
+        /// <summary>오늘의 막차 규칙 ID. 일반 회차는 비움.</summary>
+        public string DailyRuleId { get; set; } = string.Empty;
+
+        public string DailyRuleDisplayName { get; set; } = string.Empty;
+
+        /// <summary>-1이면 잠금 좌석 없음.</summary>
+        public int DailyLockedSlotIndex { get; set; } = -1;
+
+        public float DailySummonCostMultiplier { get; set; } = 1f;
+        public float DailyEnemySpeedMultiplier { get; set; } = 1f;
+        public string DailyStartingRelicId { get; set; } = string.Empty;
+        public float DailyPreparationTimeSeconds { get; set; } = -1f;
+
         public static RunStartConfig CreateDefault()
         {
             return new RunStartConfig();
@@ -48,6 +61,17 @@ namespace LastTrain.Run
             {
                 IsDailyRun = true,
                 RandomSeed = seed == 0 ? 1 : seed,
+            };
+        }
+
+        public static RunStartConfig CreateQuickRun(string difficultyId = null)
+        {
+            return new RunStartConfig
+            {
+                LineId = Data.RouteIds.Quick,
+                DifficultyId = string.IsNullOrWhiteSpace(difficultyId)
+                    ? Difficulty.DifficultyIds.Normal
+                    : difficultyId,
             };
         }
 

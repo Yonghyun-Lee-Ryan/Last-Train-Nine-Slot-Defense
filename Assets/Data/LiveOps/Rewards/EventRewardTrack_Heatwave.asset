@@ -19,8 +19,22 @@ MonoBehaviour:
     ticketFragments: 5
     accountXp: 0
     unlockPassengerId: 
+    lane: 0
   - rewardId: reward_50
     requiredCurrency: 50
     ticketFragments: 0
     accountXp: 20
-    unlockPassengerId: passenger_cat 
+    unlockPassengerId: passenger_cat
+    lane: 0
+  - rewardId: ad_reward_10
+    requiredCurrency: 10
+    ticketFragments: 8
+    accountXp: 0
+    unlockPassengerId: 
+    lane: 1
+  - rewardId: ad_reward_50
+    requiredCurrency: 50
+    ticketFragments: 0
+    accountXp: 15
+    unlockPassengerId: 
+    lane: 1

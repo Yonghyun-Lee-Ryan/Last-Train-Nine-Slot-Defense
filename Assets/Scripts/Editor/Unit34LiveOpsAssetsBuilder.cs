@@ -40,15 +40,25 @@ namespace LastTrain.EditorTools
                 {
                     so.FindProperty("id").stringValue = "track_heatwave";
                     var steps = so.FindProperty("steps");
-                    steps.arraySize = 2;
+                    steps.arraySize = 4;
                     steps.GetArrayElementAtIndex(0).FindPropertyRelative("rewardId").stringValue = "reward_10";
                     steps.GetArrayElementAtIndex(0).FindPropertyRelative("requiredCurrency").intValue = 10;
                     steps.GetArrayElementAtIndex(0).FindPropertyRelative("ticketFragments").intValue = 5;
+                    steps.GetArrayElementAtIndex(0).FindPropertyRelative("lane").enumValueIndex = (int)RewardTrackLane.Free;
                     steps.GetArrayElementAtIndex(1).FindPropertyRelative("rewardId").stringValue = "reward_50";
                     steps.GetArrayElementAtIndex(1).FindPropertyRelative("requiredCurrency").intValue = 50;
                     steps.GetArrayElementAtIndex(1).FindPropertyRelative("accountXp").intValue = 20;
                     steps.GetArrayElementAtIndex(1).FindPropertyRelative("unlockPassengerId").stringValue =
                         "passenger_cat";
+                    steps.GetArrayElementAtIndex(1).FindPropertyRelative("lane").enumValueIndex = (int)RewardTrackLane.Free;
+                    steps.GetArrayElementAtIndex(2).FindPropertyRelative("rewardId").stringValue = "ad_reward_10";
+                    steps.GetArrayElementAtIndex(2).FindPropertyRelative("requiredCurrency").intValue = 10;
+                    steps.GetArrayElementAtIndex(2).FindPropertyRelative("ticketFragments").intValue = 8;
+                    steps.GetArrayElementAtIndex(2).FindPropertyRelative("lane").enumValueIndex = (int)RewardTrackLane.Ad;
+                    steps.GetArrayElementAtIndex(3).FindPropertyRelative("rewardId").stringValue = "ad_reward_50";
+                    steps.GetArrayElementAtIndex(3).FindPropertyRelative("requiredCurrency").intValue = 50;
+                    steps.GetArrayElementAtIndex(3).FindPropertyRelative("accountXp").intValue = 15;
+                    steps.GetArrayElementAtIndex(3).FindPropertyRelative("lane").enumValueIndex = (int)RewardTrackLane.Ad;
                 });
 
             LiveEventData evt = CreateAsset<LiveEventData>(

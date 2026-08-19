@@ -1,4 +1,5 @@
 using LastTrain.Battle;
+using LastTrain.Run;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -21,6 +22,11 @@ namespace LastTrain.UI
         public int ArrowCount => _root != null ? _root.childCount : 0;
 
         public bool IsShowing => isActiveAndEnabled && gameObject.activeSelf;
+
+        public static bool ShouldShow(RunPhase phase)
+        {
+            return phase == RunPhase.Preparing;
+        }
 
         public static EnemyPathDirectionView Ensure(RectTransform parent)
         {

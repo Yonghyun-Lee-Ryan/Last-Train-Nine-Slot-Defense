@@ -20,7 +20,7 @@ namespace LastTrain.EditorTools
         {
             int w = tex.width;
             int h = tex.height;
-            float bob = pose == PassengerPose.Idle ? Mathf.Sin(frameIndex * Mathf.PI * 0.5f) * 5f : 0f;
+            float bob = pose == PassengerPose.Idle ? Mathf.Sin(frameIndex * Mathf.PI * 0.5f) * 22f : 0f;
             if (pose == PassengerPose.Merge)
             {
                 bob = Mathf.Sin(frameIndex * Mathf.PI * 0.5f) * 8f;
@@ -237,6 +237,16 @@ namespace LastTrain.EditorTools
                 case "passenger_police":
                     FlatVectorDrawUtility.FillRoundedRect(tex, new RectInt((int)(head.x - 32f * scale), (int)(head.y + 20f * scale), (int)(64f * scale), (int)(16f * scale)), 4, VisualThemePalette.Outline, VisualThemePalette.Outline);
                     break;
+                case "passenger_conductor":
+                    FlatVectorDrawUtility.FillRoundedRect(tex, new RectInt((int)(head.x - 34f * scale), (int)(head.y + 18f * scale), (int)(68f * scale), (int)(16f * scale)), 6, accent, VisualThemePalette.Outline);
+                    FlatVectorDrawUtility.FillRect(tex, new RectInt((int)(head.x - 8f * scale), (int)(head.y + 32f * scale), (int)(16f * scale), (int)(10f * scale)), VisualThemePalette.CoinGold);
+                    break;
+                case "passenger_security":
+                    FlatVectorDrawUtility.FillRoundedRect(tex, new RectInt((int)(head.x - 30f * scale), (int)(head.y + 16f * scale), (int)(60f * scale), (int)(14f * scale)), 4, VisualThemePalette.SeatFrame, VisualThemePalette.Outline);
+                    break;
+                case "passenger_student":
+                    FlatVectorDrawUtility.FillCircle(tex, head + new Vector2(0f, 18f * scale), 32f * scale, hair);
+                    break;
                 case "passenger_cat":
                     FlatVectorDrawUtility.DrawLine(tex, head + new Vector2(-22f, 42f) * scale, head + new Vector2(-10f, 58f) * scale, accent, 5);
                     FlatVectorDrawUtility.DrawLine(tex, head + new Vector2(22f, 42f) * scale, head + new Vector2(10f, 58f) * scale, accent, 5);
@@ -253,9 +263,28 @@ namespace LastTrain.EditorTools
             Vector2 head = center + new Vector2(0f, 38f * scale);
             float eyeY = 6f * scale;
             float eyeOffset = 12f * scale;
+            bool blink = pose == PassengerPose.Idle && frameIndex == 2;
             float eyeR = pose == PassengerPose.Hit ? 7f * scale : 5f * scale;
-            FlatVectorDrawUtility.FillCircle(tex, head + new Vector2(-eyeOffset, eyeY), eyeR, VisualThemePalette.Outline);
-            FlatVectorDrawUtility.FillCircle(tex, head + new Vector2(eyeOffset, eyeY), eyeR, VisualThemePalette.Outline);
+            if (blink)
+            {
+                FlatVectorDrawUtility.DrawLine(
+                    tex,
+                    head + new Vector2(-eyeOffset - 6f * scale, eyeY),
+                    head + new Vector2(-eyeOffset + 6f * scale, eyeY),
+                    VisualThemePalette.Outline,
+                    3);
+                FlatVectorDrawUtility.DrawLine(
+                    tex,
+                    head + new Vector2(eyeOffset - 6f * scale, eyeY),
+                    head + new Vector2(eyeOffset + 6f * scale, eyeY),
+                    VisualThemePalette.Outline,
+                    3);
+            }
+            else
+            {
+                FlatVectorDrawUtility.FillCircle(tex, head + new Vector2(-eyeOffset, eyeY), eyeR, VisualThemePalette.Outline);
+                FlatVectorDrawUtility.FillCircle(tex, head + new Vector2(eyeOffset, eyeY), eyeR, VisualThemePalette.Outline);
+            }
             if (pose == PassengerPose.Hit)
             {
                 FlatVectorDrawUtility.FillCircle(tex, head + new Vector2(-eyeOffset, eyeY + 2f), 2.5f * scale, VisualThemePalette.TextLight);
@@ -286,35 +315,49 @@ namespace LastTrain.EditorTools
             PassengerPose pose,
             int frameIndex)
         {
-            Vector2 hand = center + new Vector2(34f * scale, 18f * scale);
+            Vector2 hand = center + new Vector2(40f * scale, 18f * scale);
+            float p = 1.45f * scale;
             switch (id)
             {
                 case "passenger_office_worker":
-                    FlatVectorDrawUtility.FillRect(tex, new RectInt((int)(center.x - 8f * scale), (int)(center.y + 8f * scale), (int)(16f * scale), (int)(28f * scale)), accent);
-                    FlatVectorDrawUtility.FillRoundedRect(tex, new RectInt((int)(hand.x - 10f), (int)(hand.y - 14f), 20, 24), 4, VisualThemePalette.PanelMid, VisualThemePalette.Outline);
+                    FlatVectorDrawUtility.FillRect(tex, new RectInt((int)(center.x - 10f * p), (int)(center.y + 6f * scale), (int)(20f * p), (int)(32f * p)), accent);
+                    FlatVectorDrawUtility.FillRoundedRect(tex, new RectInt((int)(hand.x - 14f * p), (int)(hand.y - 18f * p), (int)(28f * p), (int)(32f * p)), 5, VisualThemePalette.PanelMid, VisualThemePalette.Outline);
                     break;
                 case "passenger_delivery":
-                    FlatVectorDrawUtility.FillRoundedRect(tex, new RectInt((int)(hand.x - 14f), (int)(hand.y - 10f), 28, 22), 5, accent, VisualThemePalette.Outline);
+                    FlatVectorDrawUtility.FillRoundedRect(tex, new RectInt((int)(hand.x - 18f * p), (int)(hand.y - 14f * p), (int)(36f * p), (int)(28f * p)), 6, accent, VisualThemePalette.Outline);
                     break;
                 case "passenger_trainer":
-                    FlatVectorDrawUtility.FillRoundedRect(tex, new RectInt((int)(hand.x - 16f), (int)(hand.y - 8f), 32, 16), 6, accent, VisualThemePalette.Outline);
-                    FlatVectorDrawUtility.DrawLine(tex, hand + new Vector2(-16f, 0f), hand + new Vector2(16f, 0f), VisualThemePalette.Outline, 3);
+                    FlatVectorDrawUtility.FillRoundedRect(tex, new RectInt((int)(hand.x - 20f * p), (int)(hand.y - 10f * p), (int)(40f * p), (int)(20f * p)), 6, accent, VisualThemePalette.Outline);
+                    FlatVectorDrawUtility.DrawLine(tex, hand + new Vector2(-20f, 0f) * p, hand + new Vector2(20f, 0f) * p, VisualThemePalette.Outline, 4);
                     break;
                 case "passenger_nurse":
-                    FlatVectorDrawUtility.DrawLine(tex, hand + new Vector2(0f, -10f), hand + new Vector2(0f, 10f), VisualThemePalette.TextLight, 4);
-                    FlatVectorDrawUtility.DrawLine(tex, hand + new Vector2(-10f, 0f), hand + new Vector2(10f, 0f), VisualThemePalette.TextLight, 4);
+                    FlatVectorDrawUtility.DrawLine(tex, hand + new Vector2(0f, -14f) * p, hand + new Vector2(0f, 14f) * p, VisualThemePalette.TextLight, 6);
+                    FlatVectorDrawUtility.DrawLine(tex, hand + new Vector2(-14f, 0f) * p, hand + new Vector2(14f, 0f) * p, VisualThemePalette.TextLight, 6);
                     break;
                 case "passenger_developer":
-                    FlatVectorDrawUtility.FillRoundedRect(tex, new RectInt((int)(hand.x - 16f), (int)(hand.y - 12f), 32, 22), 4, VisualThemePalette.PanelDark, VisualThemePalette.Outline);
-                    FlatVectorDrawUtility.FillRect(tex, new RectInt((int)(hand.x - 10f), (int)(hand.y - 6f), 20, 10), accent);
+                    FlatVectorDrawUtility.FillRoundedRect(tex, new RectInt((int)(hand.x - 20f * p), (int)(hand.y - 16f * p), (int)(40f * p), (int)(28f * p)), 5, VisualThemePalette.PanelDark, VisualThemePalette.Outline);
+                    FlatVectorDrawUtility.FillRect(tex, new RectInt((int)(hand.x - 12f * p), (int)(hand.y - 8f * p), (int)(24f * p), (int)(12f * p)), accent);
                     break;
                 case "passenger_graduate":
-                    FlatVectorDrawUtility.FillRect(tex, new RectInt((int)(center.x - 26f * scale), (int)(center.y + 52f * scale), (int)(52f * scale), 6), VisualThemePalette.Outline);
-                    FlatVectorDrawUtility.FillRoundedRect(tex, new RectInt((int)(hand.x - 8f), (int)(hand.y - 14f), 16, 22), 3, VisualThemePalette.TextLight, VisualThemePalette.Outline);
+                    FlatVectorDrawUtility.FillRect(tex, new RectInt((int)(center.x - 30f * p), (int)(center.y + 52f * scale), (int)(60f * p), (int)(8f * p)), VisualThemePalette.Outline);
+                    FlatVectorDrawUtility.FillRoundedRect(tex, new RectInt((int)(hand.x - 12f * p), (int)(hand.y - 18f * p), (int)(24f * p), (int)(28f * p)), 4, VisualThemePalette.TextLight, VisualThemePalette.Outline);
                     break;
                 case "passenger_police":
-                    FlatVectorDrawUtility.FillCircle(tex, hand, 10f, VisualThemePalette.CoinGold);
-                    FlatVectorDrawUtility.DrawOutlineCircle(tex, hand, 10f, VisualThemePalette.Outline, 2);
+                    FlatVectorDrawUtility.FillCircle(tex, hand, 14f * p, VisualThemePalette.CoinGold);
+                    FlatVectorDrawUtility.DrawOutlineCircle(tex, hand, 14f * p, VisualThemePalette.Outline, 3);
+                    break;
+                case "passenger_conductor":
+                    FlatVectorDrawUtility.FillRoundedRect(tex, new RectInt((int)(hand.x - 8f * p), (int)(hand.y - 24f * p), (int)(16f * p), (int)(36f * p)), 4, VisualThemePalette.CoinGold, VisualThemePalette.Outline);
+                    break;
+                case "passenger_barista":
+                    FlatVectorDrawUtility.FillRoundedRect(tex, new RectInt((int)(hand.x - 14f * p), (int)(hand.y - 12f * p), (int)(28f * p), (int)(22f * p)), 6, VisualThemePalette.TextLight, VisualThemePalette.Outline);
+                    FlatVectorDrawUtility.FillRect(tex, new RectInt((int)(hand.x - 5f * p), (int)(hand.y + 8f * p), (int)(10f * p), (int)(10f * p)), accent);
+                    break;
+                case "passenger_security":
+                    FlatVectorDrawUtility.FillRoundedRect(tex, new RectInt((int)(center.x - 34f * p), (int)(center.y + 8f * scale), (int)(68f * p), (int)(14f * p)), 4, VisualThemePalette.WarningOrange, VisualThemePalette.Outline);
+                    break;
+                case "passenger_student":
+                    FlatVectorDrawUtility.FillRoundedRect(tex, new RectInt((int)(hand.x - 16f * p), (int)(hand.y - 20f * p), (int)(32f * p), (int)(26f * p)), 4, VisualThemePalette.WindowGlow, VisualThemePalette.Outline);
                     break;
                 case "passenger_cat":
                     FlatVectorDrawUtility.DrawLine(tex, center + new Vector2(-20f, 24f) * scale, center + new Vector2(-34f, 30f) * scale, VisualThemePalette.Outline, 2);
@@ -331,8 +374,22 @@ namespace LastTrain.EditorTools
         private static void DrawNormalEnemy(Texture2D tex, Vector2 center, Color body, Color accent, bool boss, EnemyPose pose, int frame)
         {
             float r = boss ? 40f : 28f;
-            FlatVectorDrawUtility.FillCircle(tex, center + new Vector2(0f, 20f), r, body);
-            FlatVectorDrawUtility.DrawOutlineCircle(tex, center + new Vector2(0f, 20f), r, VisualThemePalette.Outline, OutlineThickness);
+            int bodyW = boss ? 72 : 52;
+            int bodyH = boss ? 48 : 36;
+            FlatVectorDrawUtility.FillRoundedRect(
+                tex,
+                new RectInt((int)(center.x - bodyW * 0.5f), (int)(center.y - 8f), bodyW, bodyH),
+                12,
+                body,
+                VisualThemePalette.Outline);
+            FlatVectorDrawUtility.FillCircle(tex, center + new Vector2(0f, 22f), r, body);
+            FlatVectorDrawUtility.DrawOutlineCircle(tex, center + new Vector2(0f, 22f), r, VisualThemePalette.Outline, OutlineThickness);
+            FlatVectorDrawUtility.FillRoundedRect(
+                tex,
+                new RectInt((int)(center.x + r * 0.35f), (int)(center.y - 4f), boss ? 22 : 16, boss ? 28 : 20),
+                4,
+                accent,
+                VisualThemePalette.Outline);
             DrawEnemyEyes(tex, center + new Vector2(0f, 28f), pose, accent);
         }
 

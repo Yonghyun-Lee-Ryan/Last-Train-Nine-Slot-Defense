@@ -1,3 +1,4 @@
+using LastTrain.Battle;
 using LastTrain.Data;
 using LastTrain.Enemy;
 using UnityEngine;
@@ -39,6 +40,7 @@ namespace LastTrain.Passenger.Skills
 
             float duration = InterruptDurationSeconds * context.SkillValueMultiplier;
             target.PauseAbilities(duration);
+            CombatVisualEvents.RaisePassengerSkillActivated(context.Runtime.InstanceId);
             _cooldownRemaining = BaseCooldownSeconds;
         }
 

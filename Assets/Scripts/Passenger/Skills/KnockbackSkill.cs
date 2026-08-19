@@ -45,6 +45,7 @@ namespace LastTrain.Passenger.Skills
                 context.TrainTarget,
                 distance);
             CombatVisualEvents.RaiseKnockbackApplied(target.Position);
+            CombatVisualEvents.RaisePassengerSkillActivated(context.Runtime.InstanceId);
 
             _cooldownRemaining = BaseCooldownSeconds;
         }

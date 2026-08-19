@@ -23,6 +23,22 @@ namespace LastTrain.EditorTools
             Validate(strictRelease: !EditorUserBuildSettings.development, throwOnError: false);
         }
 
+        /// <summary>Batchmode: -executeMethod LastTrain.EditorTools.ReleaseBuildValidator.ValidateStrictReleaseBatch</summary>
+        public static void ValidateStrictReleaseBatch()
+        {
+            try
+            {
+                Validate(strictRelease: true, throwOnError: true);
+                Debug.Log("[ReleaseBuildValidator] Batch ValidateStrictRelease OK");
+                EditorApplication.Exit(0);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[ReleaseBuildValidator] Batch failed: " + ex.Message);
+                EditorApplication.Exit(1);
+            }
+        }
+
         public void OnPreprocessBuild(BuildReport report)
         {
             if (report.summary.platform != BuildTarget.Android)
@@ -185,20 +201,22 @@ namespace LastTrain.EditorTools
                 if (string.IsNullOrWhiteSpace(config.PrivacyPolicyUrl)
                     || config.PrivacyPolicyUrl.StartsWith("https://example.com", System.StringComparison.Ordinal))
                 {
-                    warnings.Add("Privacy policy URL is still a placeholder (Play Console 데이터 안전/정책에 실제 URL 필요).");
+                    errors.Add(
+                        "Privacy policy URL이 비어 있거나 example.com placeholder입니다. Soft Launch 전 실제 공개 URL이 필요합니다.");
+                }
+                else if (!config.PrivacyPolicyUrl.StartsWith("https://", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    errors.Add("Privacy policy URL must use https://");
                 }
             }
 
-            AdUnitConfig ads = AssetDatabase.LoadAssetAtPath<AdUnitConfig>("Assets/Data/Integration/AdUnitConfig.asset");
-            if (strictRelease && ads != null)
+            if (strictRelease && !AdMobPrelaunchGuard.TryValidateTrackedAssets(out string adMobError))
             {
-                // Production ID empty면 테스트 ID fallback — 내부테스트는 허용, 경고만
-                string rewarded = ads.GetRewardedUnitId(useTestIds: false);
-                if (rewarded.Contains("3940256099942544"))
-                {
-                    warnings.Add("Release AdUnit이 Google 테스트 ID입니다. 내부테스트 가능, 프로덕션 전 AdMob에 운영 ID를 넣으세요.");
-                }
+                errors.Add(adMobError);
             }
+
+            AppendAdMobSdkChecks(warnings, errors, strictRelease);
+            AppendFirebaseSdkChecks(warnings, errors, strictRelease);
 
             if (strictRelease && !PlayerSettings.Android.useCustomKeystore)
             {
@@ -309,6 +327,102 @@ namespace LastTrain.EditorTools
             if (AssetDatabase.LoadAssetAtPath<SummonEconomyConfig>("Assets/Resources/SummonEconomyConfig.asset") == null)
             {
                 errors.Add("Missing Resources/SummonEconomyConfig.asset — Release에서 소환 패널 DB 폴백 실패 가능.");
+            }
+        }
+
+        private static void AppendAdMobSdkChecks(List<string> warnings, List<string> errors, bool strictRelease)
+        {
+            if (warnings == null || errors == null)
+            {
+                return;
+            }
+
+            string defines = PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Android);
+            bool hasDefine = !string.IsNullOrEmpty(defines)
+                             && defines.Split(';').Any(d =>
+                                 string.Equals(d.Trim(), "LASTTRAIN_ADMOB", StringComparison.Ordinal));
+
+            bool packagePresent = false;
+            foreach (UnityEditor.PackageManager.PackageInfo pkg in UnityEditor.PackageManager.PackageInfo.GetAllRegisteredPackages())
+            {
+                if (pkg != null && string.Equals(pkg.name, "com.google.ads.mobile", StringComparison.Ordinal))
+                {
+                    packagePresent = true;
+                    break;
+                }
+            }
+
+            bool settingsPresent = AssetDatabase.LoadAssetAtPath<ScriptableObject>(
+                                       "Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset") != null;
+
+            if (!packagePresent)
+            {
+                warnings.Add(
+                    "Google Mobile Ads 패키지(com.google.ads.mobile)가 없습니다. " +
+                    "현재 Release는 NoOp로 플레이 가능합니다. Soft Launch 전 OpenUPM에 패키지를 넣고 App ID를 설정하세요.");
+            }
+            else if (!settingsPresent)
+            {
+                errors.Add(
+                    "com.google.ads.mobile이 설치됐지만 GoogleMobileAdsSettings.asset이 없습니다. " +
+                    "Android AAB가 Gradle 실패하거나 기동 크래시할 수 있습니다. App ID를 설정하거나 패키지를 제거하세요.");
+            }
+
+            if (hasDefine && !packagePresent)
+            {
+                errors.Add(
+                    "LASTTRAIN_ADMOB가 켜져 있으나 AdMob 패키지가 없어 Release 컴파일이 실패합니다.");
+            }
+            else if (strictRelease && !hasDefine)
+            {
+                warnings.Add(
+                    "LASTTRAIN_ADMOB define이 없습니다. Soft Launch 전 패키지·App ID 준비 후 Enable LASTTRAIN_ADMOB를 실행하세요.");
+            }
+        }
+
+        private static void AppendFirebaseSdkChecks(List<string> warnings, List<string> errors, bool strictRelease)
+        {
+            if (warnings == null || errors == null)
+            {
+                return;
+            }
+
+            string defines = PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Android);
+            bool hasDefine = !string.IsNullOrEmpty(defines)
+                             && defines.Split(';').Any(d =>
+                                 string.Equals(d.Trim(), "LASTTRAIN_FIREBASE", StringComparison.Ordinal));
+
+            bool hasGoogleServices = File.Exists("Assets/google-services.json")
+                                     || File.Exists("Assets/Plugins/Android/google-services.json");
+            bool hasFirebaseAsm = Type.GetType("Firebase.FirebaseApp, Firebase.App") != null
+                                  || Directory.Exists("Assets/Firebase");
+
+            if (!hasFirebaseAsm)
+            {
+                warnings.Add(
+                    "Firebase Unity SDK가 없습니다. 현재 Release는 Debug/NoOp Analytics·Crashlytics와 RemoteConfigDefaults로 플레이 가능합니다.");
+            }
+
+            if (!hasGoogleServices)
+            {
+                warnings.Add(
+                    "Assets/google-services.json이 없습니다. Soft Launch 전 Firebase Console에서 내려받아 배치하세요.");
+            }
+
+            if (hasDefine && !hasGoogleServices)
+            {
+                errors.Add(
+                    "LASTTRAIN_FIREBASE가 켜져 있으나 google-services.json이 없습니다. Release AAB가 실패하거나 기동이 깨질 수 있습니다.");
+            }
+            else if (hasDefine && !hasFirebaseAsm)
+            {
+                errors.Add(
+                    "LASTTRAIN_FIREBASE가 켜져 있으나 Firebase SDK가 없어 Release 컴파일이 실패합니다.");
+            }
+            else if (strictRelease && !hasDefine)
+            {
+                warnings.Add(
+                    "LASTTRAIN_FIREBASE define이 없습니다. Soft Launch 전 SDK·google-services.json 준비 후 Enable LASTTRAIN_FIREBASE를 실행하세요.");
             }
         }
     }

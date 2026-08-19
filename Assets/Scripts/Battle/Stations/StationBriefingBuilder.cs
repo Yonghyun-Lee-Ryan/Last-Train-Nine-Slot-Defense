@@ -1,12 +1,16 @@
 using System.Collections.Generic;
 using LastTrain.Data;
 using LastTrain.Difficulty;
+using LastTrain.Run;
 
 namespace LastTrain.Battle
 {
     public static class StationBriefingBuilder
     {
-        public static StationBriefing Build(StationData station, DifficultyRuntime difficulty)
+        public static StationBriefing Build(
+            StationData station,
+            DifficultyRuntime difficulty,
+            RunState runState = null)
         {
             var briefing = new StationBriefing();
             if (station == null)
@@ -20,7 +24,7 @@ namespace LastTrain.Battle
                 station.RewardCoins,
                 difficulty);
             briefing.BossPatternHint = station.BossPatternHint ?? string.Empty;
-            briefing.ModifierHint = BuildModifierHint(difficulty);
+            briefing.ModifierHint = BuildModifierHint(difficulty, runState);
 
             if (StationTypeRules.UsesWaveManager(station.StationType))
             {
@@ -116,14 +120,46 @@ namespace LastTrain.Battle
             };
         }
 
-        private static string BuildModifierHint(DifficultyRuntime difficulty)
+        private static string BuildModifierHint(DifficultyRuntime difficulty, RunState runState)
         {
-            if (difficulty == null || difficulty.Id == DifficultyIds.Normal)
+            string difficultyHint = difficulty != null && difficulty.Id != DifficultyIds.Normal
+                ? $"난이도: {difficulty.DisplayName}"
+                : string.Empty;
+            string dailyHint = string.Empty;
+            if (runState != null && runState.IsDailyRun && !string.IsNullOrWhiteSpace(runState.DailyRuleDisplayName))
             {
-                return string.Empty;
+                dailyHint = $"오늘 규칙: {runState.DailyRuleDisplayName}";
+                if (runState.LockedSlotIndex >= 0)
+                {
+                    dailyHint += $" ({runState.LockedSlotIndex + 1}번 칸 잠김)";
+                }
+
+                if (runState.DailyEnemySpeedMultiplier > 1.01f)
+                {
+                    int percent = UnityEngine.Mathf.RoundToInt((runState.DailyEnemySpeedMultiplier - 1f) * 100f);
+                    dailyHint += $" (이속 +{percent}%)";
+                }
+
+                if (UnityEngine.Mathf.Abs(runState.DailySummonCostMultiplier - 1f) > 0.01f)
+                {
+                    int percent = UnityEngine.Mathf.RoundToInt((runState.DailySummonCostMultiplier - 1f) * 100f);
+                    dailyHint += percent < 0
+                        ? $" (소환 {percent}%)"
+                        : $" (소환 +{percent}%)";
+                }
             }
 
-            return $"난이도: {difficulty.DisplayName}";
+            if (string.IsNullOrEmpty(difficultyHint))
+            {
+                return dailyHint;
+            }
+
+            if (string.IsNullOrEmpty(dailyHint))
+            {
+                return difficultyHint;
+            }
+
+            return difficultyHint + " / " + dailyHint;
         }
     }
 }

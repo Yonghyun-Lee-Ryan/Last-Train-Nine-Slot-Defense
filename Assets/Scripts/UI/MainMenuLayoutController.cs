@@ -45,10 +45,9 @@ namespace LastTrain.UI
             _applyRoutine = null;
         }
 
-        private static void ApplyNow()
+        private void ApplyNow()
         {
-            Canvas canvas = FindAnyObjectByType<Canvas>();
-            Transform safeArea = canvas != null ? canvas.transform.Find("SafeArea") : null;
+            Transform safeArea = MainMenuUiLayout.FindOwnedSafeArea(this);
             MainMenuUiLayout.Apply(safeArea);
         }
     }

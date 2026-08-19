@@ -76,6 +76,7 @@ namespace LastTrain.Passenger
                 return false;
             }
 
+            int previousTargetStar = target.StarLevel;
             if (!target.TryUpgradeStar())
             {
                 // 이론상 CanMerge 통과 후 실패하지 않아야 함. 실패 시 원상 복구.
@@ -86,6 +87,13 @@ namespace LastTrain.Passenger
             // 합성 후 공격 쿨타임은 TryUpgradeStar에서 초기화된다.
             runState.RecordMerge(target.StarLevel, target.Data.Id);
             runState.TryPlacePendingPassengers();
+            MergeUndoService.RecordPreparingMerge(
+                runState,
+                sourceSlot,
+                targetSlot,
+                source,
+                target,
+                previousTargetStar);
             GameAudio.PlaySfx(SfxId.Merge);
             Merged?.Invoke(target.StarLevel, target.Data.Id);
 

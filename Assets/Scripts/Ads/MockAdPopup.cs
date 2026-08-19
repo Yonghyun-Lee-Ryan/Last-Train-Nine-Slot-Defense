@@ -1,5 +1,7 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
 using System;
+using LastTrain.Battle;
+using LastTrain.UI;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -13,6 +15,7 @@ namespace LastTrain.Ads
         public static void Show(AdRequest request, Action<AdResult> onFinished)
         {
             Close();
+            BattleSpeedRuntime.BeginAdOverlay();
 
             var root = new GameObject("MockAdPopup", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             var canvas = root.GetComponent<Canvas>();
@@ -56,6 +59,7 @@ namespace LastTrain.Ads
         private static void Finish(AdResult result, Action<AdResult> onFinished)
         {
             Close();
+            BattleSpeedRuntime.RestoreTimeScaleAfterAd();
             onFinished?.Invoke(result);
         }
 
@@ -118,6 +122,7 @@ namespace LastTrain.Ads
 
             Button button = go.AddComponent<Button>();
             button.onClick.AddListener(() => onClick?.Invoke());
+            UiButtonStyler.ApplyStandardTheme(button);
 
             Text text = CreateText(go.transform, "Label", label, 32);
             Stretch(text.rectTransform);

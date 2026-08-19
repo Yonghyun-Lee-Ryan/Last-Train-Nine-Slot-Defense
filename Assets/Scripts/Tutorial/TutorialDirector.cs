@@ -79,6 +79,7 @@ namespace LastTrain.Tutorial
             MetaSaveData meta = MetaSaveSystem.LoadOrCreate();
             if (!TutorialProgressService.ShouldOfferTutorial(meta))
             {
+                TryBeginPostSkipGuide();
                 return;
             }
 
@@ -100,7 +101,7 @@ namespace LastTrain.Tutorial
             _machine.StepStarted += HandleStepStarted;
             _machine.StepCompleted += _ => RefreshOverlay();
             _machine.Completed += HandleFinished;
-            _machine.Skipped += HandleFinished;
+            _machine.Skipped += HandleSkipped;
 
             Bind();
             EnsureOverlay();
@@ -173,7 +174,7 @@ namespace LastTrain.Tutorial
             {
                 _machine.StepStarted -= HandleStepStarted;
                 _machine.Completed -= HandleFinished;
-                _machine.Skipped -= HandleFinished;
+                _machine.Skipped -= HandleSkipped;
             }
         }
 
@@ -194,6 +195,23 @@ namespace LastTrain.Tutorial
             HideOverlay();
             ApplyInputGate();
             Ux.MergeHighlightService.Clear(_gridManager);
+        }
+
+        private void HandleSkipped()
+        {
+            HandleFinished();
+            TryBeginPostSkipGuide();
+        }
+
+        private void TryBeginPostSkipGuide()
+        {
+            PostSkipGuideDirector guide = GetComponent<PostSkipGuideDirector>();
+            if (guide == null)
+            {
+                guide = gameObject.AddComponent<PostSkipGuideDirector>();
+            }
+
+            guide.TryBegin();
         }
 
         private void HandleStationCompleted(StationData _)
@@ -279,19 +297,35 @@ namespace LastTrain.Tutorial
             }
 
             _overlayRoot = UI.MenuOverlayUi.CreateRoot("TutorialOverlay", sortingOrder: 4500);
+            CanvasGroup rootGroup = _overlayRoot.GetComponent<CanvasGroup>();
+            if (rootGroup == null)
+            {
+                rootGroup = _overlayRoot.AddComponent<CanvasGroup>();
+            }
+
+            rootGroup.blocksRaycasts = false;
+            rootGroup.interactable = true;
+
             RectTransform host = UI.MenuOverlayUi.EnsureSafeAreaHost(_overlayRoot.transform);
             GameObject box = UI.MenuOverlayUi.CreatePanel(
                 host,
                 "Box",
                 new Color(0.08f, 0.12f, 0.18f, 0.94f));
             RectTransform boxRect = box.GetComponent<RectTransform>();
-            boxRect.anchorMin = new Vector2(0.06f, 0.62f);
+            boxRect.anchorMin = new Vector2(0.06f, 0.72f);
             boxRect.anchorMax = new Vector2(0.94f, 0.96f);
             boxRect.offsetMin = Vector2.zero;
             boxRect.offsetMax = Vector2.zero;
 
-            // 하단만 가리고 전투/그리드는 보이도록 Dim은 반투명 상단 바만 사용
-            box.AddComponent<CanvasGroup>().blocksRaycasts = true;
+            CanvasGroup boxGroup = box.GetComponent<CanvasGroup>();
+            if (boxGroup == null)
+            {
+                boxGroup = box.AddComponent<CanvasGroup>();
+            }
+
+            boxGroup.blocksRaycasts = true;
+            boxGroup.interactable = true;
+            boxGroup.ignoreParentGroups = true;
 
             _titleLabel = UI.MenuOverlayUi.CreateText(box.transform, "Title", string.Empty, 32, TextAnchor.UpperLeft);
             RectTransform titleRect = _titleLabel.rectTransform;
@@ -379,8 +413,13 @@ namespace LastTrain.Tutorial
             RestoreHighlight();
             if (_overlayRoot != null)
             {
-                Destroy(_overlayRoot);
+                GameObject root = _overlayRoot;
                 _overlayRoot = null;
+                _titleLabel = null;
+                _bodyLabel = null;
+                _ackButton = null;
+                _skipButton = null;
+                UI.MenuOverlayUi.DestroyRoot(root);
             }
         }
 

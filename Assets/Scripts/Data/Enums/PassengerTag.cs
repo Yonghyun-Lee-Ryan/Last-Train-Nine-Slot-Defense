@@ -33,6 +33,18 @@ namespace LastTrain.Data
         LawEnforcement = 1 << 6,
 
         /// <summary>행운·특수 (고양이)</summary>
-        Lucky = 1 << 7
+        Lucky = 1 << 7,
+
+        /// <summary>교통·운행 (승무원)</summary>
+        Transit = 1 << 8,
+
+        /// <summary>서비스·응대 (바리스타)</summary>
+        Service = 1 << 9,
+
+        /// <summary>경비·경계 (경비원)</summary>
+        Security = 1 << 10,
+
+        /// <summary>통학·수험 (수험생)</summary>
+        Commute = 1 << 11
     }
 }

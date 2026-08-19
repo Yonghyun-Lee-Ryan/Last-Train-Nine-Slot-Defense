@@ -14,9 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Tutorial.TutorialStepData
   id: step_ability
   stepKind: 6
-  title: "\uB2A5\uB825 \uCE74\uB4DC"
-  body: "\uB2A5\uB825 \uCE74\uB4DC 3\uC7A5 \uC911 \uD558\uB098\uB97C \uC120\uD0DD\uD558\uC138\uC694."
+  title: "\uB2A5\uB825\u00B7\uBCF4\uC0C1"
+  body: "\uC5ED\uC744 \uD074\uB9AC\uC5B4\uD558\uBA74 \uBCF4\uC0C1\uC744 \uBC1B\uACE0,
+    \uB2A5\uB825 \uCE74\uB4DC \uC911 \uD558\uB098\uB97C \uACE0\uB974\uC138\uC694."
   waitEvent: 7
   uiTargetId: AbilityPanel
-  allowedInputs: 40
+  allowedInputs: 47
   showSkipButton: 1

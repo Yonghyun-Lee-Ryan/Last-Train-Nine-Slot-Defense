@@ -19,6 +19,7 @@ namespace LastTrain.Shop
         private readonly GameDatabase _database;
         private readonly RelicManager _relicManager;
         private readonly RandomService _random;
+        private int _adRefreshSalt;
 
         public ShopService(
             RunState runState,
@@ -110,9 +111,49 @@ namespace LastTrain.Shop
             _runState.Battle.SetPhase(RunPhase.Preparing);
         }
 
+        /// <summary>광고 보상으로 상점 상품을 다시 뽑는다. 구매 상태도 초기화된다.</summary>
+        public bool TryRefreshOffersFromAd()
+        {
+            if (!_runState.Shop.IsActive || _runState.Shop.IsResolved)
+            {
+                return false;
+            }
+
+            StationData station = null;
+            if (_database != null
+                && !string.IsNullOrWhiteSpace(_runState.Shop.StationId)
+                && _database.TryGetStation(_runState.Shop.StationId, out StationData byId))
+            {
+                station = byId;
+            }
+
+            if (station == null && _database != null)
+            {
+                _database.TryGetStationByIndex(_runState.Shop.StationIndex, out station);
+            }
+
+            int stationIndex = station?.StationIndex ?? _runState.Shop.StationIndex;
+            string stationId = station?.Id ?? _runState.Shop.StationId;
+            _adRefreshSalt++;
+            unchecked
+            {
+                _random.Reseed(CreateSeed(_runState, stationIndex) + (_adRefreshSalt * 7919));
+            }
+
+            List<ShopOffer> offers = BuildOffers(stationIndex);
+            _runState.Shop.Begin(stationId, stationIndex, offers);
+            return true;
+        }
+
         public List<ShopOffer> GenerateOffers(StationData station)
         {
-            _random.Reseed(CreateSeed(_runState, station?.StationIndex ?? 0));
+            int stationIndex = station?.StationIndex ?? 0;
+            _random.Reseed(CreateSeed(_runState, stationIndex));
+            return BuildOffers(stationIndex);
+        }
+
+        private List<ShopOffer> BuildOffers(int stationIndex)
+        {
             var offers = new List<ShopOffer>(OfferCount);
             var usedTypes = new HashSet<ShopItemType>();
 
@@ -132,7 +173,7 @@ namespace LastTrain.Shop
             {
                 ShopItemType type = PickType(pool, usedTypes);
                 usedTypes.Add(type);
-                offers.Add(CreateOffer(type, i, station?.StationIndex ?? 0));
+                offers.Add(CreateOffer(type, i, stationIndex));
             }
 
             return offers;

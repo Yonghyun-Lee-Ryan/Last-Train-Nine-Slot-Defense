@@ -40,6 +40,7 @@ namespace LastTrain.Passenger.Skills
                 context.RangeInWorldUnits,
                 TurretAttackInterval);
 
+            LastTrain.Battle.CombatVisualEvents.RaisePassengerSkillActivated(context.Runtime.InstanceId);
             _cooldownRemaining = BaseCooldownSeconds;
         }
     }

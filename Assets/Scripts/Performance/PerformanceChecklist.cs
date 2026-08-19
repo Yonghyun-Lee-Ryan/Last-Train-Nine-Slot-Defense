@@ -39,6 +39,7 @@ namespace LastTrain.Performance
             "4. 무한 모드 50역 EditMode 테스트(EndlessPerformanceTests) 통과",
             "5. 저장 중 강제 종료 후 .bak 복원 시나리오(SaveStabilityTests) 통과",
             "6. LowFx / 피해숫자 OFF 시 FloatingText·VFX 할당 감소 확인",
+            "7. Unit 54: 저사양 60 FPS 목표, LowEndFramePolicy 권고, SoftLaunchBalanceGate 통과",
         };
 
         public static string BuildReport()

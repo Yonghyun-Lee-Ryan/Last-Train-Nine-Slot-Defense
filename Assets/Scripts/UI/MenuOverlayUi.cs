@@ -137,7 +137,7 @@ namespace LastTrain.UI
 
         public static readonly Color OverlayFill = new Color(0.14f, 0.18f, 0.26f, 0.98f);
         public const float OverlayPad = 40f;
-        public const float OverlayTitleHeight = 52f;
+        public const float OverlayTitleHeight = 64f;
         public const float OverlayCloseHeight = 64f;
         public static readonly Vector2 OverlaySizeStandard = new Vector2(920f, 1320f);
         public static readonly Vector2 OverlaySizeTall = new Vector2(920f, 1480f);
@@ -175,9 +175,9 @@ namespace LastTrain.UI
             return title;
         }
 
-        public static Button CreateOverlayClose(Transform box, System.Action onClose, float width = 560f)
+        public static Button CreateOverlayClose(Transform box, System.Action onClose, float width = UiButtonStyler.OverlayActionWidth)
         {
-            Button close = CreateLayoutButton(box, "Close", "닫기", OverlayCloseHeight, onClose);
+            Button close = CreateLayoutButton(box, "Close", "닫기", OverlayCloseHeight, onClose, 30, width);
             UiButtonStyler.ApplyStandardTheme(close);
             RectTransform rect = close.GetComponent<RectTransform>();
             rect.anchorMin = new Vector2(0.5f, 0f);
@@ -366,12 +366,14 @@ namespace LastTrain.UI
             string label,
             float height,
             System.Action onClick,
-            int fontSize = 30)
+            int fontSize = 30,
+            float preferredWidth = -1f)
         {
             GameObject go = CreatePanel(parent, name, Color.white);
             RectTransform rect = go.GetComponent<RectTransform>();
             UiLayoutUtility.ResetForVerticalLayout(rect, height);
-            UiLayoutUtility.EnsureLayoutElement(go, height);
+            float flex = preferredWidth >= 0f ? 0f : 1f;
+            UiLayoutUtility.EnsureLayoutElement(go, height, flex, preferredWidth);
 
             Button button = go.AddComponent<Button>();
             button.onClick.AddListener(() => onClick?.Invoke());

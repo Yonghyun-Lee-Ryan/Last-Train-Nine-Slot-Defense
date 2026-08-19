@@ -66,6 +66,7 @@ namespace LastTrain.Passenger
                 return false;
             }
 
+            MergeUndoService.Clear();
             runState.RecordPassengerSold();
             if (coinsGained > 0)
             {

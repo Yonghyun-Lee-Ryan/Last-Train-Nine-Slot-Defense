@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7ffc37915cc50d4a910fb3edbcb2270, type: 3}
+  m_Name: DailyRule_daily_rule_cheap_summon
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Data.DailyRuleData
+  id: daily_rule_cheap_summon
+  displayName: "\uB9C9\uCC28 \uD560\uC778"
+  description: "\uC18C\uD658 \uBE44\uC6A9 -25%."
+  kind: 2
+  magnitude: 0.75
+  targetId: 

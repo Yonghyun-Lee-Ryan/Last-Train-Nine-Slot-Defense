@@ -126,6 +126,14 @@ namespace LastTrain.Run
             UpdateHighestStar(starLevel);
         }
 
+        public void UnrecordMerge()
+        {
+            if (MergeCount > 0)
+            {
+                MergeCount--;
+            }
+        }
+
         public void RecordMerge(int resultingStarLevel, string passengerId = null)
         {
             MergeCount++;

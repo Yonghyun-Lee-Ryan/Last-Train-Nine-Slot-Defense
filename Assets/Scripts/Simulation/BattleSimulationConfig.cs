@@ -25,7 +25,11 @@ namespace LastTrain.Simulation
         public BattleSimulationSlotConfig[] slots = new BattleSimulationSlotConfig[9];
         public string[] abilityIds = Array.Empty<string>();
         public string difficultyId = "normal";
+        public string lineId = string.Empty;
         public bool autoContinueAbilityRewards = true;
+        public bool isDailyRun;
+        public bool isEndlessRun;
+        public string dailyRuleId = string.Empty;
     }
 
     public sealed class BattleSimulationRunResult

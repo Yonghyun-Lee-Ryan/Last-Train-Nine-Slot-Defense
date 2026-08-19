@@ -1,5 +1,8 @@
 using System;
+using LastTrain.Battle;
+using LastTrain.Core;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace LastTrain.Ads
 {
@@ -48,9 +51,29 @@ namespace LastTrain.Ads
 #endif
         }
 
-        public void ShowInterstitial(AdRequest request, Action<AdResult> onFinished)
+        public void ShowInterstitial(Action<AdResult> onFinished)
         {
-            ShowRewardedAd(request, onFinished);
+            if (ForceNotReady)
+            {
+                onFinished?.Invoke(AdResult.NotReady);
+                return;
+            }
+
+            string activeScene = SceneManager.GetActiveScene().name;
+            if (string.Equals(activeScene, SceneNames.Game, StringComparison.Ordinal)
+                || AppRoot.Instance?.GameSession?.HasActiveRun == true)
+            {
+                onFinished?.Invoke(AdResult.NotReady);
+                return;
+            }
+
+            if (AutoResult.HasValue)
+            {
+                onFinished?.Invoke(AutoResult.Value);
+                return;
+            }
+
+            onFinished?.Invoke(AdResult.Completed);
         }
     }
 
@@ -64,7 +87,7 @@ namespace LastTrain.Ads
             onFinished?.Invoke(AdResult.NotReady);
         }
 
-        public void ShowInterstitial(AdRequest request, Action<AdResult> onFinished)
+        public void ShowInterstitial(Action<AdResult> onFinished)
         {
             onFinished?.Invoke(AdResult.NotReady);
         }

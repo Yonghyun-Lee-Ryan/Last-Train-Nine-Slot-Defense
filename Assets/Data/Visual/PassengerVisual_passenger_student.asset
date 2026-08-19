@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d591e83b0883f246b2337189dc714d2, type: 3}
+  m_Name: PassengerVisual_passenger_student
+  m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Data.PassengerVisualSet
+  id: passenger_student
+  portrait: {fileID: 21300000, guid: 51e886e695d10604981f7b04ae6be58b, type: 3}
+  idle:
+    frames:
+    - {fileID: -1629754927, guid: 97b3e299540645c44822a545cd43e562, type: 3}
+    - {fileID: -162092172, guid: 97b3e299540645c44822a545cd43e562, type: 3}
+    - {fileID: 1550930407, guid: 97b3e299540645c44822a545cd43e562, type: 3}
+    - {fileID: 1157869206, guid: 97b3e299540645c44822a545cd43e562, type: 3}
+    framesPerSecond: 8
+    loop: 1
+  attack:
+    frames:
+    - {fileID: -1703046615, guid: cec0a1c57349beb4db560d6c1bd73666, type: 3}
+    - {fileID: 925380214, guid: cec0a1c57349beb4db560d6c1bd73666, type: 3}
+    - {fileID: 253443917, guid: cec0a1c57349beb4db560d6c1bd73666, type: 3}
+    - {fileID: 1928797751, guid: cec0a1c57349beb4db560d6c1bd73666, type: 3}
+    framesPerSecond: 8
+    loop: 0
+  skill:
+    frames:
+    - {fileID: 1588272693, guid: ecd552985ca81df48acaffe86f7443c9, type: 3}
+    - {fileID: 750734325, guid: ecd552985ca81df48acaffe86f7443c9, type: 3}
+    - {fileID: 1991505076, guid: ecd552985ca81df48acaffe86f7443c9, type: 3}
+    - {fileID: -782874409, guid: ecd552985ca81df48acaffe86f7443c9, type: 3}
+    framesPerSecond: 8
+    loop: 0
+  merge:
+    frames:
+    - {fileID: -1722929128, guid: c0ff8545968d9bc43a8ba8a37feb04dc, type: 3}
+    - {fileID: 472243075, guid: c0ff8545968d9bc43a8ba8a37feb04dc, type: 3}
+    - {fileID: -1994233522, guid: c0ff8545968d9bc43a8ba8a37feb04dc, type: 3}
+    - {fileID: 952173035, guid: c0ff8545968d9bc43a8ba8a37feb04dc, type: 3}
+    framesPerSecond: 8
+    loop: 0
+  hit:
+    frames:
+    - {fileID: -694613444, guid: 8b7d3eec8e35b16419d73401c6f6d449, type: 3}
+    - {fileID: 1965803748, guid: 8b7d3eec8e35b16419d73401c6f6d449, type: 3}
+    - {fileID: 1123187581, guid: 8b7d3eec8e35b16419d73401c6f6d449, type: 3}
+    - {fileID: 221873611, guid: 8b7d3eec8e35b16419d73401c6f6d449, type: 3}
+    framesPerSecond: 8
+    loop: 0
+  accentColor: {r: 0.05490196, g: 0.64705884, b: 0.9137255, a: 1}

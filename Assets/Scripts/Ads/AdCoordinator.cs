@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using LastTrain.Analytics;
+using LastTrain.Battle;
 using LastTrain.Core;
 using LastTrain.Run;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace LastTrain.Ads
 {
@@ -104,6 +106,48 @@ namespace LastTrain.Ads
             }, onFinished);
         }
 
+        /// <summary>전면 광고. Result 화면·비전투 중에만 호출한다.</summary>
+        public void ShowInterstitial(Action<AdResult> onFinished = null)
+        {
+            if (_isShowing)
+            {
+                onFinished?.Invoke(AdResult.Failed);
+                return;
+            }
+
+            if (AppRoot.Instance?.GameSession?.HasActiveRun == true)
+            {
+                onFinished?.Invoke(AdResult.NotReady);
+                return;
+            }
+
+            if (!string.Equals(SceneManager.GetActiveScene().name, SceneNames.Result, StringComparison.Ordinal))
+            {
+                onFinished?.Invoke(AdResult.NotReady);
+                return;
+            }
+
+            BattleSpeedRuntime.BeginAdOverlay();
+            bool audioPausedBefore = AudioListener.pause;
+
+            void Finish(AdResult result)
+            {
+                BattleSpeedRuntime.RestoreTimeScaleAfterAd();
+                AudioListener.pause = audioPausedBefore;
+                onFinished?.Invoke(result);
+            }
+
+            try
+            {
+                _adService.ShowInterstitial(Finish);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                Finish(AdResult.Failed);
+            }
+        }
+
         private void BeginShow(
             RewardedAdPlacement placement,
             Func<AdRequest, AdResult> onCompletedGrant,
@@ -136,6 +180,15 @@ namespace LastTrain.Ads
             _isShowing = true;
             TrackAd(AnalyticsEventNames.RewardedAdStarted, placement, request.RequestId);
 
+            BattleSpeedRuntime.BeginAdOverlay();
+            bool audioPausedBefore = AudioListener.pause;
+
+            void RestorePlaybackState()
+            {
+                BattleSpeedRuntime.RestoreTimeScaleAfterAd();
+                AudioListener.pause = audioPausedBefore;
+            }
+
             try
             {
                 _adService.ShowRewardedAd(request, result =>
@@ -156,6 +209,7 @@ namespace LastTrain.Ads
                     }
                     finally
                     {
+                        RestorePlaybackState();
                         _isShowing = false;
                         TrackAdResult(placement, request.RequestId, finalResult);
                         RewardedShowFinished?.Invoke(finalResult);
@@ -167,6 +221,7 @@ namespace LastTrain.Ads
             {
                 Debug.LogException(e);
                 _isShowing = false;
+                RestorePlaybackState();
                 TrackAd(AnalyticsEventNames.RewardedAdFailed, placement, request.RequestId, "exception");
                 onFinished?.Invoke(AdResult.Failed);
             }

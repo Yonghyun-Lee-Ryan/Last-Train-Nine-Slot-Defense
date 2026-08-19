@@ -23,6 +23,7 @@ namespace LastTrain.Tests.EditMode
             TutorialProgressService.MarkSkipped(meta);
             Assert.IsFalse(TutorialProgressService.ShouldOfferTutorial(meta));
             Assert.IsTrue(TutorialProgressService.CanRestart(meta));
+            Assert.IsTrue(PostSkipGuideService.ShouldShow(meta));
         }
 
         [Test]

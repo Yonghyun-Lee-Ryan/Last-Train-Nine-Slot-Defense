@@ -88,6 +88,9 @@ Desktop.ini
 # Local simulation outputs
 SimResults/
 
+# Unity batchmode test outputs
+TestResults/
+
 # Temporary audio download/extract cache
 _tmp_audio/
 
@@ -99,6 +102,11 @@ _tmp_audio/
 keystore.properties
 signing.properties
 local.properties
+
+# Local AdMob production IDs — never push to GitHub
+**/AdMob.local.*
+**/AdUnitConfig.local.*
+**/GoogleMobileAdsSettings.local.*
 
 # Legacy Flash/ActionScript (existing project entries)
 bin-debug/

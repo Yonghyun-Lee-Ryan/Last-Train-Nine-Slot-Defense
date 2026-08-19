@@ -9,11 +9,13 @@ namespace LastTrain.Data
         [SerializeField] private string id = RouteIds.Default;
         [SerializeField] private string displayName = "기본 노선";
         [SerializeField] private StationData[] stationsInOrder = System.Array.Empty<StationData>();
+        [SerializeField] private float rewardMultiplier = 1f;
 
         public string Id => id;
         public string DisplayName => displayName;
         public StationData[] StationsInOrder => stationsInOrder ?? System.Array.Empty<StationData>();
         public int StationCount => StationsInOrder.Length;
+        public float RewardMultiplier => rewardMultiplier > 0.01f ? rewardMultiplier : 1f;
 
         public bool TryGetStationByIndex(int stationIndex, out StationData station)
         {

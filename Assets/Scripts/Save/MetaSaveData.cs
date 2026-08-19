@@ -7,7 +7,7 @@ namespace LastTrain.Save
     [Serializable]
     public sealed class MetaSaveData
     {
-        public const int CurrentVersion = 2;
+        public const int CurrentVersion = 4;
 
         public int version = CurrentVersion;
 
@@ -50,11 +50,14 @@ namespace LastTrain.Save
         public int endlessBestStationReached;
         public string endlessBestRunId = string.Empty;
         public string[] endlessSubmittedRunIds = Array.Empty<string>();
+        public string[] endlessClaimedMilestoneIds = Array.Empty<string>();
 
         // Unit 30: 튜토리얼
         public bool tutorialCompleted;
         public bool tutorialSkipped;
         public int tutorialStepIndex;
+        /// <summary>Unit 45: 스킵 후 Ready/Summon 가이드를 이미 보여줬는지.</summary>
+        public bool tutorialPostSkipGuideDone;
 
         // Unit 34: 시즌·라이브 이벤트 진행 (기본 진행과 분리)
         public LiveOps.LiveEventProgress[] liveEventProgresses = Array.Empty<LiveOps.LiveEventProgress>();
@@ -97,6 +100,7 @@ namespace LastTrain.Save
             anonymousUserId ??= string.Empty;
             endlessBestRunId ??= string.Empty;
             endlessSubmittedRunIds ??= Array.Empty<string>();
+            endlessClaimedMilestoneIds ??= Array.Empty<string>();
             liveEventProgresses ??= Array.Empty<LiveOps.LiveEventProgress>();
             attendanceLastClaimLocalDate ??= string.Empty;
             attendanceLastAdBonusLocalDate ??= string.Empty;

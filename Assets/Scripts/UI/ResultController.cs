@@ -1,7 +1,9 @@
+using System;
 using LastTrain.Ads;
 using LastTrain.Core;
 using LastTrain.Data;
 using LastTrain.Difficulty;
+using LastTrain.Integrations;
 using LastTrain.Release;
 using LastTrain.Run;
 using LastTrain.Save;
@@ -84,7 +86,11 @@ namespace LastTrain.UI
             {
                 RunResult last = appRoot.GameSession.LastResult;
                 RunStartConfig config;
-                if (last != null && last.IsEndlessRun)
+                if (last != null && string.Equals(last.LineId, RouteIds.Quick, StringComparison.Ordinal))
+                {
+                    config = RunStartConfig.CreateQuickRun(last.DifficultyId);
+                }
+                else if (last != null && last.IsEndlessRun)
                 {
                     config = RunStartConfig.CreateEndlessRun(last.DifficultyId);
                 }
@@ -237,6 +243,8 @@ namespace LastTrain.UI
                 MetaSaveData meta = MetaSaveSystem.LoadOrCreate();
                 InAppReviewPromptService.TryPrompt(meta);
             }
+
+            AppRoot.Instance?.Integrations?.Interstitials?.TryShowAfterRunEnded();
         }
 
         private void PlayUnlockPresentation(GameDatabase database)

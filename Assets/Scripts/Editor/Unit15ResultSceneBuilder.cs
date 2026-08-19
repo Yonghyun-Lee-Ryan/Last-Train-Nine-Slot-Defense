@@ -28,12 +28,12 @@ namespace LastTrain.EditorTools
 
             var scene = EditorSceneManager.OpenScene(ResultScenePath, OpenSceneMode.Single);
 
-            var controller = SceneBuilderCleanup.FindFirstInScene<ResultPlaceholderController>(scene);
+            var controller = SceneBuilderCleanup.FindFirstInScene<ResultController>(scene);
             if (controller == null)
             {
                 EditorUtility.DisplayDialog(
                     "오류",
-                    "ResultPlaceholderController를 찾지 못했습니다. 먼저 개발 단위 1 Scene 생성을 실행하세요.",
+                    "ResultController를 찾지 못했습니다. 먼저 개발 단위 1 Scene 생성을 실행하세요.",
                     "확인");
                 return;
             }

@@ -50,6 +50,9 @@ namespace LastTrain.Data
         [Header("Tutorial")]
         [SerializeField] private Tutorial.TutorialStepData[] tutorialSteps;
 
+        [Header("Daily Rules")]
+        [SerializeField] private DailyRuleData[] dailyRules;
+
         public IReadOnlyList<PassengerData> Passengers => passengers;
         public IReadOnlyList<EnemyData> Enemies => enemies;
         public IReadOnlyList<WaveData> Waves => waves;
@@ -63,9 +66,13 @@ namespace LastTrain.Data
         public IReadOnlyList<Mission.MissionData> Missions => missions;
         public EndlessRouteData EndlessRoute => endlessRoute;
         public IReadOnlyList<Tutorial.TutorialStepData> TutorialSteps => tutorialSteps;
+        public IReadOnlyList<DailyRuleData> DailyRules => dailyRules ?? System.Array.Empty<DailyRuleData>();
 
         public bool TryGetEvent(string id, out EventData data) =>
             TryFindById(events, id, out data);
+
+        public bool TryGetDailyRule(string id, out DailyRuleData data) =>
+            TryFindById(dailyRules, id, out data);
 
         public bool TryGetPassenger(string id, out PassengerData data) =>
             TryFindById(passengers, id, out data);
@@ -190,6 +197,7 @@ namespace LastTrain.Data
             ValidateCategory("Route", routes);
             ValidateCategory("Event", events);
             ValidateCategory("Mission", missions);
+            ValidateCategory("DailyRule", dailyRules);
 
             ValidateStationIndices();
             ValidateAlphaContentCounts();

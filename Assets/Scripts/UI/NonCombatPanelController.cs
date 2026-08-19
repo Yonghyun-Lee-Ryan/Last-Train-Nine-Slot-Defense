@@ -733,9 +733,7 @@ namespace LastTrain.UI
             Image image = go.GetComponent<Image>();
             if (useCardFrame && theme?.CardFrame != null)
             {
-                image.sprite = theme.CardFrame;
-                image.type = Image.Type.Sliced;
-                image.color = Color.white;
+                UiButtonStyler.ApplySlicedPanel(image, theme.CardFrame);
             }
             else if (!useCardFrame)
             {

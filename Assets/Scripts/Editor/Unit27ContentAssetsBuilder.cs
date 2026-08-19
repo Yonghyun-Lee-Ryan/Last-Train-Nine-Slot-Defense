@@ -78,8 +78,8 @@ namespace LastTrain.EditorTools
             }
 
             var so = new SerializedObject(database);
-            Assign(so, "relics", relics);
-            Assign(so, "events", events);
+            MergeById(so, "relics", relics);
+            MergeById(so, "events", events);
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(database);
         }
@@ -196,13 +196,47 @@ namespace LastTrain.EditorTools
             }
         }
 
-        private static void Assign<T>(SerializedObject so, string propertyName, IReadOnlyList<T> items) where T : Object
+        private static void MergeById<T>(SerializedObject so, string propertyName, IReadOnlyList<T> created)
+            where T : Object, IDataWithId
         {
             SerializedProperty array = so.FindProperty(propertyName);
-            array.arraySize = items.Count;
-            for (int i = 0; i < items.Count; i++)
+            var existingIds = new HashSet<string>();
+            for (int i = 0; i < array.arraySize; i++)
             {
-                array.GetArrayElementAtIndex(i).objectReferenceValue = items[i];
+                if (array.GetArrayElementAtIndex(i).objectReferenceValue is IDataWithId withId
+                    && !string.IsNullOrWhiteSpace(withId.Id))
+                {
+                    existingIds.Add(withId.Id);
+                }
+            }
+
+            for (int i = 0; i < created.Count; i++)
+            {
+                T item = created[i];
+                if (item == null || string.IsNullOrWhiteSpace(item.Id))
+                {
+                    continue;
+                }
+
+                if (existingIds.Contains(item.Id))
+                {
+                    for (int j = 0; j < array.arraySize; j++)
+                    {
+                        if (array.GetArrayElementAtIndex(j).objectReferenceValue is IDataWithId withId
+                            && withId.Id == item.Id)
+                        {
+                            array.GetArrayElementAtIndex(j).objectReferenceValue = item;
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    int index = array.arraySize;
+                    array.arraySize++;
+                    array.GetArrayElementAtIndex(index).objectReferenceValue = item;
+                    existingIds.Add(item.Id);
+                }
             }
         }
 

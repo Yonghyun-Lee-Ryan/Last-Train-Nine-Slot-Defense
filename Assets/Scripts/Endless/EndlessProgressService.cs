@@ -153,7 +153,7 @@ namespace LastTrain.Endless
             }
 
             LeaderboardRunRecord record = BuildRecord(meta, result, runState, score);
-            ILeaderboardService service = leaderboard ?? new MockLeaderboardService();
+            ILeaderboardService service = leaderboard ?? new LocalLeaderboardService();
             LeaderboardSubmitResult submit = service.Submit(record);
             if (submit == LeaderboardSubmitResult.Success)
             {
@@ -190,6 +190,67 @@ namespace LastTrain.Endless
             sb.Append(';').Append(result.DifficultyId);
             sb.Append(';').Append(result.EndReason);
             return sb.ToString();
+        }
+
+        public static bool HasClaimedMilestone(MetaSaveData meta, string milestoneId)
+        {
+            if (meta?.endlessClaimedMilestoneIds == null || string.IsNullOrWhiteSpace(milestoneId))
+            {
+                return false;
+            }
+
+            for (int i = 0; i < meta.endlessClaimedMilestoneIds.Length; i++)
+            {
+                if (string.Equals(meta.endlessClaimedMilestoneIds[i], milestoneId, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public static bool IsMilestoneReached(MetaSaveData meta, EndlessMilestoneStep step)
+        {
+            if (meta == null || step == null)
+            {
+                return false;
+            }
+
+            if (step.requiredStation > 0 && meta.endlessBestStationReached >= step.requiredStation)
+            {
+                return true;
+            }
+
+            return step.requiredScore > 0 && meta.endlessBestScore >= step.requiredScore;
+        }
+
+        public static bool TryClaimMilestone(MetaSaveData meta, EndlessMilestoneStep step)
+        {
+            if (meta == null || step == null || string.IsNullOrWhiteSpace(step.id))
+            {
+                return false;
+            }
+
+            meta.EnsureDefaults();
+            if (!IsMilestoneReached(meta, step) || HasClaimedMilestone(meta, step.id))
+            {
+                return false;
+            }
+
+            if (!MetaProgressionService.TryGrantLiveEventReward(
+                    meta,
+                    step.ticketFragments,
+                    step.accountXp,
+                    string.Empty))
+            {
+                return false;
+            }
+
+            var list = new List<string>(meta.endlessClaimedMilestoneIds ?? Array.Empty<string>());
+            list.Add(step.id);
+            meta.endlessClaimedMilestoneIds = list.ToArray();
+            return true;
         }
     }
 }

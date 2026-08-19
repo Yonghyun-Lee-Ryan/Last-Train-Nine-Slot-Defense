@@ -14,9 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Tutorial.TutorialStepData
   id: step_place
   stepKind: 1
-  title: "\uC2B9\uAC1D \uBC30\uCE58"
-  body: "\uD6C4\uBCF4 \uC911 \uD558\uB098\uB97C \uC120\uD0DD\uD574 \uBE48 \uCE78\uC5D0
-    \uBC30\uCE58\uD558\uC138\uC694."
+  title: "\uBC30\uCE58"
+  body: "\uD6C4\uBCF4\uB97C \uACE0\uB974 \uBE48 \uCE78\uC5D0 \uBC30\uCE58\uD558\uC138\uC694."
   waitEvent: 2
   uiTargetId: SummonButton
   allowedInputs: 33

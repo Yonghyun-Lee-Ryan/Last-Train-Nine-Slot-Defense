@@ -1,3 +1,4 @@
+using LastTrain.Battle;
 using LastTrain.Core;
 using LastTrain.Release;
 using UnityEngine;
@@ -343,7 +344,9 @@ namespace LastTrain.Audio
 
             if (Time.timeScale <= 0f)
             {
-                Time.timeScale = 1f;
+                Time.timeScale = scene.name == SceneNames.Game
+                    ? BattleSpeedRuntime.GetTimeScaleFromSettings()
+                    : 1f;
             }
 
             EnsureRuntime();

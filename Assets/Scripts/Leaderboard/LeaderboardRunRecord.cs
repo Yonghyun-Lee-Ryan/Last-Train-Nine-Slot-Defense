@@ -30,14 +30,17 @@ namespace LastTrain.Leaderboard
         Failed = 4,
     }
 
-    /// <summary>비동기 랭킹 전송 인터페이스. 서버 연동 전 Mock만 사용한다.</summary>
+    /// <summary>로컬 점수 보관용 제출 인터페이스. 온라인 랭킹 서버가 아니다.</summary>
     public interface ILeaderboardService
     {
         LeaderboardSubmitResult Submit(LeaderboardRunRecord record);
     }
 
-    /// <summary>서버 없이 성공/검증만 수행하는 Mock.</summary>
-    public sealed class MockLeaderboardService : ILeaderboardService
+    /// <summary>
+    /// 로컬 전용 제출 스텁. 서버 전송 없이 검증만 수행한다.
+    /// UI에는 “온라인 랭킹”으로 노출하지 말 것.
+    /// </summary>
+    public sealed class LocalLeaderboardService : ILeaderboardService
     {
         public int SubmitCount { get; private set; }
         public LeaderboardRunRecord LastSubmitted { get; private set; }
@@ -53,5 +56,16 @@ namespace LastTrain.Leaderboard
             LastSubmitted = record;
             return LeaderboardSubmitResult.Success;
         }
+    }
+
+    /// <summary>하위 호환 별칭. 신규 코드는 LocalLeaderboardService를 사용한다.</summary>
+    public sealed class MockLeaderboardService : ILeaderboardService
+    {
+        private readonly LocalLeaderboardService _inner = new();
+
+        public int SubmitCount => _inner.SubmitCount;
+        public LeaderboardRunRecord LastSubmitted => _inner.LastSubmitted;
+
+        public LeaderboardSubmitResult Submit(LeaderboardRunRecord record) => _inner.Submit(record);
     }
 }

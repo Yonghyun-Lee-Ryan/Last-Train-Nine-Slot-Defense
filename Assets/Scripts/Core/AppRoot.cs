@@ -3,6 +3,7 @@ using LastTrain.Analytics;
 using LastTrain.Audio;
 using LastTrain.Integrations;
 using LastTrain.LiveOps;
+using LastTrain.Performance;
 using LastTrain.Release;
 using LastTrain.Run;
 using LastTrain.Save;
@@ -113,6 +114,7 @@ namespace LastTrain.Core
         {
             ApplyApplicationSettings();
             _gameSettings.Load();
+            LowEndFramePolicy.TryRecommendLowFx(_gameSettings, SystemInfo.systemMemorySize);
             EnsureAudio();
 
             _sceneLoader = GetComponent<SceneLoader>();
@@ -136,32 +138,42 @@ namespace LastTrain.Core
                 return;
             }
 
+            BindLiveOpsFromRemote();
+            PersistEndedEventFinalize();
+        }
+
+        /// <summary>
+        /// 메인 메뉴 진입 시 Remote 스냅샷으로 시계/카탈로그를 다시 묶고 종료 이벤트를 finalize한다.
+        /// 진행 중 RunSave는 삭제하지 않는다.
+        /// </summary>
+        public void RefreshLiveOpsOnMenu()
+        {
+            BindLiveOpsFromRemote();
+            PersistEndedEventFinalize();
+        }
+
+        private void BindLiveOpsFromRemote()
+        {
             try
             {
-                _liveEvents = new LiveEventService(LocalLiveEventProvider.FromResources());
+                _liveEvents = LiveOpsRuntimeFactory.Create(RemoteConfigRuntime.Current);
                 _liveEvents.RefreshCatalog();
-                MetaSaveData meta = MetaSaveSystem.LoadOrCreate();
-                _liveEvents.FinalizeEndedEvents(meta);
-                MetaSaveSystem.Save(meta);
             }
             catch (System.Exception ex)
             {
                 Debug.LogWarning($"[AppRoot] LiveOps 초기화 실패 → 기본 게임: {ex.Message}");
-                _liveEvents = new LiveEventService(new LocalLiveEventProvider());
+                _liveEvents = new LiveEventService(new LocalLiveEventProvider(), new ServerSyncedLiveEventClock());
                 _liveEvents.RefreshCatalog();
             }
         }
 
-        /// <summary>메인 메뉴 진입 시 종료 이벤트 finalize를 다시 수행한다.</summary>
-        public void RefreshLiveOpsOnMenu()
+        private void PersistEndedEventFinalize()
         {
-            EnsureLiveOps();
             if (_liveEvents == null)
             {
                 return;
             }
 
-            _liveEvents.RefreshCatalog();
             MetaSaveData meta = MetaSaveSystem.LoadOrCreate();
             _liveEvents.FinalizeEndedEvents(meta);
             MetaSaveSystem.Save(meta);
@@ -261,6 +273,7 @@ namespace LastTrain.Core
             EnsureAnalytics();
             EnsureAds();
             _ads.Limits.BeginRun();
+            MetaSaveSystem.ApplyPendingRunBonuses(runState);
             _analytics.BindRun(runState, runState?.DifficultyId);
             _analytics.Track(AnalyticsEventNames.RunStarted, new System.Collections.Generic.Dictionary<string, object>
             {
@@ -314,7 +327,7 @@ namespace LastTrain.Core
 
             RunSaveSystem.DeleteRunSave();
             _analytics.ClearRun();
-            _integrations?.NotifyRunCompleted();
+            _integrations?.NotifyRunCompleted(result);
         }
 
         private void TrackMetaRewards(MetaApplyResult apply)
@@ -332,22 +345,39 @@ namespace LastTrain.Core
                 ["account_level_after"] = apply.AccountLevelAfter,
             });
 
-            if (breakdown?.NewlyUnlockedPassengers == null)
+            if (breakdown?.NewlyUnlockedPassengers != null)
+            {
+                for (int i = 0; i < breakdown.NewlyUnlockedPassengers.Count; i++)
+                {
+                    string id = breakdown.NewlyUnlockedPassengers[i];
+                    if (string.IsNullOrWhiteSpace(id))
+                    {
+                        continue;
+                    }
+
+                    _analytics.Track(AnalyticsEventNames.PassengerUnlocked, new System.Collections.Generic.Dictionary<string, object>
+                    {
+                        ["passenger_id"] = id,
+                    });
+                }
+            }
+
+            if (breakdown?.NewlyUnlockedAchievements == null)
             {
                 return;
             }
 
-            for (int i = 0; i < breakdown.NewlyUnlockedPassengers.Count; i++)
+            for (int i = 0; i < breakdown.NewlyUnlockedAchievements.Count; i++)
             {
-                string id = breakdown.NewlyUnlockedPassengers[i];
+                string id = breakdown.NewlyUnlockedAchievements[i];
                 if (string.IsNullOrWhiteSpace(id))
                 {
                     continue;
                 }
 
-                _analytics.Track(AnalyticsEventNames.PassengerUnlocked, new System.Collections.Generic.Dictionary<string, object>
+                _analytics.Track(AnalyticsEventNames.AchievementUnlocked, new System.Collections.Generic.Dictionary<string, object>
                 {
-                    ["passenger_id"] = id,
+                    ["achievement_id"] = id,
                 });
             }
         }
@@ -375,7 +405,7 @@ namespace LastTrain.Core
             Screen.autorotateToLandscapeLeft = false;
             Screen.autorotateToLandscapeRight = false;
 
-            Application.targetFrameRate = 60;
+            LowEndFramePolicy.ApplyFrameRate();
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
         }
 

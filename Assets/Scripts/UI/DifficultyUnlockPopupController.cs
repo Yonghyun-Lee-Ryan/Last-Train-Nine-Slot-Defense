@@ -86,7 +86,9 @@ namespace LastTrain.UI
                 "ConfirmButton",
                 "확인",
                 56f,
-                Close);
+                Close,
+                30,
+                UiButtonStyler.OverlayActionWidth);
             UiButtonStyler.ApplyStandardTheme(confirm);
         }
 

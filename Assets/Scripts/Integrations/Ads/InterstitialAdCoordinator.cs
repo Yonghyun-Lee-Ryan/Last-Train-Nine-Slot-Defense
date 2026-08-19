@@ -1,25 +1,30 @@
 using System;
 using LastTrain.Ads;
+using LastTrain.Battle;
 using LastTrain.Core;
+using LastTrain.Data;
 using LastTrain.Run;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace LastTrain.Integrations
 {
     /// <summary>
     /// 전면 광고 노출 정책.
-    /// 전투 중·보상형 직후·초기 N회차에는 노출하지 않는다.
+    /// 한 run(승/패)이 완전히 끝난 뒤 Result 화면에서만 1회 검토한다.
     /// </summary>
     public sealed class InterstitialAdCoordinator
     {
         private readonly AdCoordinator _ads;
         private readonly PrivacyConsentService _consent;
-        private readonly SceneLoader _sceneLoader;
         private readonly Func<GameSession> _sessionProvider;
 
         private float _lastRewardedUtc;
         private float _lastInterstitialUtc;
         private int _completedRuns;
+        private int _lastInterstitialCompletedRunCount;
+        private bool _pendingAfterRunEnd;
+        private RunResult _pendingRunResult;
 
         public InterstitialAdCoordinator(
             AdCoordinator ads,
@@ -29,24 +34,16 @@ namespace LastTrain.Integrations
         {
             _ads = ads;
             _consent = consent;
-            _sceneLoader = sceneLoader;
+            _ = sceneLoader;
             _sessionProvider = sessionProvider;
         }
 
         public void Subscribe()
         {
-            if (_sceneLoader != null)
-            {
-                _sceneLoader.SceneLoadCompleted += HandleSceneLoaded;
-            }
         }
 
         public void Unsubscribe()
         {
-            if (_sceneLoader != null)
-            {
-                _sceneLoader.SceneLoadCompleted -= HandleSceneLoaded;
-            }
         }
 
         public void NotifyRewardedCompleted()
@@ -54,66 +51,122 @@ namespace LastTrain.Integrations
             _lastRewardedUtc = Time.unscaledTime;
         }
 
-        public void NotifyRunCompleted()
+        public void NotifyRunCompleted(RunResult result)
         {
             _completedRuns++;
+            _pendingRunResult = result;
+            _pendingAfterRunEnd = true;
         }
 
-        private void HandleSceneLoaded(string sceneName)
+        /// <summary>Result 화면 진입 시 1회 호출.</summary>
+        public void TryShowAfterRunEnded()
         {
+            if (!_pendingAfterRunEnd)
+            {
+                return;
+            }
+
+            if (!IsResultSceneActive())
+            {
+                return;
+            }
+
+            if (HasActiveBattleSession())
+            {
+                return;
+            }
+
+            RunResult result = _pendingRunResult;
+            _pendingAfterRunEnd = false;
+            _pendingRunResult = null;
+
             if (!_consent.CanRequestAds || _ads == null)
             {
                 return;
             }
 
-            if (!string.Equals(sceneName, SceneNames.MainMenu, StringComparison.Ordinal))
+            if (!ShouldOfferInterstitialForRun(result))
             {
                 return;
             }
 
-            if (IsBattleActive())
+            if (!PassesInterstitialPolicy())
             {
                 return;
             }
 
-            RemoteConfigSnapshot rc = RemoteConfigRuntime.Current;
-            if (_completedRuns < rc.RunsBeforeInterstitial)
+            int runIndex = _completedRuns;
+            _ads.ShowInterstitial(adResult =>
             {
-                return;
-            }
-
-            if (Time.unscaledTime - _lastRewardedUtc < 5f)
-            {
-                return;
-            }
-
-            if (Time.unscaledTime - _lastInterstitialUtc < rc.InterstitialIntervalSeconds)
-            {
-                return;
-            }
-
-            var request = new AdRequest(RewardedAdPlacement.ShopRefresh);
-            _ads.AdService.ShowInterstitial(request, result =>
-            {
-                if (result == AdResult.Completed)
+                if (adResult == AdResult.Completed)
                 {
                     _lastInterstitialUtc = Time.unscaledTime;
+                    _lastInterstitialCompletedRunCount = runIndex;
                 }
             });
         }
 
-        private bool IsBattleActive()
+        private bool ShouldOfferInterstitialForRun(RunResult result)
         {
-            GameSession session = _sessionProvider?.Invoke();
-            if (session == null || !session.HasActiveRun)
+            if (result == null)
             {
                 return false;
             }
 
-            RunPhase phase = session.RunState.Battle.CurrentPhase;
-            return phase == RunPhase.Fighting
-                   || phase == RunPhase.WaveStarting
-                   || phase == RunPhase.WaveCompleted;
+            if (!result.IsEndlessRun)
+            {
+                return true;
+            }
+
+            int threshold = ResolveStandardRunStationCount();
+            return result.CompletedStationCount >= threshold;
+        }
+
+        private static int ResolveStandardRunStationCount()
+        {
+            GameDatabase database = GameDatabaseLocator.Load();
+            if (database == null)
+            {
+                return 10;
+            }
+
+            return Mathf.Max(1, database.GetRouteStationCount(RouteIds.Default));
+        }
+
+        private bool PassesInterstitialPolicy()
+        {
+            RemoteConfigSnapshot remoteConfig = RemoteConfigRuntime.Current;
+
+            if (_completedRuns < remoteConfig.RunsBeforeInterstitial)
+            {
+                return false;
+            }
+
+            if (_completedRuns <= _lastInterstitialCompletedRunCount)
+            {
+                return false;
+            }
+
+            if (Time.unscaledTime - _lastRewardedUtc < 5f)
+            {
+                return false;
+            }
+
+            return Time.unscaledTime - _lastInterstitialUtc >= remoteConfig.InterstitialIntervalSeconds;
+        }
+
+        private static bool IsResultSceneActive()
+        {
+            return string.Equals(
+                SceneManager.GetActiveScene().name,
+                SceneNames.Result,
+                StringComparison.Ordinal);
+        }
+
+        private bool HasActiveBattleSession()
+        {
+            GameSession session = _sessionProvider?.Invoke();
+            return session != null && session.HasActiveRun;
         }
     }
 }

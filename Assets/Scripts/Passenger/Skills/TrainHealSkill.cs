@@ -33,6 +33,7 @@ namespace LastTrain.Passenger.Skills
             context.Train.Heal(heal);
             _cooldownRemaining = BaseCooldownSeconds;
             LastTrain.Battle.CombatVisualEvents.RaiseTrainHealed(context.TrainTarget);
+            LastTrain.Battle.CombatVisualEvents.RaisePassengerSkillActivated(context.Runtime.InstanceId);
         }
     }
 }

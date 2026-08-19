@@ -116,9 +116,14 @@ namespace LastTrain.EditorTools
             }
 
             var safeRect = safeArea as RectTransform;
+
             EnemyPathDirectionView.Ensure(safeRect);
             PassengerRangeOverlay.Ensure(safeRect);
-            PlaceTop(safeArea, "SynergyListLabel", new Vector2(0f, -210f), new Vector2(1000f, 40f));
+            PlaceTopLeft(
+                safeArea,
+                "SynergyListLabel",
+                new Vector2(CombatTopHudLayout.SynergyLeftX, CombatTopHudLayout.SynergyTopNoThreat),
+                new Vector2(CombatTopHudLayout.SynergyWidth, CombatTopHudLayout.SynergyMaxHeight));
 
             foreach (Transform child in safeArea)
             {
@@ -155,6 +160,27 @@ namespace LastTrain.EditorTools
             rect.anchorMin = new Vector2(0.5f, 0f);
             rect.anchorMax = new Vector2(0.5f, 0f);
             rect.pivot = new Vector2(0.5f, 0f);
+            rect.anchoredPosition = anchoredPos;
+            rect.sizeDelta = size;
+        }
+
+        private static void PlaceTopLeft(Transform parent, string childName, Vector2 anchoredPos, Vector2 size)
+        {
+            Transform child = FindDeepChild(parent, childName);
+            if (child == null)
+            {
+                return;
+            }
+
+            var rect = child as RectTransform;
+            if (rect == null)
+            {
+                return;
+            }
+
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
             rect.anchoredPosition = anchoredPos;
             rect.sizeDelta = size;
         }

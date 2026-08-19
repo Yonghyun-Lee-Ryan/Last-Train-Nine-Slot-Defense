@@ -104,6 +104,7 @@ namespace LastTrain.Feedback
             CombatVisualEvents.EnemyDamaged += HandleEnemyDamaged;
             CombatVisualEvents.EnemyKilled += HandleEnemyKilled;
             CombatVisualEvents.PassengerAttacked += HandlePassengerAttacked;
+            CombatVisualEvents.PassengerSkillActivated += HandlePassengerSkillActivated;
             CombatVisualEvents.TrainHealed += HandleTrainHealed;
             CombatVisualEvents.AreaAttack += HandleAreaAttack;
             CombatVisualEvents.KnockbackApplied += HandleKnockback;
@@ -144,6 +145,7 @@ namespace LastTrain.Feedback
             CombatVisualEvents.EnemyDamaged -= HandleEnemyDamaged;
             CombatVisualEvents.EnemyKilled -= HandleEnemyKilled;
             CombatVisualEvents.PassengerAttacked -= HandlePassengerAttacked;
+            CombatVisualEvents.PassengerSkillActivated -= HandlePassengerSkillActivated;
             CombatVisualEvents.TrainHealed -= HandleTrainHealed;
             CombatVisualEvents.AreaAttack -= HandleAreaAttack;
             CombatVisualEvents.KnockbackApplied -= HandleKnockback;
@@ -202,6 +204,23 @@ namespace LastTrain.Feedback
 
             PassengerView view = gridManager.FindViewByInstanceId(passengerInstanceId);
             view?.PlayAttackAnimation();
+        }
+
+        private void HandlePassengerSkillActivated(string passengerInstanceId)
+        {
+            if (gridManager == null || string.IsNullOrWhiteSpace(passengerInstanceId))
+            {
+                return;
+            }
+
+            PassengerView view = gridManager.FindViewByInstanceId(passengerInstanceId);
+            if (view == null)
+            {
+                return;
+            }
+
+            view.PlaySkillAnimation();
+            FlashSlot(gridManager.GetSlot(view.SlotIndex));
         }
 
         private void HandleMergeCompleted(MergeResult result)

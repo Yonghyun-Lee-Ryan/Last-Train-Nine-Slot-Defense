@@ -23,6 +23,10 @@ namespace LastTrain.Passenger.Skills
                 PassengerSkillIds.LowHpBonus => new LowHpBonusSkill(),
                 PassengerSkillIds.BossInterrupt => new BossInterruptSkill(),
                 PassengerSkillIds.LuckyCrit => new LuckyCritSkill(),
+                PassengerSkillIds.ChainZap => new ChainZapSkill(),
+                PassengerSkillIds.ScaldSplash => new ScaldSplashSkill(),
+                PassengerSkillIds.PerimeterPulse => new PerimeterPulseSkill(),
+                PassengerSkillIds.FocusShot => new FocusShotSkill(),
                 _ => NullPassengerSkill.Instance
             };
         }

@@ -96,18 +96,19 @@ namespace LastTrain.Grid
             if (nameLabel != null)
             {
                 RectTransform nameRect = nameLabel.rectTransform;
-                // 하단 앵커로 칸 안에 고정. 글자 크기(20)·두 줄 표기는 유지하고 영역만 클램프.
-                nameRect.anchorMin = new Vector2(0.5f, 0f);
-                nameRect.anchorMax = new Vector2(0.5f, 0f);
+                nameRect.anchorMin = new Vector2(0.08f, 0f);
+                nameRect.anchorMax = new Vector2(0.92f, 0f);
                 nameRect.pivot = new Vector2(0.5f, 0f);
-                nameRect.anchoredPosition = new Vector2(0f, 4f);
-                nameRect.sizeDelta = new Vector2(200f, 52f);
-                nameLabel.fontSize = 20;
+                nameRect.anchoredPosition = new Vector2(0f, 8f);
+                nameRect.sizeDelta = new Vector2(0f, 44f);
+                nameLabel.fontSize = 18;
                 nameLabel.alignment = TextAnchor.LowerCenter;
                 nameLabel.horizontalOverflow = HorizontalWrapMode.Wrap;
                 nameLabel.verticalOverflow = VerticalWrapMode.Truncate;
-                nameLabel.resizeTextForBestFit = false;
-                nameLabel.lineSpacing = 0.9f;
+                nameLabel.resizeTextForBestFit = true;
+                nameLabel.resizeTextMinSize = 12;
+                nameLabel.resizeTextMaxSize = 18;
+                nameLabel.lineSpacing = 0.85f;
                 nameLabel.raycastTarget = false;
             }
 
@@ -142,6 +143,13 @@ namespace LastTrain.Grid
             if (_visualSet != null && _visualSet.Skill.HasFrames && portraitAnimator != null)
             {
                 portraitAnimator.PlayOneShot(_visualSet.Skill, ResumeIdle);
+                return;
+            }
+
+            if (portraitImage != null)
+            {
+                portraitImage.transform.localScale = new Vector3(1.18f, 1.18f, 1f);
+                portraitImage.color = new Color(1f, 0.95f, 0.55f, 1f);
             }
         }
 

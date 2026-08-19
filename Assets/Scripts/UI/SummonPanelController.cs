@@ -47,6 +47,7 @@ namespace LastTrain.UI
         [SerializeField] private Button cancelOfferButton;
         [SerializeField] private Button freeRerollButton;
         [SerializeField] private Button adRerollButton;
+        [SerializeField] private Button freeSummonAdButton;
 
         private SummonManager _summonManager;
         private RunState _runState;
@@ -65,6 +66,7 @@ namespace LastTrain.UI
             }
 
             EnsureReferences();
+            PinSummonButtonLayout();
             if (gameDatabase == null || economyConfig == null)
             {
                 Debug.LogError(
@@ -173,6 +175,27 @@ namespace LastTrain.UI
             }
         }
 
+        private void PinSummonButtonLayout()
+        {
+            if (summonButton == null)
+            {
+                return;
+            }
+
+            RectTransform rect = summonButton.GetComponent<RectTransform>();
+            if (rect == null)
+            {
+                return;
+            }
+
+            rect.anchorMin = new Vector2(0.5f, 0f);
+            rect.anchorMax = new Vector2(0.5f, 0f);
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.sizeDelta = new Vector2(BattleHudLayout.SummonButtonWidth, BattleHudLayout.SummonButtonHeight);
+            rect.anchoredPosition = new Vector2(0f, BattleHudLayout.SummonButtonY);
+            rect.localScale = Vector3.one;
+        }
+
         private void OnDestroy()
         {
             if (_session != null)
@@ -216,6 +239,7 @@ namespace LastTrain.UI
             if (cancelOfferButton != null) cancelOfferButton.interactable = false;
             if (freeRerollButton != null) freeRerollButton.interactable = false;
             if (adRerollButton != null) adRerollButton.interactable = false;
+            if (freeSummonAdButton != null) freeSummonAdButton.interactable = false;
 
             for (int i = 0; i < offerButtons.Length; i++)
             {
@@ -247,6 +271,12 @@ namespace LastTrain.UI
                 adRerollButton.onClick.AddListener(OnAdRerollClicked);
             }
 
+            EnsureFreeSummonAdButton();
+            if (freeSummonAdButton != null)
+            {
+                freeSummonAdButton.onClick.AddListener(OnFreeSummonAdClicked);
+            }
+
             for (int i = 0; i < offerButtons.Length; i++)
             {
                 int index = i;
@@ -255,6 +285,8 @@ namespace LastTrain.UI
                     offerButtons[i].onClick.AddListener(() => OnOfferClicked(index));
                 }
             }
+
+            RefreshFreeSummonAdButton();
         }
 
         private void UnwireButtons()
@@ -277,6 +309,11 @@ namespace LastTrain.UI
             if (adRerollButton != null)
             {
                 adRerollButton.onClick.RemoveListener(OnAdRerollClicked);
+            }
+
+            if (freeSummonAdButton != null)
+            {
+                freeSummonAdButton.onClick.RemoveListener(OnFreeSummonAdClicked);
             }
 
             for (int i = 0; i < offerButtons.Length; i++)
@@ -444,6 +481,46 @@ namespace LastTrain.UI
                 });
         }
 
+        private void OnFreeSummonAdClicked()
+        {
+            if (_runState == null || !_adInputGuard.TryAcquire())
+            {
+                return;
+            }
+
+            AdCoordinator ads = AppRoot.Instance?.Ads;
+            if (ads == null || !ads.IsReady(RewardedAdPlacement.FreeSummon))
+            {
+                RefreshFreeSummonAdButton();
+                return;
+            }
+
+            UiInputGuard.SetInteractable(freeSummonAdButton, false);
+            ads.ShowRewarded(
+                RewardedAdPlacement.FreeSummon,
+                () =>
+                {
+                    _runState.ShopTokens.AddFreeSummon(1);
+                    GameAudio.PlaySfx(SfxId.Switch);
+                    SetStatus(
+                        $"광고 보상: 무료 소환 +1 (보유 {_runState.ShopTokens.FreeSummonCharges})",
+                        ephemeral: true);
+                    RefreshHud();
+                },
+                result =>
+                {
+                    if (result != AdResult.Completed)
+                    {
+                        SetStatus(
+                            $"광고 {(result == AdResult.Cancelled ? "취소" : "실패")} — 보상 없음",
+                            ephemeral: true);
+                    }
+
+                    RefreshFreeSummonAdButton();
+                    RefreshHud();
+                });
+        }
+
         private void RefreshOfferPanel()
         {
             bool open = _summonManager != null && _summonManager.HasActiveOffers;
@@ -454,6 +531,7 @@ namespace LastTrain.UI
 
             if (!open || _summonManager == null)
             {
+                RefreshFreeSummonAdButton();
                 return;
             }
 
@@ -480,9 +558,79 @@ namespace LastTrain.UI
             if (adRerollButton != null)
             {
                 AdCoordinator ads = AppRoot.Instance?.Ads;
-                adRerollButton.interactable = _summonManager.RemainingAdRerolls > 0
-                    && (ads == null || ads.CanOfferReroll(RewardedAdPlacement.PassengerReroll));
+                bool remaining = _summonManager.RemainingAdRerolls > 0;
+                bool adOk = ads == null || ads.CanOfferReroll(RewardedAdPlacement.PassengerReroll);
+                bool show = remaining && adOk;
+                adRerollButton.gameObject.SetActive(show);
+                adRerollButton.interactable = show;
             }
+
+            RefreshFreeSummonAdButton();
+        }
+
+        private void RefreshFreeSummonAdButton()
+        {
+            EnsureFreeSummonAdButton();
+            if (freeSummonAdButton == null)
+            {
+                return;
+            }
+
+            AdCoordinator ads = AppRoot.Instance?.Ads;
+            bool ready = ads != null && ads.IsReady(RewardedAdPlacement.FreeSummon);
+            freeSummonAdButton.gameObject.SetActive(ready);
+            freeSummonAdButton.interactable = ready;
+            if (!ready)
+            {
+                return;
+            }
+
+            Text label = freeSummonAdButton.GetComponentInChildren<Text>();
+            if (label != null)
+            {
+                int remaining = ads.Limits.GetRemaining(RewardedAdPlacement.FreeSummon);
+                label.text = $"광고 소환 {remaining}";
+            }
+        }
+
+        private void EnsureFreeSummonAdButton()
+        {
+            if (freeSummonAdButton != null || summonButton == null)
+            {
+                return;
+            }
+
+            GameObject go = Instantiate(summonButton.gameObject, summonButton.transform.parent);
+            go.name = "FreeSummonAdButton";
+            freeSummonAdButton = go.GetComponent<Button>();
+            RectTransform src = summonButton.GetComponent<RectTransform>();
+            RectTransform dst = go.GetComponent<RectTransform>();
+            if (src != null && dst != null)
+            {
+                dst.anchorMin = new Vector2(0.5f, 0f);
+                dst.anchorMax = new Vector2(0.5f, 0f);
+                dst.pivot = new Vector2(0.5f, 0f);
+                dst.sizeDelta = new Vector2(BattleHudLayout.FreeSummonAdWidth, BattleHudLayout.FreeSummonAdHeight);
+                dst.anchoredPosition = new Vector2(BattleHudLayout.FreeSummonAdX, BattleHudLayout.FreeSummonAdY);
+            }
+
+            Text label = freeSummonAdButton.GetComponentInChildren<Text>();
+            if (label != null)
+            {
+                label.text = "광고 소환";
+                Font font = GameFontProvider.Get();
+                if (font != null)
+                {
+                    label.font = font;
+                }
+
+                label.resizeTextForBestFit = true;
+                label.resizeTextMinSize = 14;
+                label.resizeTextMaxSize = 22;
+                label.alignment = TextAnchor.MiddleCenter;
+            }
+
+            freeSummonAdButton.gameObject.SetActive(false);
         }
 
         private void RefreshHud()
@@ -499,8 +647,10 @@ namespace LastTrain.UI
 
             if (costLabel != null && _summonManager != null)
             {
-                costLabel.text = $"소환 {_summonManager.CurrentSummonCost}";
+                costLabel.text = FormatSummonCostLabel(_summonManager.CurrentSummonCost, _runState);
             }
+
+            RefreshFreeSummonAdButton();
         }
 
         private void HandleCoinsChanged(int _)
@@ -612,6 +762,25 @@ namespace LastTrain.UI
             }
 
             _ephemeralStatusToken = null;
+        }
+
+        public static string FormatSummonCostLabel(int cost, RunState runState)
+        {
+            if (runState?.Relics?.Modifiers.FirstSummonFree == true
+                && (runState.Summon?.PaidSummonCount ?? 0) == 0)
+            {
+                return "첫 소환 무료";
+            }
+
+            string text = $"소환 {cost}";
+            float multiplier = runState?.Difficulty?.SummonCostMultiplier ?? 1f;
+            if (Mathf.Abs(multiplier - 1f) < 0.01f)
+            {
+                return text;
+            }
+
+            int percent = Mathf.RoundToInt((multiplier - 1f) * 100f);
+            return percent < 0 ? $"{text} ({percent}%)" : $"{text} (+{percent}%)";
         }
     }
 }

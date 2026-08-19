@@ -1,6 +1,8 @@
 using System;
+using LastTrain.Ads;
 using LastTrain.Audio;
 using LastTrain.Core;
+using LastTrain.Data;
 using LastTrain.LiveOps;
 using LastTrain.Run;
 using LastTrain.Save;
@@ -33,40 +35,22 @@ namespace LastTrain.UI
             }
 
             GameAudio.PlaySfx(SfxId.UiOpen);
-            _root = MenuOverlayUi.CreateRoot("LiveEventPanel", sortingOrder: 4150);
-            MenuOverlayUi.CreateFullScreenDim(_root.transform, new Color(0f, 0f, 0f, 0.72f), Hide);
-            RectTransform host = MenuOverlayUi.EnsureSafeAreaHost(_root.transform);
-
-            GameObject box = MenuOverlayUi.CreatePanel(host, "Box", new Color(0.14f, 0.18f, 0.26f, 0.98f));
-            RectTransform boxRect = box.GetComponent<RectTransform>();
-            boxRect.anchorMin = new Vector2(0.08f, 0.16f);
-            boxRect.anchorMax = new Vector2(0.92f, 0.84f);
-            boxRect.offsetMin = Vector2.zero;
-            boxRect.offsetMax = Vector2.zero;
-
-            var contentGo = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup));
-            RectTransform content = contentGo.GetComponent<RectTransform>();
-            content.SetParent(box.transform, false);
-            MenuOverlayUi.Stretch(content);
-            content.offsetMin = new Vector2(28f, 28f);
-            content.offsetMax = new Vector2(-28f, -28f);
-
-            VerticalLayoutGroup layout = contentGo.GetComponent<VerticalLayoutGroup>();
-            layout.childAlignment = TextAnchor.UpperCenter;
-            layout.spacing = 12f;
-            layout.padding = new RectOffset(8, 8, 8, 8);
-            layout.childControlWidth = true;
-            layout.childControlHeight = true;
-            layout.childForceExpandWidth = true;
-            layout.childForceExpandHeight = false;
-
             LiveEventData evt = live.ActiveEvent;
             MetaSaveData meta = MetaSaveSystem.LoadOrCreate();
             LiveEventProgress progress = live.GetOrCreateProgress(meta, evt);
 
-            Text title = MenuOverlayUi.CreateText(content, "Title", evt.DisplayName, 36, TextAnchor.MiddleCenter);
-            UiLayoutUtility.EnsureLayoutElement(title.gameObject, 52f);
-            UiLayoutUtility.ResetForVerticalLayout(title.rectTransform, 52f);
+            _root = MenuOverlayUi.CreateRoot("LiveEventPanel", sortingOrder: 4150);
+            MenuOverlayUi.CreateFullScreenDim(_root.transform, new Color(0f, 0f, 0f, 0.72f), Hide);
+            RectTransform host = MenuOverlayUi.EnsureSafeAreaHost(_root.transform);
+
+            GameObject box = MenuOverlayUi.CreateOverlayBox(host, MenuOverlayUi.OverlaySizeCompact);
+            MenuOverlayUi.CreateOverlayTitle(box.transform, evt.DisplayName);
+            MenuOverlayUi.OverlayScroll scroll = MenuOverlayUi.CreateOverlayScroll(box.transform);
+            Transform content = scroll.Content;
+            VerticalLayoutGroup layout = content.GetComponent<VerticalLayoutGroup>();
+            layout.spacing = 12f;
+            layout.padding = new RectOffset(8, 8, 8, 8);
+            layout.childAlignment = TextAnchor.UpperCenter;
 
             string remaining = FormatRemaining(evt);
             string currencyName = evt.EventCurrency != null ? evt.EventCurrency.DisplayName : "이벤트 재화";
@@ -80,10 +64,12 @@ namespace LastTrain.UI
             UiLayoutUtility.ResetForVerticalLayout(status.rectTransform, 72f);
 
             EventRewardTrack track = evt.RewardTrack;
+            AdCoordinator ads = appRoot?.Ads;
+            bool adsReady = ads != null && ads.IsReady(RewardedAdPlacement.SeasonPassTrack);
             if (track != null)
             {
                 EventRewardStep[] steps = track.Steps;
-                for (int i = 0; i < steps.Length && i < 4; i++)
+                for (int i = 0; i < steps.Length; i++)
                 {
                     EventRewardStep step = steps[i];
                     if (step == null)
@@ -91,23 +77,51 @@ namespace LastTrain.UI
                         continue;
                     }
 
-                    string label = progress.HasClaimed(step.rewardId)
-                        ? $"수령 완료 · {step.rewardId}"
-                        : $"보상 수령 ({step.requiredCurrency})";
+                    bool isAd = step.lane == RewardTrackLane.Ad;
+                    if (isAd && !adsReady)
+                    {
+                        continue;
+                    }
+
+                    bool claimed = progress.HasClaimed(step.rewardId);
+                    string label = EventRewardStepFormatter.FormatButtonLabel(
+                        step,
+                        claimed,
+                        GameDatabaseLocator.Load());
                     string rewardId = step.rewardId;
+                    bool adLane = isAd;
                     Button claim = MenuOverlayUi.CreateLayoutButton(
                         content,
                         $"Claim_{i}",
                         label,
                         64f,
-                        () => OnClaim(rewardId));
+                        () =>
+                        {
+                            if (adLane)
+                            {
+                                OnClaimAd(rewardId);
+                            }
+                            else
+                            {
+                                OnClaim(rewardId);
+                            }
+                        },
+                        30,
+                        UiButtonStyler.OverlayActionWidth);
                     claim.interactable = !progress.HasClaimed(step.rewardId)
                                         && progress.currencyBalance >= step.requiredCurrency;
                 }
             }
 
-            MenuOverlayUi.CreateLayoutButton(content, "StartEventRun", "이벤트 플레이", 72f, OnStartEventRun);
-            MenuOverlayUi.CreateLayoutButton(content, "Close", "닫기", 64f, Hide);
+            MenuOverlayUi.CreateLayoutButton(
+                content,
+                "StartEventRun",
+                "이벤트 플레이",
+                72f,
+                OnStartEventRun,
+                30,
+                UiButtonStyler.OverlayActionWidth);
+            MenuOverlayUi.CreateOverlayClose(box.transform, Hide);
         }
 
         public void Hide()
@@ -146,6 +160,19 @@ namespace LastTrain.UI
             Show();
         }
 
+        private void OnClaimAd(string rewardId)
+        {
+            AppRoot appRoot = AppRoot.Instance;
+            AdCoordinator ads = appRoot?.Ads;
+            if (ads == null || !ads.IsReady(RewardedAdPlacement.SeasonPassTrack))
+            {
+                GameAudio.PlaySfx(SfxId.UiError);
+                return;
+            }
+
+            ads.ShowRewarded(RewardedAdPlacement.SeasonPassTrack, () => OnClaim(rewardId));
+        }
+
         private void OnStartEventRun()
         {
             AppRoot appRoot = AppRoot.Instance;
@@ -180,7 +207,7 @@ namespace LastTrain.UI
                 return "기간 정보 없음";
             }
 
-            TimeSpan left = end.ToUniversalTime() - DateTime.UtcNow;
+            TimeSpan left = end.ToUniversalTime() - (AppRoot.Instance?.LiveEvents?.Clock.UtcNow ?? DateTime.UtcNow);
             if (left.TotalSeconds <= 0)
             {
                 return "종료됨";

@@ -101,6 +101,7 @@ namespace LastTrain.EditorTools
                     size: decor.Size);
             }
 
+
             EnemyPathDirectionView.Ensure(safeArea as RectTransform);
             PassengerRangeOverlay.Ensure(safeArea as RectTransform);
 

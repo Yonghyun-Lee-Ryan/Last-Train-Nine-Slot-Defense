@@ -106,5 +106,133 @@ namespace LastTrain.UI
             _directionArrow.name = "UiDirectionArrow";
             return _directionArrow;
         }
+
+        public static Sprite FilledCircle()
+        {
+            return _filledCircle ??= CreateFilledCircle("UiFilledCircle", 64);
+        }
+
+        public static Sprite RoundedSquare()
+        {
+            if (_roundedSquare != null)
+            {
+                return _roundedSquare;
+            }
+
+            const int size = 64;
+            const float radius = 10f;
+            var tex = CreateBlank(size, "UiRoundedSquare");
+            float center = size * 0.5f;
+            float inner = center - 2f - radius;
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dx = Mathf.Max(Mathf.Abs(x + 0.5f - center) - inner, 0f);
+                    float dy = Mathf.Max(Mathf.Abs(y + 0.5f - center) - inner, 0f);
+                    tex.SetPixel(x, y, (dx * dx) + (dy * dy) <= radius * radius ? Color.white : Color.clear);
+                }
+            }
+
+            tex.Apply(false, false);
+            _roundedSquare = Wrap(tex, "UiRoundedSquare");
+            return _roundedSquare;
+        }
+
+        public static Sprite Diamond()
+        {
+            if (_diamond != null)
+            {
+                return _diamond;
+            }
+
+            const int size = 64;
+            var tex = CreateBlank(size, "UiDiamond");
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float nx = Mathf.Abs(((x + 0.5f) / size) - 0.5f);
+                    float ny = Mathf.Abs(((y + 0.5f) / size) - 0.5f);
+                    tex.SetPixel(x, y, nx + ny <= 0.42f ? Color.white : Color.clear);
+                }
+            }
+
+            tex.Apply(false, false);
+            _diamond = Wrap(tex, "UiDiamond");
+            return _diamond;
+        }
+
+        public static Sprite SplitDuo()
+        {
+            if (_splitDuo != null)
+            {
+                return _splitDuo;
+            }
+
+            const int size = 64;
+            var tex = CreateBlank(size, "UiSplitDuo");
+            float r = 13f;
+            Vector2 left = new(22f, 32f);
+            Vector2 right = new(42f, 32f);
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    Vector2 p = new(x + 0.5f, y + 0.5f);
+                    bool inside = (p - left).sqrMagnitude <= r * r || (p - right).sqrMagnitude <= r * r;
+                    tex.SetPixel(x, y, inside ? Color.white : Color.clear);
+                }
+            }
+
+            tex.Apply(false, false);
+            _splitDuo = Wrap(tex, "UiSplitDuo");
+            return _splitDuo;
+        }
+
+        private static Sprite _filledCircle;
+        private static Sprite _roundedSquare;
+        private static Sprite _diamond;
+        private static Sprite _splitDuo;
+
+        private static Sprite CreateFilledCircle(string name, int size)
+        {
+            var tex = CreateBlank(size, name);
+            float center = (size - 1) * 0.5f;
+            float outer = center - 1.5f;
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dx = x - center;
+                    float dy = y - center;
+                    tex.SetPixel(x, y, (dx * dx) + (dy * dy) <= outer * outer ? Color.white : Color.clear);
+                }
+            }
+
+            tex.Apply(false, false);
+            return Wrap(tex, name);
+        }
+
+        private static Texture2D CreateBlank(int size, string name)
+        {
+            return new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+                name = name,
+            };
+        }
+
+        private static Sprite Wrap(Texture2D tex, string name)
+        {
+            Sprite sprite = Sprite.Create(
+                tex,
+                new Rect(0f, 0f, tex.width, tex.height),
+                new Vector2(0.5f, 0.5f),
+                100f);
+            sprite.name = name;
+            return sprite;
+        }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using LastTrain.Data;
 
 namespace LastTrain.Run
 {
@@ -34,7 +35,8 @@ namespace LastTrain.Run
             float difficultyRewardMultiplier = 1f,
             float elapsedSeconds = 0f,
             bool isEndlessRun = false,
-            bool adsUsed = false)
+            bool adsUsed = false,
+            StationType reachedStationType = StationType.Normal)
         {
             RunId = runId ?? string.Empty;
             LineId = lineId ?? string.Empty;
@@ -65,6 +67,7 @@ namespace LastTrain.Run
             ElapsedSeconds = Math.Max(0f, elapsedSeconds);
             IsEndlessRun = isEndlessRun;
             AdsUsed = adsUsed;
+            ReachedStationType = reachedStationType;
         }
 
         public string RunId { get; }
@@ -94,5 +97,6 @@ namespace LastTrain.Run
         public float ElapsedSeconds { get; }
         public bool IsEndlessRun { get; }
         public bool AdsUsed { get; }
+        public StationType ReachedStationType { get; }
     }
 }

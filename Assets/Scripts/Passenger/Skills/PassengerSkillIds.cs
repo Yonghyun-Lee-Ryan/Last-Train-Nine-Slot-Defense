@@ -11,5 +11,9 @@ namespace LastTrain.Passenger.Skills
         public const string LowHpBonus = "skill_low_hp_bonus";
         public const string BossInterrupt = "skill_boss_interrupt";
         public const string LuckyCrit = "skill_lucky_crit";
+        public const string ChainZap = "skill_chain_zap";
+        public const string ScaldSplash = "skill_scald_splash";
+        public const string PerimeterPulse = "skill_perimeter_pulse";
+        public const string FocusShot = "skill_focus_shot";
     }
 }

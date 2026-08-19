@@ -36,6 +36,8 @@ namespace LastTrain.Tutorial
         AbilityOffer = 1 << 3,
         Pause = 1 << 4,
         Acknowledge = 1 << 5,
+        MergeUndo = 1 << 6,
+        BattleSpeed = 1 << 7,
         All = ~0,
     }
 }

@@ -34,6 +34,7 @@ namespace LastTrain.LiveOps
 
         public LiveEventData ActiveEvent => _active;
         public bool HasActiveEvent => _active != null;
+        public ILiveEventClock Clock => _clock;
         public IReadOnlyList<LiveEventData> Catalog => _catalog;
         public IReadOnlyList<SeasonData> Seasons => _seasons;
 

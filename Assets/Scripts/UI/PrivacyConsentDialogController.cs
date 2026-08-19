@@ -39,11 +39,62 @@ namespace LastTrain.UI
 
             GameObject box = MenuOverlayUi.CreateOverlayBox(host, MenuOverlayUi.OverlaySizeCompact);
             MenuOverlayUi.CreateOverlayTitle(box.transform, "개인정보 및 광고 안내");
-            MenuOverlayUi.OverlayScroll scroll = MenuOverlayUi.CreateVerticalScroll(
+
+            const float footerHeight = 280f;
+            RectTransform footer = MenuOverlayUi.PinOverlayFooter(box.transform, footerHeight);
+            var footerLayout = footer.gameObject.AddComponent<VerticalLayoutGroup>();
+            footerLayout.spacing = 8f;
+            footerLayout.padding = new RectOffset(4, 4, 4, 4);
+            footerLayout.childAlignment = TextAnchor.LowerCenter;
+            footerLayout.childControlWidth = true;
+            footerLayout.childControlHeight = true;
+            footerLayout.childForceExpandWidth = true;
+            footerLayout.childForceExpandHeight = false;
+
+            MenuOverlayUi.CreateLayoutButton(
+                footer,
+                "Accept",
+                "동의하고 계속",
+                80f,
+                () =>
+                {
+                    appRoot.ApplyPrivacyConsent(adsGranted: true, analyticsGranted: true);
+                    Close();
+                },
+                30,
+                UiButtonStyler.OverlayActionWidth);
+
+            MenuOverlayUi.CreateLayoutButton(
+                footer,
+                "Decline",
+                "동의하지 않음",
+                80f,
+                () =>
+                {
+                    appRoot.ApplyPrivacyConsent(adsGranted: false, analyticsGranted: false);
+                    Close();
+                },
+                30,
+                UiButtonStyler.OverlayActionWidth);
+
+            MenuOverlayUi.CreateLayoutButton(
+                footer,
+                "Policy",
+                "개인정보처리방침 보기",
+                64f,
+                () =>
+                {
+                    if (!string.IsNullOrWhiteSpace(config.PrivacyPolicyUrl))
+                    {
+                        Application.OpenURL(config.PrivacyPolicyUrl);
+                    }
+                },
+                26,
+                UiButtonStyler.OverlayActionWidth);
+
+            MenuOverlayUi.OverlayScroll scroll = MenuOverlayUi.CreateOverlayScroll(
                 box.transform,
-                "Scroll",
-                new Vector2(MenuOverlayUi.OverlayPad, MenuOverlayUi.OverlayPad),
-                new Vector2(-MenuOverlayUi.OverlayPad, -(MenuOverlayUi.OverlayPad + MenuOverlayUi.OverlayTitleHeight + 12f)));
+                extraBottom: footerHeight - MenuOverlayUi.OverlayCloseHeight);
             Transform content = scroll.Content;
             VerticalLayoutGroup layout = content.GetComponent<VerticalLayoutGroup>();
             layout.childAlignment = TextAnchor.UpperCenter;
@@ -59,26 +110,6 @@ namespace LastTrain.UI
             bodyLayout.flexibleHeight = 1f;
             bodyLayout.minHeight = 140f;
             UiLayoutUtility.ResetForVerticalLayout(bodyText.rectTransform, 200f);
-
-            MenuOverlayUi.CreateLayoutButton(content, "Accept", "동의하고 계속", 80f, () =>
-            {
-                appRoot.ApplyPrivacyConsent(adsGranted: true, analyticsGranted: true);
-                Close();
-            });
-
-            MenuOverlayUi.CreateLayoutButton(content, "Decline", "동의하지 않음", 80f, () =>
-            {
-                appRoot.ApplyPrivacyConsent(adsGranted: false, analyticsGranted: false);
-                Close();
-            });
-
-            MenuOverlayUi.CreateLayoutButton(content, "Policy", "개인정보처리방침 보기", 72f, () =>
-            {
-                if (!string.IsNullOrWhiteSpace(config.PrivacyPolicyUrl))
-                {
-                    Application.OpenURL(config.PrivacyPolicyUrl);
-                }
-            });
         }
 
         private void Close()

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Integrations.RemoteConfigDefaults
   interstitialIntervalSeconds: 180
   rewardedDailyLimit: 20
-  runsBeforeInterstitial: 3
+  runsBeforeInterstitial: 1
   baseSummonCost: 10
   summonCostIncrease: 2
   resultRewardMultiplier: 1

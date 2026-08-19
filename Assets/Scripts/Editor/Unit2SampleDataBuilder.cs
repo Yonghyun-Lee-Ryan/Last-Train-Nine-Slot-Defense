@@ -586,7 +586,59 @@ namespace LastTrain.EditorTools
                     requiredCount: 0,
                     uniqueCount: 6,
                     SynergyEffectType.AllAttackPercent,
-                    15f)
+                    15f),
+
+                // Unit 47 — 시너지 +5 (Unit2 재실행 시 카탈로그 8종 유지)
+                CreateSynergy(
+                    "Assets/Data/Synergies/Synergy_NightCourier.asset",
+                    "synergy_night_courier",
+                    "심야배송",
+                    "배달기사·승무원 → 빠른 적 피해 +20%",
+                    PassengerTag.Delivery | PassengerTag.Transit,
+                    requiredCount: 2,
+                    uniqueCount: 0,
+                    SynergyEffectType.FastEnemyDamagePercent,
+                    20f),
+                CreateSynergy(
+                    "Assets/Data/Synergies/Synergy_LastCall.asset",
+                    "synergy_last_call",
+                    "심야카페",
+                    "바리스타·직장인 → 공격속도 +8%",
+                    PassengerTag.Service | PassengerTag.OfficeWorker,
+                    requiredCount: 2,
+                    uniqueCount: 0,
+                    SynergyEffectType.AttackSpeedPercent,
+                    8f),
+                CreateSynergy(
+                    "Assets/Data/Synergies/Synergy_PlatformGuard.asset",
+                    "synergy_platform_guard",
+                    "승강장경비",
+                    "경찰관·경비원 → 전체 공격력 +12%",
+                    PassengerTag.LawEnforcement | PassengerTag.Security,
+                    requiredCount: 2,
+                    uniqueCount: 0,
+                    SynergyEffectType.AllAttackPercent,
+                    12f),
+                CreateSynergy(
+                    "Assets/Data/Synergies/Synergy_ExamRush.asset",
+                    "synergy_exam_rush",
+                    "통학러시",
+                    "수험생·대학원생 → 치명타 확률 +10%",
+                    PassengerTag.Commute | PassengerTag.Academic,
+                    requiredCount: 2,
+                    uniqueCount: 0,
+                    SynergyEffectType.CritChancePercent,
+                    10f),
+                CreateSynergy(
+                    "Assets/Data/Synergies/Synergy_StrayExpress.asset",
+                    "synergy_stray_express",
+                    "막차행운",
+                    "고양이·승무원 → 치명타 확률 +8%",
+                    PassengerTag.Lucky | PassengerTag.Transit,
+                    requiredCount: 2,
+                    uniqueCount: 0,
+                    SynergyEffectType.CritChancePercent,
+                    8f)
             };
         }
 

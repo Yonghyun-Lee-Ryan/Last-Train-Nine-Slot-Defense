@@ -121,15 +121,22 @@ namespace LastTrain.Tutorial
                 return;
             }
 
-            meta.tutorialSkipped = true;
-            meta.tutorialCompleted = true;
+            TutorialProgressService.MarkSkipped(meta);
             meta.tutorialStepIndex = _steps.Count;
+            int skippedFrom = Mathf.Max(0, _index);
             _finished = true;
             _active = false;
             Skipped?.Invoke();
+            Track(AnalyticsEventNames.TutorialSkipped, new Dictionary<string, object>
+            {
+                ["from_step_index"] = skippedFrom,
+                ["step_count"] = _steps.Count,
+            });
             Track(AnalyticsEventNames.TutorialCompleted, new Dictionary<string, object>
             {
                 ["skipped"] = true,
+                ["from_step_index"] = skippedFrom,
+                ["step_count"] = _steps.Count,
             });
         }
 
@@ -140,9 +147,7 @@ namespace LastTrain.Tutorial
                 return;
             }
 
-            meta.tutorialCompleted = false;
-            meta.tutorialSkipped = false;
-            meta.tutorialStepIndex = 0;
+            TutorialProgressService.ResetProgress(meta);
             _finished = false;
             _active = true;
             _index = 0;

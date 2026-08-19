@@ -55,6 +55,7 @@ namespace LastTrain.Tests.EditMode
             Assert.AreEqual("run_started", AnalyticsEventNames.RunStarted);
             Assert.AreEqual("rewarded_ad_completed", AnalyticsEventNames.RewardedAdCompleted);
             Assert.AreEqual("passenger_merged", AnalyticsEventNames.PassengerMerged);
+            Assert.AreEqual("achievement_unlocked", AnalyticsEventNames.AchievementUnlocked);
         }
 
         [Test]

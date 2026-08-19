@@ -13,6 +13,7 @@ namespace LastTrain.Tests.EditMode
             PlayerPrefs.DeleteKey("lasttrain.settings.sfx");
             PlayerPrefs.DeleteKey("lasttrain.settings.vibration");
             PlayerPrefs.DeleteKey("lasttrain.settings.notification");
+            PlayerPrefs.DeleteKey("lasttrain.settings.battleSpeed");
             PlayerPrefs.Save();
         }
 

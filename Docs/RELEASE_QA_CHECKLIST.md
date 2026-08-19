@@ -49,6 +49,34 @@ Unity **6000.5.4f1** / 내부 테스트 빌드용 점검 목록입니다.
 - [ ] 세로 고정, 가로 회전 없음
 - [ ] 저사양 기기 60 FPS 목표 (발열 시 프레임 드랍 허용 범위 확인)
 
+---
+
+# Soft Launch (Unit 54)
+
+Unity **6000.5.4f1**. 신규 승객 +4 · Quick Run · LiveOps 반영 후 실패율/성능 게이트.
+
+## 밸런스 게이트
+
+- [x] Headless 시나리오에 신규 승객(차장/바리스타/보안/학생) 포함
+- [x] Headless 시나리오에 Quick Run 5역 노선 포함
+- [x] `Tools → 막차 생존 → 개발 단위 54 Soft Launch QA 게이트` 통과
+- [x] `BalanceReports/soft_launch_gate.md` 기록
+
+## 저사양 프레임
+
+- [x] `LowEndFramePolicy` 목표 60 FPS / 프레임 예산 17ms
+- [x] 저메모리(<3GB)에서 LowFx 자동 권고 (사용자 설정이 없을 때)
+- [x] 설정 패널의 저사양 이펙트 토글 유지
+- [ ] 실기기 저사양 60 FPS 체감 (기기 전용 — Soft Launch 트랙에서 확인)
+
+## 핵심 루프 회귀 (Release / SDK 미활성 NoOp)
+
+- [x] EditMode SoftLaunchBalanceGate 시나리오 3종 완료
+- [x] `ReleaseBuildValidator` ERROR 0 (AdMob/Firebase WARN 허용)
+- [ ] 실기기 1회차 클리어 (Unit 55)
+
+기록일: 2026-08-14. EditMode 게이트는 본 단위에서 통과. 실기기 프레임은 Unit 55 체크리스트에 남긴다.
+
 ## Pause / Resume / 네트워크
 
 - [ ] 홈 버튼 → 복귀 시 전투 상태 유지

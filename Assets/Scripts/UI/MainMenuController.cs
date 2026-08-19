@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using LastTrain.Analytics;
+using LastTrain.Attendance;
 using LastTrain.Audio;
 using LastTrain.Core;
 using LastTrain.Data;
@@ -32,16 +33,31 @@ namespace LastTrain.UI
         private SettingsPanelController _settingsPanel;
         private MissionPanelController _missionPanel;
         private LiveEventPanelController _liveEventPanel;
+        private CodexPanelController _codexPanel;
+        private AttendancePanelController _attendancePanel;
+        private AchievementPanelController _achievementPanel;
         private PrivacyConsentDialogController _privacyDialog;
         private DifficultySelectionController _difficultySelection;
         private DifficultyUnlockPopupController _difficultyUnlockPopup;
         private Button _missionButton;
         private Button _dailyRunButton;
+        private Button _quickRunButton;
         private Button _endlessRunButton;
         private Button _liveEventButton;
+        private Button _codexButton;
+        private Button _attendanceButton;
+        private Button _endlessMilestoneButton;
+        private Button _achievementButton;
+        private Button _todayGoalButton;
+        private Text _todayGoalLabel;
+        private HomeGoalSnapshot _currentGoal;
+        private Button _tabPlay;
+        private Button _tabGrowth;
+        private Button _tabSeason;
 
         private void Awake()
         {
+            MainMenuHomeTabs.Active = MainMenuHomeSection.Play;
             if (startButton == null)
             {
                 Debug.LogError("[MainMenuController] startButton이 연결되지 않았습니다.", this);
@@ -60,15 +76,21 @@ namespace LastTrain.UI
             EnsureMenuServices();
             EnsureDifficultyServices();
             EnsureMissionServices();
-            _privacyDialog?.TryShowIfNeeded();
-            _difficultyUnlockPopup?.TryShowPendingUnlocks();
-
-            Canvas canvas = FindAnyObjectByType<Canvas>();
-            Transform safeArea = canvas != null ? canvas.transform.Find("SafeArea") : null;
+            EnsureCodexServices();
+            EnsureAttendanceServices();
+            EnsureEndlessMilestoneServices();
+            EnsureAchievementServices();
+            Transform safeArea = MainMenuUiLayout.FindOwnedSafeArea(this);
             ApplyMenuVisualTheme(safeArea);
+            EnsureHomeIa(safeArea);
             MainMenuUiLayout.Apply(safeArea);
             RebindMetaStatusLabel();
             RefreshMetaProgress();
+            RefreshTodayGoalCard();
+
+            _privacyDialog?.TryShowIfNeeded();
+            _difficultyUnlockPopup?.TryShowPendingUnlocks();
+            _attendancePanel?.TryShowIfClaimable();
         }
 
         private void RebindMetaStatusLabel()
@@ -179,16 +201,220 @@ namespace LastTrain.UI
             MetaSaveSystem.Save(meta);
         }
 
-        private void EnsureMissionButtons()
+        private void EnsureCodexServices()
         {
-            Canvas canvas = FindAnyObjectByType<Canvas>();
-            if (canvas == null)
+            _codexPanel = GetComponent<CodexPanelController>();
+            if (_codexPanel == null)
+            {
+                _codexPanel = gameObject.AddComponent<CodexPanelController>();
+            }
+
+            EnsureCodexButton();
+        }
+
+        private void EnsureCodexButton()
+        {
+            Transform parent = ResolveMenuContentParent();
+            if (parent == null)
             {
                 return;
             }
 
-            Transform safeArea = canvas.transform.Find("SafeArea");
-            Transform parent = safeArea != null ? safeArea : canvas.transform;
+            if (GameObject.Find("CodexButton") == null)
+            {
+                _codexButton = MenuOverlayUi.CreateButton(
+                    parent,
+                    "CodexButton",
+                    "도감",
+                    Vector2.zero,
+                    new Vector2(UiButtonStyler.MenuActionMaxWidth, UiButtonStyler.MenuSecondaryHeight),
+                    OnCodexClicked);
+                ApplyContinueButtonThemeTo(_codexButton);
+            }
+            else
+            {
+                _codexButton = GameObject.Find("CodexButton").GetComponent<Button>();
+                _codexButton.onClick.RemoveAllListeners();
+                _codexButton.onClick.AddListener(OnCodexClicked);
+            }
+
+            RefreshCodexButton();
+        }
+
+        private void OnCodexClicked()
+        {
+            _codexPanel?.Show(GameDatabaseLocator.Load());
+            RefreshCodexButton();
+        }
+
+        private void RefreshCodexButton()
+        {
+            if (_codexButton == null)
+            {
+                return;
+            }
+
+            MetaProgressSnapshot snapshot = MetaSaveSystem.GetSnapshot();
+            int pending = snapshot.PendingNewDiscoveryIds?.Count ?? 0;
+            Text label = _codexButton.GetComponentInChildren<Text>();
+            if (label != null)
+            {
+                label.text = pending > 0 ? $"도감 ({pending})" : "도감";
+            }
+        }
+
+        private void EnsureAttendanceServices()
+        {
+            _attendancePanel = GetComponent<AttendancePanelController>();
+            if (_attendancePanel == null)
+            {
+                _attendancePanel = gameObject.AddComponent<AttendancePanelController>();
+            }
+
+            EnsureAttendanceButton();
+        }
+
+        private void EnsureAttendanceButton()
+        {
+            Transform parent = ResolveMenuContentParent();
+            if (parent == null)
+            {
+                return;
+            }
+
+            if (GameObject.Find("AttendanceButton") == null)
+            {
+                _attendanceButton = MenuOverlayUi.CreateButton(
+                    parent,
+                    "AttendanceButton",
+                    "출석",
+                    Vector2.zero,
+                    new Vector2(UiButtonStyler.MenuActionMaxWidth, UiButtonStyler.MenuSecondaryHeight),
+                    OnAttendanceClicked);
+                ApplyContinueButtonThemeTo(_attendanceButton);
+            }
+            else
+            {
+                _attendanceButton = GameObject.Find("AttendanceButton").GetComponent<Button>();
+                _attendanceButton.onClick.RemoveAllListeners();
+                _attendanceButton.onClick.AddListener(OnAttendanceClicked);
+            }
+
+            RefreshAttendanceButton();
+        }
+
+        private void OnAttendanceClicked()
+        {
+            _attendancePanel?.Show();
+            RefreshAttendanceButton();
+        }
+
+        public void RefreshAttendanceButton()
+        {
+            if (_attendanceButton == null)
+            {
+                return;
+            }
+
+            MetaSaveData meta = MetaSaveSystem.LoadOrCreate();
+            bool canClaim = AttendanceService.CanClaimToday(meta);
+            Text label = _attendanceButton.GetComponentInChildren<Text>();
+            if (label != null)
+            {
+                label.text = canClaim ? "출석 (받기)" : "출석";
+            }
+        }
+
+        public void TryShowQueuedAttendance()
+        {
+            _attendancePanel?.TryShowIfClaimable();
+        }
+
+        private EndlessMilestonePanelController _endlessMilestonePanel;
+
+        private void EnsureEndlessMilestoneServices()
+        {
+            _endlessMilestonePanel = GetComponent<EndlessMilestonePanelController>();
+            if (_endlessMilestonePanel == null)
+            {
+                _endlessMilestonePanel = gameObject.AddComponent<EndlessMilestonePanelController>();
+            }
+
+            Transform parent = ResolveMenuContentParent();
+            if (parent == null)
+            {
+                return;
+            }
+
+            if (GameObject.Find("EndlessMilestoneButton") == null)
+            {
+                _endlessMilestoneButton = MenuOverlayUi.CreateButton(
+                    parent,
+                    "EndlessMilestoneButton",
+                    "무한 마일스톤",
+                    Vector2.zero,
+                    new Vector2(UiButtonStyler.MenuActionMaxWidth, UiButtonStyler.MenuSecondaryHeight),
+                    () => _endlessMilestonePanel?.Show());
+                ApplyContinueButtonThemeTo(_endlessMilestoneButton);
+            }
+            else
+            {
+                _endlessMilestoneButton = GameObject.Find("EndlessMilestoneButton").GetComponent<Button>();
+                _endlessMilestoneButton.onClick.RemoveAllListeners();
+                _endlessMilestoneButton.onClick.AddListener(() => _endlessMilestonePanel?.Show());
+            }
+        }
+
+        private void EnsureAchievementServices()
+        {
+            _achievementPanel = GetComponent<AchievementPanelController>();
+            if (_achievementPanel == null)
+            {
+                _achievementPanel = gameObject.AddComponent<AchievementPanelController>();
+            }
+
+            EnsureAchievementButton();
+        }
+
+        private void EnsureAchievementButton()
+        {
+            Transform parent = ResolveMenuContentParent();
+            if (parent == null)
+            {
+                return;
+            }
+
+            if (GameObject.Find("AchievementButton") == null)
+            {
+                _achievementButton = MenuOverlayUi.CreateButton(
+                    parent,
+                    "AchievementButton",
+                    "업적",
+                    Vector2.zero,
+                    new Vector2(UiButtonStyler.MenuActionMaxWidth, UiButtonStyler.MenuSecondaryHeight),
+                    OnAchievementClicked);
+                ApplyContinueButtonThemeTo(_achievementButton);
+            }
+            else
+            {
+                _achievementButton = GameObject.Find("AchievementButton").GetComponent<Button>();
+                _achievementButton.onClick.RemoveAllListeners();
+                _achievementButton.onClick.AddListener(OnAchievementClicked);
+            }
+        }
+
+        private void OnAchievementClicked()
+        {
+            _achievementPanel?.Show();
+        }
+
+        private void EnsureMissionButtons()
+        {
+            Transform parent = ResolveMenuContentParent();
+            if (parent == null)
+            {
+                return;
+            }
 
             if (GameObject.Find("MissionButton") == null)
             {
@@ -197,7 +423,7 @@ namespace LastTrain.UI
                     "MissionButton",
                     "미션",
                     Vector2.zero,
-                    new Vector2(600f, 112f),
+                    new Vector2(UiButtonStyler.MenuActionMaxWidth, UiButtonStyler.MenuSecondaryHeight),
                     () => _missionPanel?.Show(GameDatabaseLocator.Load()));
                 ApplyContinueButtonThemeTo(_missionButton);
             }
@@ -215,7 +441,7 @@ namespace LastTrain.UI
                     "DailyRunButton",
                     "오늘의 막차",
                     Vector2.zero,
-                    new Vector2(600f, 112f),
+                    new Vector2(UiButtonStyler.MenuActionMaxWidth, UiButtonStyler.MenuSecondaryHeight),
                     OnDailyRunClicked);
                 ApplyContinueButtonThemeTo(_dailyRunButton);
             }
@@ -226,6 +452,24 @@ namespace LastTrain.UI
                 _dailyRunButton.onClick.AddListener(OnDailyRunClicked);
             }
 
+            if (GameObject.Find("QuickRunButton") == null)
+            {
+                _quickRunButton = MenuOverlayUi.CreateButton(
+                    parent,
+                    "QuickRunButton",
+                    "퀵 런",
+                    Vector2.zero,
+                    new Vector2(UiButtonStyler.MenuActionMaxWidth, UiButtonStyler.MenuSecondaryHeight),
+                    OnQuickRunClicked);
+                ApplyContinueButtonThemeTo(_quickRunButton);
+            }
+            else
+            {
+                _quickRunButton = GameObject.Find("QuickRunButton").GetComponent<Button>();
+                _quickRunButton.onClick.RemoveAllListeners();
+                _quickRunButton.onClick.AddListener(OnQuickRunClicked);
+            }
+
             if (GameObject.Find("EndlessRunButton") == null)
             {
                 _endlessRunButton = MenuOverlayUi.CreateButton(
@@ -233,7 +477,7 @@ namespace LastTrain.UI
                     "EndlessRunButton",
                     "무한 모드",
                     Vector2.zero,
-                    new Vector2(600f, 112f),
+                    new Vector2(UiButtonStyler.MenuActionMaxWidth, UiButtonStyler.MenuSecondaryHeight),
                     OnEndlessRunClicked);
                 ApplyContinueButtonThemeTo(_endlessRunButton);
             }
@@ -251,7 +495,7 @@ namespace LastTrain.UI
                     "LiveEventButton",
                     "시즌 이벤트",
                     Vector2.zero,
-                    new Vector2(600f, 112f),
+                    new Vector2(UiButtonStyler.MenuActionMaxWidth, UiButtonStyler.MenuSecondaryHeight),
                     () => _liveEventPanel?.Show());
                 ApplyContinueButtonThemeTo(_liveEventButton);
             }
@@ -263,22 +507,276 @@ namespace LastTrain.UI
             }
 
             RefreshEndlessButton();
+            RefreshDailyRunButton();
             RefreshLiveEventButton();
+            RefreshTodayGoalCard();
             RelayoutMainMenu();
         }
 
-        private void RefreshLiveEventButton()
+        private Transform ResolveMenuContentParent()
         {
-            if (_liveEventButton == null)
+            Transform safeArea = MainMenuUiLayout.FindOwnedSafeArea(this);
+            if (safeArea == null)
+            {
+                return null;
+            }
+
+            RectTransform content = MainMenuUiLayout.EnsureContentRoot(safeArea);
+            return content != null ? content : safeArea;
+        }
+
+        private void EnsureHomeIa(Transform safeArea)
+        {
+            if (safeArea == null)
             {
                 return;
             }
 
+            Transform content = MainMenuUiLayout.EnsureContentRoot(safeArea);
+            Transform parent = content != null ? content : safeArea;
+            EnsureTodayGoalCard(parent);
+            EnsureHomeTabBar(parent);
+            EnsureGrowthPlaceholder(parent);
+        }
+
+        private void EnsureTodayGoalCard(Transform parent)
+        {
+            Transform existing = parent != null ? parent.Find("TodayGoalCard") : null;
+            if (existing == null)
+            {
+                GameObject found = GameObject.Find("TodayGoalCard");
+                existing = found != null ? found.transform : null;
+            }
+
+            if (existing == null)
+            {
+                var go = new GameObject("TodayGoalCard", typeof(RectTransform), typeof(Image), typeof(Button));
+                go.transform.SetParent(parent, false);
+                _todayGoalButton = go.GetComponent<Button>();
+                _todayGoalButton.onClick.AddListener(OnTodayGoalClicked);
+                existing = go.transform;
+            }
+            else
+            {
+                _todayGoalButton = existing.GetComponent<Button>();
+                if (_todayGoalButton == null)
+                {
+                    _todayGoalButton = existing.gameObject.AddComponent<Button>();
+                }
+
+                _todayGoalButton.onClick.RemoveListener(OnTodayGoalClicked);
+                _todayGoalButton.onClick.AddListener(OnTodayGoalClicked);
+            }
+
+            _todayGoalLabel = MainMenuUiLayout.ResolveMetaStatusText(existing);
+        }
+
+        private void EnsureHomeTabBar(Transform parent)
+        {
+            Transform bar = parent != null ? parent.Find("HomeTabBar") : null;
+            if (bar == null)
+            {
+                GameObject found = GameObject.Find("HomeTabBar");
+                bar = found != null ? found.transform : null;
+            }
+
+            if (bar == null)
+            {
+                var go = new GameObject("HomeTabBar", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+                bar = go.transform;
+                bar.SetParent(parent, false);
+            }
+
+            _tabPlay = EnsureTabButton(bar, "TabPlay", "플레이", MainMenuHomeSection.Play);
+            _tabGrowth = EnsureTabButton(bar, "TabGrowth", "성장", MainMenuHomeSection.Growth);
+            _tabSeason = EnsureTabButton(bar, "TabSeason", "시즌", MainMenuHomeSection.Season);
+            HighlightActiveTab();
+        }
+
+        private void EnsureGrowthPlaceholder(Transform parent)
+        {
+            Transform existing = parent != null ? parent.Find("GrowthPlaceholder") : null;
+            if (existing != null)
+            {
+                return;
+            }
+
+            var go = new GameObject("GrowthPlaceholder", typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            Text label = go.AddComponent<Text>();
+            label.text = "성장\n도감·출석·업적에서 메타 보상을 확인하세요.";
+            label.alignment = TextAnchor.MiddleCenter;
+            label.fontSize = 24;
+            label.color = Color.white;
+            Font font = GameFontProvider.Get();
+            if (font != null)
+            {
+                label.font = font;
+            }
+
+            go.SetActive(false);
+        }
+
+        private Button EnsureTabButton(Transform bar, string name, string label, MainMenuHomeSection section)
+        {
+            Transform child = bar.Find(name);
+            Button button;
+            if (child == null)
+            {
+                button = MenuOverlayUi.CreateLayoutButton(
+                    bar,
+                    name,
+                    label,
+                    56f,
+                    () => SelectHomeSection(section),
+                    28);
+            }
+            else
+            {
+                button = child.GetComponent<Button>();
+                if (button == null)
+                {
+                    button = child.gameObject.AddComponent<Button>();
+                }
+
+                button.onClick.RemoveAllListeners();
+                button.onClick.AddListener(() => SelectHomeSection(section));
+                Text text = child.GetComponentInChildren<Text>();
+                if (text != null)
+                {
+                    text.text = label;
+                }
+            }
+
+            return button;
+        }
+
+        private void SelectHomeSection(MainMenuHomeSection section)
+        {
+            if (MainMenuHomeTabs.Active == section)
+            {
+                return;
+            }
+
+            GameAudio.PlaySfx(SfxId.UiToggle);
+            MainMenuHomeTabs.Active = section;
+            HighlightActiveTab();
+            RelayoutMainMenu();
+        }
+
+        private void HighlightActiveTab()
+        {
+            SetTabHighlight(_tabPlay, MainMenuHomeTabs.Active == MainMenuHomeSection.Play);
+            SetTabHighlight(_tabGrowth, MainMenuHomeTabs.Active == MainMenuHomeSection.Growth);
+            SetTabHighlight(_tabSeason, MainMenuHomeTabs.Active == MainMenuHomeSection.Season);
+        }
+
+        private static void SetTabHighlight(Button button, bool active)
+        {
+            if (button == null)
+            {
+                return;
+            }
+
+            Text label = button.GetComponentInChildren<Text>();
+            if (label != null)
+            {
+                label.fontSize = active ? 28 : 24;
+                label.color = active ? Color.white : new Color(0.75f, 0.8f, 0.88f, 1f);
+            }
+
+            Image image = button.GetComponent<Image>();
+            if (image != null)
+            {
+                image.color = active ? Color.white : new Color(0.85f, 0.85f, 0.85f, 1f);
+            }
+        }
+
+        private void RefreshTodayGoalCard()
+        {
+            EnsureHomeIa(FindSafeArea());
+            GameDatabase db = GameDatabaseLocator.Load();
+            MetaSaveData meta = MetaSaveSystem.LoadOrCreate();
+            if (db?.Missions != null)
+            {
+                MissionProgressService.EnsurePeriods(meta, db.Missions);
+            }
+
+            var missionViews = MissionProgressService.BuildViews(meta, db?.Missions);
             LiveEventService live = AppRoot.Instance?.LiveEvents;
-            bool active = live != null && live.HasActiveEvent;
-            bool wasActive = _liveEventButton.gameObject.activeSelf;
-            _liveEventButton.gameObject.SetActive(active);
-            if (active && live.ActiveEvent != null)
+            string seasonName = live != null && live.HasActiveEvent && live.ActiveEvent != null
+                ? live.ActiveEvent.DisplayName
+                : null;
+            bool hasContinue = RunSaveSystem.TryLoadPreparing(out _);
+            _currentGoal = HomeGoalResolver.Resolve(
+                missionViews,
+                db?.Difficulties,
+                meta,
+                seasonName,
+                hasContinue);
+
+            if (_todayGoalLabel == null && GameObject.Find("TodayGoalCard") != null)
+            {
+                _todayGoalLabel = MainMenuUiLayout.ResolveMetaStatusText(
+                    GameObject.Find("TodayGoalCard").transform);
+            }
+
+            if (_todayGoalLabel != null && _currentGoal != null)
+            {
+                _todayGoalLabel.text =
+                    $"{_currentGoal.Title}\n{_currentGoal.Body}\n[{_currentGoal.CtaLabel}]";
+            }
+        }
+
+        private void OnTodayGoalClicked()
+        {
+            if (_currentGoal == null)
+            {
+                RefreshTodayGoalCard();
+            }
+
+            if (_currentGoal == null)
+            {
+                return;
+            }
+
+            GameAudio.PlaySfx(SfxId.UiConfirm);
+            switch (_currentGoal.Kind)
+            {
+                case HomeGoalKind.MissionClaim:
+                case HomeGoalKind.MissionProgress:
+                    SelectHomeSection(MainMenuHomeSection.Season);
+                    _missionPanel?.Show(GameDatabaseLocator.Load());
+                    break;
+                case HomeGoalKind.SeasonEvent:
+                    SelectHomeSection(MainMenuHomeSection.Season);
+                    _liveEventPanel?.Show();
+                    break;
+                case HomeGoalKind.DifficultyUnlock:
+                    SelectHomeSection(MainMenuHomeSection.Play);
+                    break;
+                case HomeGoalKind.ContinueRun:
+                    SelectHomeSection(MainMenuHomeSection.Play);
+                    OnContinueClicked();
+                    break;
+                case HomeGoalKind.StartRun:
+                    SelectHomeSection(MainMenuHomeSection.Play);
+                    break;
+            }
+        }
+
+        private Transform FindSafeArea()
+        {
+            return MainMenuUiLayout.FindOwnedSafeArea(this);
+        }
+
+        private void RefreshLiveEventButton()
+        {
+            LiveEventService live = AppRoot.Instance?.LiveEvents;
+            MainMenuHomeTabs.LiveEventAvailable = live != null && live.HasActiveEvent;
+            if (_liveEventButton != null
+                && MainMenuHomeTabs.LiveEventAvailable
+                && live.ActiveEvent != null)
             {
                 Text label = _liveEventButton.GetComponentInChildren<Text>();
                 if (label != null)
@@ -287,17 +785,12 @@ namespace LastTrain.UI
                 }
             }
 
-            if (wasActive != active)
-            {
-                RelayoutMainMenu();
-            }
+            RelayoutMainMenu();
         }
 
-        private static void RelayoutMainMenu()
+        private void RelayoutMainMenu()
         {
-            Canvas canvas = FindAnyObjectByType<Canvas>();
-            Transform safeArea = canvas != null ? canvas.transform.Find("SafeArea") : null;
-            MainMenuUiLayout.Apply(safeArea);
+            MainMenuUiLayout.Apply(MainMenuUiLayout.FindOwnedSafeArea(this));
         }
 
         private void RefreshEndlessButton()
@@ -315,36 +808,35 @@ namespace LastTrain.UI
             {
                 label.text = unlocked
                     ? (meta.endlessBestScore > 0
-                        ? $"무한 모드  (최고 {meta.endlessBestScore})"
+                        ? $"무한 모드  (로컬 최고 {meta.endlessBestScore})"
                         : "무한 모드")
                     : "무한 모드  (노선 클리어 후 해금)";
             }
         }
 
+        private void RefreshDailyRunButton()
+        {
+            if (_dailyRunButton == null)
+            {
+                return;
+            }
+
+            GameDatabase database = GameDatabaseLocator.Load();
+            DailyRuleData rule = DailyRunService.ResolveToday(database != null ? database.DailyRules : null);
+            Text label = _dailyRunButton.GetComponentInChildren<Text>();
+            if (label == null)
+            {
+                return;
+            }
+
+            label.text = rule != null && !string.IsNullOrWhiteSpace(rule.DisplayName)
+                ? $"오늘의 막차\n{rule.DisplayName}"
+                : "오늘의 막차";
+        }
+
         private static void ApplyContinueButtonThemeTo(Button button)
         {
-            if (button == null)
-            {
-                return;
-            }
-
-            VisualTheme theme = VisualThemeLocator.Load();
-            Image image = button.GetComponent<Image>();
-            if (theme == null || image == null || theme.ButtonNormal == null)
-            {
-                return;
-            }
-
-            image.sprite = theme.ButtonNormal;
-            image.type = Image.Type.Sliced;
-            image.color = Color.white;
-            button.transition = Selectable.Transition.SpriteSwap;
-
-            SpriteState state = button.spriteState;
-            state.highlightedSprite = theme.ButtonNormal;
-            state.pressedSprite = theme.ButtonPressed != null ? theme.ButtonPressed : theme.ButtonNormal;
-            state.disabledSprite = theme.ButtonDisabled != null ? theme.ButtonDisabled : theme.ButtonNormal;
-            button.spriteState = state;
+            UiButtonStyler.ApplyStandardTheme(button);
         }
 
         private void EnsureDifficultyServices()
@@ -390,21 +882,18 @@ namespace LastTrain.UI
                 return;
             }
 
-            Canvas canvas = UnityEngine.Object.FindAnyObjectByType<Canvas>();
-            if (canvas == null)
+            Transform parent = MainMenuUiLayout.FindOwnedSafeArea(this);
+            if (parent == null)
             {
                 return;
             }
-
-            Transform safeArea = canvas.transform.Find("SafeArea");
-            Transform parent = safeArea != null ? safeArea : canvas.transform;
 
             Button settingsButton = MenuOverlayUi.CreateButton(
                 parent,
                 "SettingsButton",
                 "설정",
                 new Vector2(-48f, -48f),
-                new Vector2(160f, 64f),
+                new Vector2(168f, 72f),
                 () => _settingsPanel?.Show());
 
             RectTransform rect = settingsButton.GetComponent<RectTransform>();
@@ -417,21 +906,7 @@ namespace LastTrain.UI
 
         private static void ApplySettingsButtonTheme(Button button)
         {
-            if (button == null)
-            {
-                return;
-            }
-
-            VisualTheme theme = VisualThemeLocator.Load();
-            Image image = button.GetComponent<Image>();
-            if (theme == null || image == null || theme.ButtonNormal == null)
-            {
-                return;
-            }
-
-            image.sprite = theme.ButtonNormal;
-            image.type = Image.Type.Sliced;
-            image.color = Color.white;
+            UiButtonStyler.ApplyStandardTheme(button);
         }
 
         private void EnsureMetaStatusLabel()
@@ -441,14 +916,11 @@ namespace LastTrain.UI
                 return;
             }
 
-            Canvas canvas = UnityEngine.Object.FindAnyObjectByType<Canvas>();
-            if (canvas == null)
+            Transform parent = ResolveMenuContentParent();
+            if (parent == null)
             {
                 return;
             }
-
-            Transform safeArea = canvas.transform.Find("SafeArea");
-            Transform parent = safeArea != null ? safeArea : canvas.transform;
 
             GameObject go = new GameObject("MetaStatusLabel", typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -502,12 +974,15 @@ namespace LastTrain.UI
 
             if (snapshot.PendingNewDiscoveryIds != null && snapshot.PendingNewDiscoveryIds.Count > 0)
             {
-                MetaSaveSystem.ClearPendingDiscoveries();
+                RefreshCodexButton();
             }
 
             RefreshDifficultySelection();
             RefreshEndlessButton();
+            RefreshDailyRunButton();
             RefreshLiveEventButton();
+            RefreshTodayGoalCard();
+            RefreshAttendanceButton();
         }
 
         private void EnsureContinueButton()
@@ -536,20 +1011,17 @@ namespace LastTrain.UI
             }
 
             // 없으면 SafeArea 아래에 최소 UI를 런타임 생성
-            Canvas canvas = UnityEngine.Object.FindAnyObjectByType<Canvas>();
-            if (canvas == null)
+            Transform parent = ResolveMenuContentParent();
+            if (parent == null)
             {
                 return;
             }
-
-            Transform safeArea = canvas.transform.Find("SafeArea");
-            Transform parent = safeArea != null ? safeArea : canvas.transform;
 
             GameObject go = new GameObject("ContinueButton", typeof(RectTransform), typeof(Image), typeof(Button));
             go.transform.SetParent(parent, false);
 
             RectTransform rect = go.GetComponent<RectTransform>();
-            rect.sizeDelta = new Vector2(600, 160);
+            rect.sizeDelta = new Vector2(UiButtonStyler.MenuActionMaxWidth, UiButtonStyler.MenuPrimaryHeight);
             rect.anchoredPosition = Vector2.zero;
 
             Image img = go.GetComponent<Image>();
@@ -584,32 +1056,7 @@ namespace LastTrain.UI
 
         private void ApplyContinueButtonTheme()
         {
-            if (continueButton == null)
-            {
-                return;
-            }
-
-            VisualTheme theme = VisualThemeLocator.Load();
-            Image image = continueButton.GetComponent<Image>();
-            if (theme == null || image == null || theme.ButtonNormal == null)
-            {
-                return;
-            }
-
-            image.sprite = theme.ButtonNormal;
-            image.type = Image.Type.Sliced;
-            image.color = Color.white;
-            continueButton.transition = Selectable.Transition.SpriteSwap;
-
-            SpriteState state = continueButton.spriteState;
-            state.highlightedSprite = theme.ButtonNormal;
-            state.pressedSprite = theme.ButtonPressed != null
-                ? theme.ButtonPressed
-                : theme.ButtonNormal;
-            state.disabledSprite = theme.ButtonDisabled != null
-                ? theme.ButtonDisabled
-                : theme.ButtonNormal;
-            continueButton.spriteState = state;
+            UiButtonStyler.ApplyStandardTheme(continueButton);
         }
 
         private void OnStartClicked()
@@ -651,7 +1098,32 @@ namespace LastTrain.UI
             {
                 int seed = DailyRunService.ComputeSeedForToday();
                 RunStartConfig config = RunStartConfig.CreateDailyRun(seed);
+                GameDatabase database = GameDatabaseLocator.Load();
+                IReadOnlyList<DailyRuleData> catalog = database != null ? database.DailyRules : null;
+                DailyRuleData rule = DailyRunService.ResolveRule(catalog, seed);
+                DailyRunService.BindRule(config, rule, seed, catalog != null ? catalog.Count : 0);
                 config.DifficultyId = DifficultySelectionState.SelectedDifficultyId;
+                appRoot.GameSession.StartNewRun(config);
+            }
+
+            SceneFlow.Load(SceneNames.Game);
+        }
+
+        private void OnQuickRunClicked()
+        {
+            if (_quickRunButton != null)
+            {
+                _quickRunButton.interactable = false;
+            }
+
+            GameAudio.PlaySfx(SfxId.UiConfirm);
+            RunSaveSystem.DeleteRunSave();
+            DifficultySelectionState.UnlockSelection();
+
+            AppRoot appRoot = AppRoot.Instance;
+            if (appRoot != null)
+            {
+                RunStartConfig config = RunStartConfig.CreateQuickRun(DifficultySelectionState.SelectedDifficultyId);
                 appRoot.GameSession.StartNewRun(config);
             }
 
@@ -751,17 +1223,17 @@ namespace LastTrain.UI
 
         private void RefreshContinueButton()
         {
+            // 오늘의 막차 세이브는 이어하기 대상이 아니다.
+            bool hasSave = RunSaveSystem.TryLoadPreparing(out RunSaveData save)
+                           && save != null
+                           && !save.isDailyRun;
+            MainMenuHomeTabs.ContinueAvailable = hasSave;
             if (continueButton == null)
             {
                 return;
             }
 
-            // 오늘의 막차 세이브는 이어하기 대상이 아니다.
-            bool hasSave = RunSaveSystem.TryLoadPreparing(out RunSaveData save)
-                           && save != null
-                           && !save.isDailyRun;
             continueButton.interactable = hasSave;
-            continueButton.gameObject.SetActive(hasSave);
         }
     }
 }

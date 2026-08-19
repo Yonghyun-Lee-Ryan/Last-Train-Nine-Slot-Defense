@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6321b6c2ee5bf4546a08ec73987776d1, type: 3}
   m_Name: AdUnitConfig
   m_EditorClassIdentifier: LastTrain.Runtime::LastTrain.Integrations.AdUnitConfig
+  useGoogleTestAdUnits: 1
   androidRewardedTestId: ca-app-pub-3940256099942544/5224354917
   androidRewardedProductionId: 
   androidInterstitialTestId: ca-app-pub-3940256099942544/1033173712

@@ -1,0 +1,563 @@
+# Cursor-WBS-Rev3
+
+> Unit 35 이후 개발의 **기준 문서**(승인 후 Rev2를 대체).  
+> 전제: `Cursor-WBS-Rev2` Unit 1–34 및 Checkpoint J 완료.  
+> 근거: `Docs/Market-Gap-Analysis-GP200.md`, `Docs/기획서-Competitive-Rev3.md`.
+
+---
+
+## 공통 규칙
+
+Rev2의 공통 규칙 1–28을 그대로 상속한다. 추가:
+
+```text
+29. Soft Launch 전 광고/분석/Crashlytics/정책 URL이 NoOp·placeholder면 출시 체크리스트를 통과한 것으로 보지 않는다.
+30. 랭킹·시즌·클라우드 등 “서버가 있는 것처럼” UI는 Mock을 노출하지 않거나 로컬 전용임을 명시한다.
+31. 9칸 전장 크기와 막차 테마를 깨는 변경은 별도 기획 승인 없이 금지한다.
+32. 신규 콘텐츠는 GameDatabase·Resources 동기화와 EditMode 테스트를 포함한다.
+33. 단위 완료 전: 코드를 프로젝트에 적용하고, EditMode 테스트와 Release 경로(SDK 미활성 NoOp, 핵심 루프 진행, Validator ERROR 없음)를 확인한다. 기기 전용 항목이 남으면 명시하고 다음 단위로 건너뛰지 않는다.
+```
+
+---
+
+## 현재 기준
+
+* Unit 1–34: 완료로 간주  
+* Checkpoint I 잔여(실 SDK): **Unit 35–37에서 완결**  
+* Unit 35–37: Release 회귀 통과 (Soft Launch SDK/기기 잔여 명시)  
+* Unit 38: **Release 회귀 통과** — Play/Growth/Season 탭 + 오늘의 목표 카드(미션→난이도→시즌) + 기존 진입 유지. EditMode 279 · Validator ERROR 0  
+* Unit 39: **Release 회귀 통과** — CodexPanelController(승객/적/보스/유물 탭) + Growth 도감 진입 + Meta discovered/mastery 연동. EditMode 285 · Validator ERROR 0  
+* Unit 40: **Release 회귀 통과** — AttendanceService 7일 출석 + 선택형 광고 보너스 + Meta v3 마이그레이션 + Growth 진입·자동 팝업. EditMode 292 · Validator ERROR 0  
+* Unit 41: **Release 회귀 통과** — 업적 목록 UI + Result 해금 토스트 + Analytics `achievement_unlocked` + 중복 해금 없음. EditMode 296 · Validator ERROR 0  
+* Unit 42: **Release 회귀 통과** — 전투 속도 1/2/3 Settings 저장, 판매 확인 다이얼로그, 준비 단계 합성 Undo 1회(전투 중 불가). EditMode 301 · Validator ERROR 0  
+* Unit 43: **Release 회귀 통과** — 다음 웨이브 적 아이콘 티커 + 보스 페이즈 요약 카드(`StationBriefing` 재사용). EditMode 313 · Validator ERROR 0  
+* Unit 44: **Release 회귀 통과** — `ResultController` 리네임, 패배 원인 1줄, 조각·해금 연출, 광고 2배 유지. EditMode 321 · Validator ERROR 0  
+* Unit 45: **Release 회귀 통과** — FTUE 8→5 퀵스타트, 스킵 후 Summon/Ready 가이드, Analytics skip/complete funnel. EditMode 326 · Validator ERROR 0  
+* Unit 46: **Release 회귀 통과** — 승객 12종(+4), 스킬 HUD 플래시, GameDatabase·해금·밸런스 스모크. EditMode 334 · Validator ERROR 0  
+* Unit 47: **Release 회귀 통과** — 시너지 8종(+5), HUD 활성/비활성·진행도 대비. EditMode 338 · Validator ERROR 0  
+* Unit 48: **Release 회귀 통과** — 이벤트 10종(+8), 유물 16종(+6), Line1 6번째 역 Rest 실배치. EditMode 343 · Validator ERROR 0  
+* Unit 49: **Release 회귀 통과** — Daily Rule 6종, 날짜=시드=규칙, 일반 회차 미적용. EditMode 350 · Validator ERROR 0  
+* Unit 50: **Release 회귀 통과** — Quick Run 5역, 홈 진입, 보상 배율 데이터/Remote. EditMode 355 · Validator ERROR 0  
+* Unit 51: **Release 회귀 통과** — Endless 마일스톤 10단, 수령 UI, Meta v4, 중복 수령 불가. EditMode 360 · Validator ERROR 0  
+* Unit 52: **Release 회귀 통과** — Free/Ad 시즌 패스 트랙, IAP 없음, 광고 수령은 AdCoordinator. EditMode 363 · Validator ERROR 0  
+* Unit 53: **Release 회귀 통과** — ServerSyncedLiveEventClock 실경로, Remote 카탈로그 토글(실패 시 로컬), RunSave v3 이벤트 스냅샷. EditMode 374 · Validator ERROR 0  
+* Unit 54: **Release 회귀 통과** — Soft Launch QA 체크리스트, 신규 승객·Quick Run 헤드리스 게이트, 저사양 60 FPS 정책. EditMode 380 · Validator ERROR 0  
+* Unit 55: **Release 회귀 통과** — Soft Launch 버전 0.5.0 / bundle 7, Play 내부 테스트 절차 문서화. EditMode 382 · Validator ERROR 0. **잔여:** 서명 AAB · Play 업로드 · 실기기 1사이클  
+* 다음 착수: **Unit 55 잔여(AAB · Play 트랙 · 실기기)** — Unit 56(EN 로컬라이즈)은 Soft Launch KO KPI 확인 후
+
+---
+
+# Phase 0 — Trust Ready (Checkpoint I 완결)
+
+## Unit 35 — 실 AdMob 배선과 보상 루프 검증
+
+### 목표
+릴리즈에서 보상형 광고 플레이스가 실제 시청·콜백·보상까지 동작한다.
+
+### 구현 내용
+1. `LASTTRAIN_ADMOB` 정의와 AdMob SDK 패키지 연결  
+2. `AdMobAdService` 완성: Load/Show/Fail 안전 처리  
+3. `AdUnitConfig` 프로덕션/테스트 ID 분리  
+4. Revive / DoubleReward / Reroll / FreeSummon / ShopRefresh 전 경로 기기 검증  
+5. NoOp일 때 관련 버튼 숨김 유지  
+
+### 완료 기준
+* Release 빌드에서 테스트 광고라도 Show→Reward 성공  
+* 광고 실패 시 게임 진행 가능  
+* EditMode: AdLimitService 한도 테스트 유지  
+
+### Cursor 요청 프롬프트
+```text
+Unit 35를 구현하라. AdMob 실배선과 보상 콜백을 완성하고,
+실패 시 NoOp/숨김 UX를 유지하라. 핵심 루프와 광고를 분리하라.
+```
+
+---
+
+## Unit 36 — Firebase Analytics · Crashlytics · Remote Config
+
+### 목표
+실기기에서 주요 이벤트가 수집되고, 크래시가 보고되며, Remote Config 실패 시 기본값으로 동작한다.
+
+### 구현 내용
+1. `LASTTRAIN_FIREBASE` + Firebase Unity SDK  
+2. `FirebaseAnalyticsService` / `FirebaseCrashReporter` 완성  
+3. Remote Config fetch + 실패 시 `RemoteConfigDefaults`  
+4. 기존 `AnalyticsEventNames` 매핑 검증(튜토리얼/회차/광고/구매성 보상)  
+
+### 완료 기준
+* DebugView 또는 콘솔에서 run_started 등 확인  
+* 강제 테스트 크래시가 Crashlytics에 보임(내부빌드)  
+* RC 오프라인 시 기본값으로 부팅  
+
+### Cursor 요청 프롬프트
+```text
+Unit 36을 구현하라. Firebase Analytics/Crashlytics/Remote Config 어댑터를
+실동작하게 하고, 실패해도 게임이 진행되도록 폴백하라.
+```
+
+---
+
+## Unit 37 — 출시 폴리시·스토어 신뢰 (Unit 22 연장)
+
+### 목표
+Play 정책·유저 신뢰에 필요한 텍스트/URL/표기를 출시 가능하게 만든다.
+
+### 구현 내용
+1. `privacyPolicyUrl` 실주소 + Resources/Release 동기화  
+2. 데이터 안전·삭제 고지 QA (`PlayerDataDeletionService`)  
+3. Endless/랭킹 UI: Mock 제거 또는 “로컬 최고 기록”만 표기  
+4. `ReleaseBuildValidator`에 정책 URL·SDK define 검사 강화  
+5. 인앱 리뷰 요청(클리어 2회 이후, 재요청 쿨다운)  
+
+### 완료 기준
+* example.com 미포함  
+* 랭킹 Mock을 “온라인 랭킹”처럼 오해할 수 없음  
+* AAB 검증 통과  
+
+### Cursor 요청 프롬프트
+```text
+Unit 37을 구현하라. 개인정보 URL, 랭킹 표기 정직화, 리뷰 유도,
+Release 검증을 Soft Launch 기준으로 맞춰라.
+```
+
+---
+
+# Phase 1 — Week-1 Hook
+
+## Unit 38 — 메인 홈 IA 개편
+
+### 목표
+모드 버튼 나열을 **플레이 / 성장 / 시즌** 구조로 정리해 “다음에 할 일”이 보이게 한다.
+
+### 구현 내용
+1. MainMenu 탭 또는 섹션: Play / Growth / Season  
+2. 상단 **오늘의 목표 카드** 1개(미션 우선 → 난이도 → 시즌)  
+3. 기존 시작/이어하기/일일/무한/이벤트/미션 진입 유지  
+4. SafeArea·스크롤 레이아웃 회귀 방지  
+
+### 완료 기준
+* 첫 화면에서 목표 카드와 시작 CTA가 동시에 이해됨  
+* 기존 세이브/해금 플로우 회귀 없음  
+
+### Cursor 요청 프롬프트
+```text
+Unit 38을 구현하라. 메인 메뉴 IA를 Play/Growth/Season과 목표 카드로
+재구성하되 기존 진입점을 유지하고 레이아웃 회귀를 막아라.
+```
+
+---
+
+## Unit 39 — 도감(Codex) UI
+
+### 목표
+메타에 쌓인 발견/숙련을 유저가 열어보는 도감 화면을 제공한다.
+
+### 구현 내용
+1. `CodexPanelController` (승객/적/보스/유물 탭)  
+2. 미발견 실루엣, 발견 시 일러스트+설명  
+3. `MetaSaveData` discovered* / mastery 연동  
+4. 홈 Growth 진입  
+
+### 완료 기준
+* 신규 발견 후 도감에 반영  
+* 미발견은 이름 대신 잠금 표시  
+
+### Cursor 요청 프롬프트
+```text
+Unit 39를 구현하라. 도감 UI를 추가하고 Meta 발견/숙련 데이터와 연결하라.
+중복 메타 서비스를 만들지 마라.
+```
+
+---
+
+## Unit 40 — 7일 출석
+
+### 목표
+매일 접속 보상을 제공한다(광고 추가 수령 선택형).
+
+### 구현 내용
+1. `AttendanceService` + Meta 저장(일차, 마지막 수령일)  
+2. 7일 보상 테이블(조각/XP/무료소환)  
+3. 광고로 “추가 보상” 1회(AdCoordinator)  
+4. 홈 팝업 또는 Growth 진입  
+
+### 완료 기준
+* 자정(로컬) 기준 중복 수령 불가  
+* 광고 실패 시 기본 보상만  
+
+### Cursor 요청 프롬프트
+```text
+Unit 40을 구현하라. 7일 출석과 선택형 광고 보너스를 추가하고
+저장 마이그레이션이 필요하면 작성하라.
+```
+
+---
+
+## Unit 41 — 업적 노출과 토스트
+
+### 목표
+이미 있는 achievement id를 유저에게 보여준다.
+
+### 구현 내용
+1. 업적 목록 UI(간단 리스트)  
+2. 해금 시 토스트/배너  
+3. Analytics `achievement_unlocked`  
+
+### 완료 기준
+* 해금 시 즉시 피드백  
+* 중복 해금 없음  
+
+### Cursor 요청 프롬프트
+```text
+Unit 41을 구현하라. 업적 UI와 해금 토스트를 기존 Meta achievement와 연결하라.
+```
+
+---
+
+# Phase 2 — Comfort Control & FTUE
+
+## Unit 42 — 전투 QOL (속도·판매확인·Undo)
+
+### 목표
+장르 표준 조작 편의를 준비 단계/전투에 제공한다.
+
+### 구현 내용
+1. 속도 1/2/3 프리셋 + Settings 저장  
+2. 판매 확인 다이얼로그  
+3. 준비 단계 한정 합성 Undo 1회  
+4. 입력 가드와 튜토리얼 게이트 충돌 방지  
+
+### 완료 기준
+* Undo가 전투 중 호출되지 않음  
+* 속도 설정이 회차 재시작 후에도 유지  
+
+### Cursor 요청 프롬프트
+```text
+Unit 42를 구현하라. 전투 속도 프리셋, 판매 확인, 준비 단계 Undo 1회를
+기존 Grid/Battle/Settings에 확장하라.
+```
+
+---
+
+## Unit 43 — 위협 예고와 보스 브리핑 강화
+
+### 목표
+“다음에 뭐가 오는지”를 유저가 읽게 한다.
+
+### 구현 내용
+1. 다음 웨이브 적 아이콘 티커(HUD)  
+2. 보스 역 진입 시 페이즈 요약 카드  
+3. 기존 `StationBriefing` 데이터 재활용  
+
+### 완료 기준
+* 첫 플레이어도 위협 방향을 텍스트 없이 인지 가능  
+
+### Cursor 요청 프롬프트
+```text
+Unit 43을 구현하라. 웨이브 예고와 보스 브리핑 UI를 BattleHud에 연결하라.
+```
+
+---
+
+## Unit 44 — 결과 연출·패배 학습
+
+### 목표
+결과 화면이 Placeholder가 아닌 학습+보상 연출이 되게 한다.
+
+### 구현 내용
+1. `ResultPlaceholderController` → `ResultController` 리네임/정리  
+2. 패배 원인 1줄(열차 HP 0 / 보스 실패 등)  
+3. 신규 해금·조각 획득 연출  
+4. 광고 2배 버튼 정책 유지  
+
+### 완료 기준
+* 승/패 모두 원인·보상이 읽힘  
+* 기존 Meta 반영 회귀 없음  
+
+### Cursor 요청 프롬프트
+```text
+Unit 44를 구현하라. 결과 화면을 연출·패배 학습 중심으로 개선하라.
+```
+
+---
+
+## Unit 45 — FTUE 개선 (퀵스타트·스킵 후 가이드)
+
+### 목표
+튜토리얼 이탈을 줄이고, 스킵 후에도 최소한의 가이드를 남긴다.
+
+### 구현 내용
+1. 튜토리얼 단계 시간 단축/병합 검토(데이터)  
+2. 스킵 시 첫 전투에 한정 툴팁 1–2개  
+3. Analytics로 skip/complete funnel  
+
+### 완료 기준
+* 스킵 후에도 Ready/Summon을 찾을 수 있음  
+
+### Cursor 요청 프롬프트
+```text
+Unit 45를 구현하라. FTUE를 단축하고 스킵 후 가이드를 남겨라.
+```
+
+---
+
+# Phase 3 — Content Depth
+
+## Unit 46 — 승객 +4 · 스킬 피드백 강화
+
+### 목표
+승객 12종, 스킬 발동 가독성 향상.
+
+### 구현 내용
+1. PassengerData 4종 + 스킬 구현  
+2. GameDatabase/해금 테이블 등록  
+3. 스킬 발동 시 HUD 아이콘 플래시  
+4. 밸런스 시뮬 스모크  
+
+### 완료 기준
+* 신규 승객 소환·합성·전투 가능  
+* 기존 8종 회귀 없음  
+
+### Cursor 요청 프롬프트
+```text
+Unit 46을 구현하라. 승객 4종과 스킬 피드백을 추가하고 DB·테스트에 반영하라.
+```
+
+---
+
+## Unit 47 — 시너지 +5 · HUD 가독성
+
+### 목표
+시너지 8종, 활성 시너지가 전투 중 명확.
+
+### 구현 내용
+1. SynergyData 5종 + 효과 적용  
+2. SynergyHud 활성/비활성 대비 강화  
+
+### 완료 기준
+* 조건 충족 시 수치 반영 로그/테스트  
+
+### Cursor 요청 프롬프트
+```text
+Unit 47을 구현하라. 시너지 5종과 HUD 가독성을 추가하라.
+```
+
+---
+
+## Unit 48 — 이벤트 +8 · 유물 +6
+
+### 목표
+회차 변주 풀 확대.
+
+### 구현 내용
+1. EventData 8 · RelicData 6  
+2. EffectApplier 확장(기존 타입 우선, 신규 타입 최소화)  
+3. Rest 역을 Line1 또는 Line2에 실배치  
+
+### 완료 기준
+* 이벤트/유물/Rest가 노선에서 실제로 등장  
+
+### Cursor 요청 프롬프트
+```text
+Unit 48을 구현하라. 이벤트·유물 확장과 Rest 역 실배치를 하라.
+대형 switch 남용을 피하라.
+```
+
+---
+
+## Unit 49 — Daily Rule Modifier
+
+### 목표
+오늘의 막차에 규칙 변형을 붙인다.
+
+### 구현 내용
+1. `DailyRuleData` 6종(예: 좌석 1 잠금, 소환비+-, 적속+, 유물 시작 1)  
+2. `DailyRunService`에 규칙 시드 결합  
+3. 홈/브리핑에 오늘 규칙 표시  
+
+### 완료 기준
+* 같은 날짜=같은 규칙+시드  
+* 일반 회차에는 미적용  
+
+### Cursor 요청 프롬프트
+```text
+Unit 49를 구현하라. Daily Rule Modifier를 오늘의 막차에 연결하라.
+```
+
+---
+
+## Unit 50 — Quick Run 모드
+
+### 목표
+3–5분 압축 노선으로 재접속 허들을 낮춘다.
+
+### 구현 내용
+1. `Route_Quick` 5역 구성  
+2. 홈에서 Quick Run 진입  
+3. 보상 배율 Remote/데이터로 조정  
+
+### 완료 기준
+* Quick Run 완주 가능, Meta 보상 기록  
+
+### Cursor 요청 프롬프트
+```text
+Unit 50을 구현하라. Quick Run 5역 노선과 메뉴 진입을 추가하라.
+```
+
+---
+
+## Unit 51 — Endless 마일스톤 트랙
+
+### 목표
+무한 모드에 단계 보상 서사를 준다.
+
+### 구현 내용
+1. 마일스톤 테이블(역/점수)  
+2. 수령 UI + Meta 저장  
+3. 로컬 최고와 분리 표기  
+
+### 완료 기준
+* 마일스톤 중복 수령 불가  
+
+### Cursor 요청 프롬프트
+```text
+Unit 51을 구현하라. Endless 마일스톤 보상 트랙을 추가하라.
+```
+
+---
+
+# Phase 4 — LiveOps Face
+
+## Unit 52 — 시즌 패스 UI (Free + Ad 트랙)
+
+### 목표
+LiveEvent 보상 트랙을 “패스” UX로 노출한다. IAP 트랙은 넣지 않는다.
+
+### 구현 내용
+1. Free/Ad 이중 트랙 UI  
+2. 기존 `EventRewardTrack` 확장 또는 매핑  
+3. 광고 수령은 AdCoordinator  
+
+### 완료 기준
+* 시즌 중 트랙 진행·수령 가능, 종료 후 안전  
+
+### Cursor 요청 프롬프트
+```text
+Unit 52를 구현하라. Free/Ad 시즌 패스 UI를 LiveOps와 연결하라. IAP는 넣지 마라.
+```
+
+---
+
+## Unit 53 — 서버 시각 · Remote LiveOps 카탈로그 토글
+
+### 목표
+운영 타이밍을 로컬 시계에서 분리할 수 있는 경로를 완성한다.
+
+### 구현 내용
+1. `ServerSyncedLiveEventClock` 실사용 경로  
+2. Remote catalog provider 토글(실패 시 로컬)  
+3. 이벤트 경계에서 RunSave 손상 방지 회귀 테스트  
+
+### 완료 기준
+* 시계/카탈로그 실패 시 기본 게임 진행  
+
+### Cursor 요청 프롬프트
+```text
+Unit 53을 구현하라. 서버 시각과 Remote LiveOps 카탈로그 폴백을 완성하라.
+```
+
+---
+
+# Phase 5 — Soft Launch Gate
+
+## Unit 54 — Soft Launch QA · 밸런스 게이트
+
+### 목표
+신규 콘텐츠 반영 후 실패율/성능 게이트를 통과한다.
+
+### 구현 내용
+1. Headless 시뮬 시나리오에 신규 승객/노선 추가  
+2. `Docs/RELEASE_QA_CHECKLIST.md` Soft Launch 섹션 갱신·수행  
+3. 저사양 프레임 체크  
+
+### 완료 기준
+* 체크리스트 항목 통과 기록  
+
+### Cursor 요청 프롬프트
+```text
+Unit 54를 수행하라. Soft Launch QA와 밸런스 시뮬 게이트를 갱신·통과하라.
+```
+
+---
+
+## Unit 55 — Soft Launch AAB · Play 트랙 배포
+
+### 목표
+내부/비공개 테스트 트랙에 Soft Launch 후보 AAB를 올린다.
+
+### 구현 내용
+1. versionName/versionCode 범프  
+2. ReleaseValidator + AAB  
+3. `Docs/PLAY_CONSOLE_INTERNAL_TEST.md` 절차 수행  
+
+### 완료 기준
+* Play 콘솔 업로드 가능 AAB  
+* 실기기 1사이클 클리어  
+
+### Cursor 요청 프롬프트
+```text
+Unit 55를 수행하라. Soft Launch용 AAB와 배포 체크리스트를 완료하라.
+```
+
+---
+
+# Phase 6 — Backlog (착수 조건 있음)
+
+## Unit 56 — EN 로컬라이즈 파이프라인
+시작 조건: Soft Launch KO KPI 확인 후  
+## Unit 57 — Play Games 클라우드 세이브  
+시작 조건: D7 리텐션 목표 근접  
+## Unit 58 — 코스메틱(객차/승객 스킨)  
+시작 조건: 시즌 패스 안정화 후  
+## Unit 59 — IAP 광고제거  
+시작 조건: 광고 eCPM·리뷰 안정화 후  
+## Unit 60 — 경량 소지품 슬롯  
+시작 조건: 덱 다양성 KPI 부족 시  
+
+(56–60은 착수 시 상세 완료 기준을 본 문서에 추가한다.)
+
+---
+
+# 권장 실제 개발 순서
+
+```text
+35 → 36 → 37
+→ 38 → 39 → 40 → 41
+→ 42 → 43 → 44 → 45
+→ 46 → 47 → 48 → 49 → 50 → 51
+→ 52 → 53
+→ 54 → 55
+```
+
+완료 기준(제품):
+
+> Soft Launch 유저가 광고·정책·크래시 없이 회차를 끝내고,  
+> 다음날 출석·도감·일일 규칙·시즌 때문에 다시 접속한다.
+
+---
+
+# 체크포인트
+
+## Checkpoint K — Trust Ready
+Units: 35–37  
+## Checkpoint L — Week-1 Hook
+Units: 38–41  
+## Checkpoint M — Comfort & FTUE
+Units: 42–45  
+## Checkpoint N — Content Pack
+Units: 46–51  
+## Checkpoint O — LiveOps Face
+Units: 52–53  
+## Checkpoint P — Soft Launch Ship
+Units: 54–55

@@ -83,6 +83,37 @@ namespace LastTrain.Tests.EditMode
             Assert.Greater(_slots[0].GetComponent<Image>().color.a, 0.2f);
         }
 
+        [Test]
+        public void SameSlotDrop_DoesNotClearMergeHighlight()
+        {
+            MergeHighlightService.Refresh(_grid, _runState);
+            _slots[0].SetHighlightActive(false);
+            _slots[1].SetHighlightActive(false);
+
+            for (int i = 0; i < _slots.Length; i++)
+            {
+                _slots[i].SetLocked(false);
+            }
+
+            MergeHighlightService.Refresh(_grid, _runState);
+            Assert.Greater(_slots[0].GetComponent<Image>().color.g, 0.5f);
+            Assert.Greater(_slots[1].GetComponent<Image>().color.g, 0.5f);
+            Assert.Greater(_slots[0].GetComponent<Image>().color.a, 0.2f);
+        }
+
+        [Test]
+        public void SetLockedFalse_WhenAlreadyUnlocked_KeepsMergeHighlight()
+        {
+            MergeHighlightService.Refresh(_grid, _runState);
+            Assert.Greater(_slots[0].GetComponent<Image>().color.g, 0.5f);
+
+            _slots[0].SetLocked(false);
+            _slots[1].SetLocked(false);
+
+            Assert.Greater(_slots[0].GetComponent<Image>().color.g, 0.5f);
+            Assert.Greater(_slots[1].GetComponent<Image>().color.g, 0.5f);
+        }
+
         private static PassengerData CreatePassenger(string id)
         {
             var data = ScriptableObject.CreateInstance<PassengerData>();

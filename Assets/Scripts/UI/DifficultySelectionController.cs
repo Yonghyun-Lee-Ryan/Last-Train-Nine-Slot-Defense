@@ -10,7 +10,7 @@ namespace LastTrain.UI
     /// <summary>메인 메뉴 난이도 선택 UI.</summary>
     public sealed class DifficultySelectionController : MonoBehaviour
     {
-        private const float ButtonHeight = 56f;
+        private const float ButtonHeight = UiButtonStyler.MenuDifficultyHeight;
 
         [SerializeField] private Transform buttonContainer;
         [SerializeField] private Text statusLabel;
@@ -26,8 +26,7 @@ namespace LastTrain.UI
             EnsureUi();
             RebuildButtons();
 
-            Canvas canvas = FindAnyObjectByType<Canvas>();
-            Transform safeArea = canvas != null ? canvas.transform.Find("SafeArea") : null;
+            Transform safeArea = MainMenuUiLayout.FindOwnedSafeArea(this);
             if (safeArea != null)
             {
                 MainMenuUiLayout.Apply(safeArea);
@@ -39,13 +38,11 @@ namespace LastTrain.UI
 
         private void EnsureUi()
         {
-            Canvas canvas = FindAnyObjectByType<Canvas>();
-            if (canvas == null)
+            Transform safeArea = MainMenuUiLayout.FindOwnedSafeArea(this);
+            if (safeArea == null)
             {
                 return;
             }
-
-            Transform safeArea = canvas.transform.Find("SafeArea") ?? canvas.transform;
             if (buttonContainer == null)
             {
                 var containerGo = new GameObject("DifficultySelection", typeof(RectTransform));
@@ -119,7 +116,8 @@ namespace LastTrain.UI
                 label,
                 ButtonHeight,
                 () => SelectDifficulty(id, unlocked),
-                fontSize: 30);
+                fontSize: 30,
+                preferredWidth: UiButtonStyler.MenuActionMaxWidth);
             UiButtonStyler.ApplyStandardTheme(button);
             Text labelText = button.GetComponentInChildren<Text>();
             if (labelText != null)
